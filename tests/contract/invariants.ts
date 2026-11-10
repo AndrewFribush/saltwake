@@ -17,7 +17,7 @@ export function audit(s:any){
   for(const a of r.assignments)assert.deepEqual(items.get(a.item_id)?.location,{kind:'reserved',run:r.id,socket:a.socket,source_pool:a.source_pool});
  }
  for(const i of s.items){const l=i.location;
-  if(l.kind==='edition_fixed'){const e=s.editions.find((e:any)=>e.id===l.edition);assert.ok(e);assert.ok(e.funded_ids.includes(i.id));assert.equal(l.item_type,i.item_type);assert.equal(e.closed,false);}
+  if(l.kind==='edition_fixed'){const e=s.editions.find((e:any)=>e.id===l.edition);assert.ok(e);assert.ok([...e.funded_ids,...(e.refresh_ids??[])].includes(i.id));assert.equal(l.item_type,i.item_type);assert.equal(e.closed,false);}
   if(l.kind==='owned')assert.ok(Object.hasOwn(s.credits,l.profile));
   if(l.kind==='consumed')assert.ok(['tonic','fineTonic'].includes(i.item_type));
   if(l.kind==='reserved'||l.kind==='loadout'){

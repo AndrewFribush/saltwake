@@ -9,6 +9,7 @@ export function resolveEnemies(s:RunState,guard:boolean){
  for(const e of [...s.enemies].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)){
   if(s.player.hp<=0)break;
   if(e.hp<=0)continue;
+  if(s.roguelike&&!e.alerted){if(distance(e,s.player)>5)continue;e.alerted=true;}
   if(e.recovering){e.recovering=false;continue;}
   if(e.kind==='charger'&&e.lane?.length){
    for(const tile of e.lane){
@@ -40,11 +41,13 @@ export function revealIntents(s:RunState){
  for(let i=0;i<queue.length;i++)for(const next of neighbors(queue[i]))if(walkable(s,next)&&!distances.has(key(next))){distances.set(key(next),distances.get(key(queue[i]))!+1);queue.push(next);}
  for(const e of s.enemies){
   e.lane=[];
+  if(s.roguelike&&!e.alerted&&distance(e,s.player)>5){e.intent={x:e.x,y:e.y};continue;}
   if(e.recovering){e.intent={x:e.x,y:e.y};continue;}
   if(e.kind==='charger'&&(e.x===s.player.x||e.y===s.player.y)){
    const dx=Math.sign(s.player.x-e.x),dy=Math.sign(s.player.y-e.y);
    if(dx||dy){let p={x:e.x+dx,y:e.y+dy};while(walkable(s,p)){e.lane.push(p);p={x:p.x+dx,y:p.y+dy};}}
    if(e.lane.some(p=>same(p,s.player))){e.intent=e.lane[0];continue;}e.lane=[];
+  if(s.roguelike&&!e.alerted&&distance(e,s.player)>5){e.intent={x:e.x,y:e.y};continue;}
   }
   const choices=neighbors(e).filter(p=>walkable(s,p)&&distances.has(key(p))&&!s.enemies.some(other=>other.id!==e.id&&same(other,p)));
   choices.sort((a,b)=>distances.get(key(a))!-distances.get(key(b))!);

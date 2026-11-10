@@ -86,6 +86,40 @@ impl Economy {
                 });
             }
         }
+        // BTreeMap iteration sorts current stock by item ID. Each socket draws from
+        // the remaining table; SHA256 input is Borsh(seed, socket ID), never wall time.
+        for socket in &edition.terms.sockets {
+            if let Some(table) = edition
+                .random_tables
+                .iter()
+                .find(|t| t.socket_ids.contains(&socket.id))
+            {
+                let pool: Vec<_> = self
+                    .items
+                    .values()
+                    .filter(|i| {
+                        !selected.contains(&i.id)
+                            && i.location
+                                == (Location::EditionRandom {
+                                    edition: edition_id.clone(),
+                                    table_id: table.table_id.clone(),
+                                })
+                    })
+                    .collect();
+                if pool.is_empty() {
+                    return Err("IncompleteBundle".into());
+                }
+                let digest = env::sha256(&borsh::to_vec(&(seed.0, &socket.id)).unwrap());
+                let draw = u64::from_le_bytes(digest[..8].try_into().unwrap());
+                let item = pool[(draw % pool.len() as u64) as usize];
+                selected.insert(item.id.clone());
+                assignments.push(Assignment {
+                    socket: socket.id.clone(),
+                    item_id: item.id.clone(),
+                    source_pool: format!("random:{}", table.table_id),
+                });
+            }
+        }
         let balance = self.credits.get_mut(&actor).unwrap();
         if *balance < edition.fee.0 {
             return Err("InsufficientCredits".into());

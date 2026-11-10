@@ -7,6 +7,7 @@ impl Economy {
         terms: Terms,
         fee: U64,
         funding: Vec<String>,
+        random_tables: Vec<RandomTable>,
     ) -> Result<String, String> {
         let now = now_ms();
         if terms.run_duration_ms.0 != 900000
@@ -64,7 +65,44 @@ impl Economy {
                 cost += 1;
             }
         }
-        if terms.no_reward != required.is_empty() {
+        let mut table_ids = BTreeSet::new();
+        let mut random_sockets = BTreeSet::new();
+        let mut all_funding = funding.clone();
+        if random_tables.len() > 16 {
+            return Err("InvalidRandomTable".into());
+        }
+        for table in &random_tables {
+            if table.table_id.is_empty()
+                || table.table_id.len() > 40
+                || !table_ids.insert(&table.table_id)
+                || table.socket_ids.is_empty()
+                || table.socket_ids.len() > 16
+            {
+                return Err("InvalidRandomTable".into());
+            }
+            for socket_id in &table.socket_ids {
+                if !random_sockets.insert(socket_id)
+                    || !terms
+                        .sockets
+                        .iter()
+                        .any(|s| &s.id == socket_id && s.reward.is_none())
+                {
+                    return Err("InvalidRandomSocket".into());
+                }
+                cost += 1;
+            }
+            if table.item_ids.len() < table.socket_ids.len() {
+                return Err("IncompleteBundle".into());
+            }
+            all_funding.extend(table.item_ids.clone());
+        }
+        if all_funding.len() > 128 {
+            return Err("FundingCapacity".into());
+        }
+        if all_funding.iter().collect::<BTreeSet<_>>().len() != all_funding.len() {
+            return Err("DuplicateFunding".into());
+        }
+        if terms.no_reward != (required.is_empty() && random_tables.is_empty()) {
             return Err("RewardDeclaration".into());
         }
         if funding.iter().collect::<BTreeSet<_>>().len() != funding.len() {
@@ -93,6 +131,19 @@ impl Economy {
         {
             return Err("IncompleteBundle".into());
         }
+        for table in &random_tables {
+            for id in &table.item_ids {
+                let item = self.items.get(id).ok_or("MissingItem")?;
+                if item.location
+                    != (Location::Owned {
+                        profile: actor.clone(),
+                    })
+                {
+                    return Err("UnownedFunding".into());
+                }
+                value += item.item_type.value();
+            }
+        }
         let balance = self.credits.get_mut(&actor).unwrap();
         if *balance < cost {
             return Err("InsufficientCredits".into());
@@ -108,18 +159,36 @@ impl Economy {
                 item_type: item.item_type,
             };
         }
+        for table in &random_tables {
+            for item_id in &table.item_ids {
+                self.items.get_mut(item_id).unwrap().location = Location::EditionRandom {
+                    edition: id.clone(),
+                    table_id: table.table_id.clone(),
+                };
+            }
+        }
         let edition = Edition {
             id: id.clone(),
             maker: actor,
-            terms_hash: hash(&terms),
+            terms_hash: if random_tables.is_empty() {
+                hash(&terms)
+            } else {
+                hash(&(&terms, &random_tables))
+            },
             terms,
             fee,
             version: U64(1),
             placement_paid: U64(cost),
             original_value: U64(value),
+            refresh_value: U64(0),
+            refresh_ids: vec![],
+            random_tables,
             active_runs: vec![],
-            funded_ids: funding,
+            funded_ids: all_funding,
             closed: false,
+            extracted_value: U64(0),
+            consumed_value: U64(0),
+            banked_value: U64(0),
         };
         self.editions.insert(id.clone(), edition);
         Ok(id)
@@ -145,13 +214,125 @@ impl Economy {
         if !edition.active_runs.is_empty() {
             return Err("ActiveReservations".into());
         }
+        let mut banked = 0u64;
         for item in self.items.values_mut() {
             if matches!(&item.location,Location::EditionFixed{edition,..}|Location::EditionRandom{edition,..} if edition==&edition_id)
             {
+                banked = banked
+                    .checked_add(item.item_type.value())
+                    .ok_or("ValueOverflow")?;
                 item.location = Location::Bank;
             }
         }
-        self.editions.get_mut(&edition_id).unwrap().closed = true;
+        let edition = self.editions.get_mut(&edition_id).unwrap();
+        edition.banked_value = U64(edition
+            .banked_value
+            .0
+            .checked_add(banked)
+            .ok_or("ValueOverflow")?);
+        edition.closed = true;
+        Ok(edition_id)
+    }
+}
+
+impl Economy {
+    pub(crate) fn set_fee(
+        &mut self,
+        actor: String,
+        edition_id: String,
+        new_fee: U64,
+    ) -> Result<String, String> {
+        let e = self.editions.get_mut(&edition_id).ok_or("MissingEdition")?;
+        if e.maker != actor {
+            return Err("WrongMaker".into());
+        }
+        if e.closed || now_ms() >= e.terms.closes_at_ms.0 {
+            return Err("EditionNotOpen".into());
+        }
+        if new_fee.0 > 1_000_000 {
+            return Err("InvalidFee".into());
+        }
+        e.version = U64(e.version.0.checked_add(1).ok_or("VersionOverflow")?);
+        e.fee = new_fee;
+        Ok(edition_id)
+    }
+    pub(crate) fn refresh(
+        &mut self,
+        actor: String,
+        edition_id: String,
+        fixed: Vec<String>,
+        random: Vec<RandomFunding>,
+    ) -> Result<String, String> {
+        let e = self
+            .editions
+            .get(&edition_id)
+            .ok_or("MissingEdition")?
+            .clone();
+        if e.maker != actor {
+            return Err("WrongMaker".into());
+        }
+        if e.closed || now_ms() >= e.terms.closes_at_ms.0 {
+            return Err("EditionNotOpen".into());
+        }
+        let count = fixed.len() + random.iter().map(|t| t.item_ids.len()).sum::<usize>();
+        if count == 0 || count > 128 || random.len() > 16 || e.refresh_ids.len() + count > 128 {
+            return Err("FundingCapacity".into());
+        }
+        let mut seen = BTreeSet::new();
+        let mut tables = BTreeSet::new();
+        let mut value = 0;
+        for (id, table) in fixed.iter().map(|id| (id, None)).chain(
+            random
+                .iter()
+                .flat_map(|t| t.item_ids.iter().map(move |id| (id, Some(&t.table_id)))),
+        ) {
+            if !seen.insert(id.clone()) {
+                return Err("DuplicateFunding".into());
+            }
+            let item = self.items.get_mut(id).ok_or("MissingItem")?;
+            if item.location
+                != (Location::Owned {
+                    profile: actor.clone(),
+                })
+            {
+                return Err("UnownedFunding".into());
+            }
+            item.location = if let Some(table_id) = table {
+                if !e.random_tables.iter().any(|t| &t.table_id == table_id) {
+                    return Err("UnknownRandomTable".into());
+                }
+                Location::EditionRandom {
+                    edition: edition_id.clone(),
+                    table_id: table_id.clone(),
+                }
+            } else {
+                if !e
+                    .terms
+                    .sockets
+                    .iter()
+                    .any(|s| s.reward == Some(item.item_type))
+                {
+                    return Err("UnusedFundingType".into());
+                }
+                Location::EditionFixed {
+                    edition: edition_id.clone(),
+                    item_type: item.item_type,
+                }
+            };
+            value += item.item_type.value();
+        }
+        for table in &random {
+            if table.item_ids.is_empty() || !tables.insert(&table.table_id) {
+                return Err("InvalidRandomTable".into());
+            }
+        }
+        let e = self.editions.get_mut(&edition_id).unwrap();
+        e.refresh_value = U64(e
+            .refresh_value
+            .0
+            .checked_add(value)
+            .ok_or("ValueOverflow")?);
+        e.refresh_ids.extend(seen);
         Ok(edition_id)
     }
 }

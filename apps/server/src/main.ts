@@ -1,0 +1,11 @@
+import {readFileSync} from 'node:fs';
+import {JsonRpcProvider,KeyPairSigner} from 'near-api-js';
+import {DemoSessions} from './auth';
+import {Store} from './db';import {Outbox} from './outbox';import {NearChain} from './chain';import {Runs} from './runs';import {httpServer} from './http';
+import type {EconomySnapshot} from '../../../packages/shared/src/types';
+const config=JSON.parse(readFileSync('.state/sandbox.json','utf8'));
+const url=new URL(config.rpcUrl);if(url.hostname!=='127.0.0.1'&&url.hostname!=='localhost')throw Error('Only local sandbox RPC allowed');
+const provider=new JsonRpcProvider({url:config.rpcUrl});const db=new Store('.state/'+config.epoch+'/server.sqlite');const chain=new NearChain(provider,KeyPairSigner.fromSecretKey(config.privateKey),config.accountId,config.accountId);const box=new Outbox(db,chain);const runs=new Runs(db,box);
+const {server}=httpServer(box,runs,async()=>{const s=await provider.callFunction<EconomySnapshot>({contractId:config.accountId,method:'snapshot',args:{},blockQuery:{finality:'final'}});if(!s)throw Error('No chain snapshot');return s;},new DemoSessions({profiles:config.profiles??['buyer','maker','p2','p3','p4','p5'],secureCookies:false}));
+server.listen(18931,'127.0.0.1',()=>console.log('Local custodial demo API: http://127.0.0.1:18931'));
+for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>server.close(()=>{db.close();process.exit();}));

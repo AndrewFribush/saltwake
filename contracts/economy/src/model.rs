@@ -136,6 +136,68 @@ pub enum Action {
     FinalizeClose {
         edition_id: String,
     },
+    PublishRandom {
+        terms: Terms,
+        fee: U64,
+        fixed_funding: Vec<String>,
+        random_tables: Vec<RandomTable>,
+    },
+    Refresh {
+        edition_id: String,
+        fixed_funding: Vec<String>,
+        random_funding: Vec<RandomFunding>,
+    },
+    SetFee {
+        edition_id: String,
+        new_fee: U64,
+    },
+    List {
+        item_ids: Vec<String>,
+        unit_price: U64,
+    },
+    CancelListing {
+        listing_id: String,
+    },
+    Buy {
+        listing_id: String,
+        item_ids: Vec<String>,
+        expected_unit_price: U64,
+    },
+    BankBuy {
+        item_ids: Vec<String>,
+        expected_unit_prices: Vec<U64>,
+    },
+    BankSell {
+        item_ids: Vec<String>,
+        expected_unit_prices: Vec<U64>,
+    },
+    FillNpcOrder {
+        order_id: String,
+        item_ids: Vec<String>,
+        expected_unit_price: U64,
+    },
+    BeginCraft {
+        batch_id: String,
+        input_ids: Vec<String>,
+        challenge_commitment: String,
+        deadline_ms: U64,
+    },
+    FinishCraft {
+        batch_id: String,
+        tier: CraftTier,
+        reason: FinishReason,
+    },
+    BeginRecovery {
+        batch_id: String,
+        bank_input_ids: Vec<String>,
+        challenge_commitment: String,
+        deadline_ms: U64,
+    },
+    FinishRecovery {
+        batch_id: String,
+        tier: CraftTier,
+        reason: FinishReason,
+    },
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]
@@ -154,6 +216,19 @@ pub struct Receipt {
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]
+pub struct RandomTable {
+    pub table_id: String,
+    pub socket_ids: Vec<String>,
+    pub item_ids: Vec<String>,
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct RandomFunding {
+    pub table_id: String,
+    pub item_ids: Vec<String>,
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
 pub struct Edition {
     pub id: String,
     pub maker: String,
@@ -163,9 +238,16 @@ pub struct Edition {
     pub version: U64,
     pub placement_paid: U64,
     pub original_value: U64,
+    pub refresh_value: U64,
+    pub refresh_ids: Vec<String>,
+    pub random_tables: Vec<RandomTable>,
     pub active_runs: Vec<String>,
     pub funded_ids: Vec<String>,
     pub closed: bool,
+    // Cumulative dungeon reward reference values; never include town loadout.
+    pub extracted_value: U64,
+    pub consumed_value: U64,
+    pub banked_value: U64,
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]
@@ -209,6 +291,32 @@ pub struct Rules {
     pub run_duration_ms: U64,
     pub max_runs: u8,
 }
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Listing {
+    pub id: String,
+    pub seller: String,
+    pub item_ids: Vec<String>,
+    pub remaining_ids: Vec<String>,
+    pub unit_price: U64,
+    pub status: String,
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct NpcOrder {
+    pub id: String,
+    pub item_type: ItemType,
+    pub unit_price: U64,
+    pub remaining: u8,
+    pub budget: U64,
+    pub seeded_demo_demand: bool,
+}
+#[near(serializers=[json])]
+pub struct BankPrice {
+    pub item_type: ItemType,
+    pub sale_price: U64,
+    pub buyback_price: U64,
+}
 #[near(serializers=[json])]
 pub struct Snapshot {
     pub credits: std::collections::BTreeMap<String, U64>,
@@ -216,6 +324,11 @@ pub struct Snapshot {
     pub items: Vec<Item>,
     pub editions: Vec<Edition>,
     pub runs: Vec<Run>,
+    pub listings: Vec<Listing>,
+    pub npc_order: NpcOrder,
+    pub bank_prices: Vec<BankPrice>,
+    pub batches: Vec<CraftBatch>,
+    pub recovery: RecoveryState,
 }
 
 #[near(serializers=[borsh,json])]
@@ -236,4 +349,43 @@ pub struct Partition {
     pub dungeon_consumed: Vec<String>,
     pub dungeon_extracted: Vec<String>,
     pub dungeon_returned: Vec<String>,
+}
+
+#[near(serializers=[borsh,json])]
+#[derive(Clone, Copy, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum CraftTier {
+    Normal,
+    Fine,
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone, Copy, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum FinishReason {
+    Completed,
+    Expired,
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct CraftBatch {
+    pub id: String,
+    pub actor: String,
+    pub input_ids: Vec<String>,
+    pub challenge_commitment: String,
+    pub deadline_ms: U64,
+    pub recovery: bool,
+    pub wage_reserved: U64,
+    pub status: String,
+    pub tier: Option<CraftTier>,
+    pub reason: Option<FinishReason>,
+    pub output_ids: Vec<String>,
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct RecoveryState {
+    pub epoch: String,
+    pub budget: U64,
+    pub wage: U64,
+    pub max_jobs_per_profile: u8,
+    pub jobs: std::collections::BTreeMap<String, u8>,
 }

@@ -1,0 +1,40 @@
+{
+  "status": "PROPOSAL_ONLY",
+  "provider": "NEAR Testnet",
+  "rpc": "https://test.rpc.fastnear.com",
+  "proposedAccount": "dungeon-economy-demo-20261110.testnet",
+  "contract": "dungeon-economy-demo-20261110.testnet",
+  "accountOwnershipVerified": false,
+  "artifact": "contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm",
+  "sha256": "019eb91875afe66a836de440f7f7c7c4cce7e36db49875c770ff7a6edd583079",
+  "artifactBytes": 862787,
+  "bounds": {
+    "transactionAttempts": 20,
+    "totalGasTgas": 2200,
+    "testnetNearMaximum": 10,
+    "wallMinutes": 30,
+    "mainnet": false,
+    "realMoney": false,
+    "paidInference": false,
+    "hosting": false
+  },
+  "sequence": [
+    "deploy pinned WASM",
+    "init_demo_extended once",
+    "publish maker-funded edition",
+    "admit buyer with exact quoted fee and gear",
+    "play and settle extraction with actual server-derived partition",
+    "refresh edition",
+    "change future fee and reject stale quote",
+    "list an owned item",
+    "buy exact listing from another profile",
+    "begin craft with locked materials",
+    "finish using server-recorded timing",
+    "admit another funded attempt",
+    "play death and settle lost town gear",
+    "begin/finish one eligible recovery job",
+    "after cutoff and confirmed terminal receipts, finalize closure",
+    "read balances, item locations and immutable receipts"
+  ],
+  "requires": "Exact user approval, verified control of proposed account, securely provisioned testnet signing key and an implemented bounded executor. No external action has occurred."
+}

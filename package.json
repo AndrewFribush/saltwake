@@ -9,11 +9,13 @@
     "typecheck": "tsc --noEmit",
     "test:game": "tsx --test packages/game/test/*.test.ts",
     "test": "npm run test:game",
-    "test:contract": "tsx --test tests/contract/*.test.ts",
-    "test:server": "node scripts/not-ready.mjs server",
-    "test:e2e": "node scripts/not-ready.mjs e2e",
+    "test:contract": "tsx --test --test-concurrency=2 tests/contract/*.test.ts",
+    "test:server": "tsx --test --test-concurrency=2 apps/server/test/*.test.ts",
+    "test:e2e": "tsx --test apps/server/test/http-loop.test.ts apps/server/test/economy-loop.test.ts",
     "build:contract": "cargo build --manifest-path contracts/economy/Cargo.toml --target wasm32-unknown-unknown --release --locked",
-    "verify": "npm run typecheck && npm run build:contract && npm test && npm run test:contract && npm run build"
+    "verify": "npm run typecheck && npm run build:contract && npm test && npm run test:contract && npm run test:server && npm run build",
+    "server": "tsx apps/server/src/main.ts",
+    "sandbox": "tsx scripts/demo-sandbox.ts"
   },
   "dependencies": {
     "react": "19.2.0",

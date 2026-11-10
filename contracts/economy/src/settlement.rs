@@ -113,12 +113,43 @@ impl Economy {
         }
         for id in &d.dungeon_returned {
             let i = self.items.get_mut(id).unwrap();
-            i.location = Location::EditionFixed {
-                edition: run.edition.clone(),
-                item_type: i.item_type,
+            let assignment = run.assignments.iter().find(|a| &a.item_id == id).unwrap();
+            i.location = if let Some(table_id) = assignment.source_pool.strip_prefix("random:") {
+                Location::EditionRandom {
+                    edition: run.edition.clone(),
+                    table_id: table_id.into(),
+                }
+            } else {
+                Location::EditionFixed {
+                    edition: run.edition.clone(),
+                    item_type: i.item_type,
+                }
             };
         }
+        // Count only the validated dungeon partition. Town items may have been
+        // extracted previously; their later consumption/forfeiture is not a new
+        // reward disposition for this edition.
+        let extracted = d.dungeon_extracted.iter().try_fold(0u64, |value, id| {
+            value
+                .checked_add(self.items.get(id).unwrap().item_type.value())
+                .ok_or("ValueOverflow")
+        })?;
+        let consumed = d.dungeon_consumed.iter().try_fold(0u64, |value, id| {
+            value
+                .checked_add(self.items.get(id).unwrap().item_type.value())
+                .ok_or("ValueOverflow")
+        })?;
         let edition = self.editions.get_mut(&run.edition).unwrap();
+        edition.extracted_value = U64(edition
+            .extracted_value
+            .0
+            .checked_add(extracted)
+            .ok_or("ValueOverflow")?);
+        edition.consumed_value = U64(edition
+            .consumed_value
+            .0
+            .checked_add(consumed)
+            .ok_or("ValueOverflow")?);
         edition.active_runs.retain(|id| id != &run_id);
         let recipient = if outcome.is_none() {
             &actor

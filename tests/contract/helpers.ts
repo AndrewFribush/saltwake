@@ -22,10 +22,10 @@ export async function fixture(){
  const account=new Account(genesis.accountId,provider,genesis.privateKey as KeyPairString);
  const outsider=new Account(other.accountId,provider,other.privateKey as KeyPairString);
  await account.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));
- const call=(methodName:string,args:Record<string,unknown>={})=>account.callFunction<any>({contractId:genesis.accountId,methodName,args,gas:100_000_000_000_000n});
+ const call=(methodName:string,args:Record<string,unknown>={})=>account.callFunction<any>({contractId:genesis.accountId,methodName,args,gas:100_000_000_000_000n,waitUntil:methodName==='init_demo'?'FINAL':'INCLUDED_FINAL'});
  const view=(method:string,args:Record<string,unknown>={})=>provider.callFunction<any>({contractId:genesis.accountId,method,args});
  await call('init_demo');
- return {sandbox,call,view,apply:async(op_id:string,command:object)=>{const receipt=await call('execute',{op_id,command});audit(await view('snapshot'));assert.equal(receipt.payload_hash,commandHash(command as Command));return receipt;},outsider,contractId:genesis.accountId};
+ return {sandbox,provider,account,genesis,call,view,apply:async(op_id:string,command:object)=>{const receipt=await call('execute',{op_id,command});audit(await view('snapshot'));assert.equal(receipt.payload_hash,commandHash(command as Command));return receipt;},outsider,contractId:genesis.accountId};
  }catch(e){await sandbox.tearDown();throw e;}
 }
 export function terms(now:number){return {title:'First expedition',rules_version:1,modules:['cellar','gauntlet'],sockets:[{id:'sword',room:0,slot:0,enemy:'pursuer',trap:false,reward:'sword'},{id:'tonic-a',room:0,slot:1,enemy:'none',trap:false,reward:'tonic'},{id:'tonic-b',room:1,slot:0,enemy:'charger',trap:true,reward:'tonic'}],opens_at_ms:String(now-1000),closes_at_ms:String(now+120000),no_reward:false,difficulty_tag:'standard',style_tag:'combat',run_duration_ms:'900000',max_runs:4} as const;}
