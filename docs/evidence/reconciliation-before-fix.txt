@@ -9,12 +9,12 @@ not ok 1 - a sync requested after the current scan drains newly queued work befo
   error: |-
     Expected values to be strictly deep-equal:
     + actual - expected
-    
+
     + []
     - [
     -   'terminal-settlement'
     - ]
-    
+
   code: 'ERR_ASSERTION'
   name: 'AssertionError'
   expected:
