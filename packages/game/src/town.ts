@@ -9,7 +9,7 @@ export const places:{id:PlaceId;name:string;keeper:string;purpose:string;x:numbe
  {id:'guild',name:'Delvers’ guild',keeper:'The expedition steward',purpose:'Build a livelihood: fund treasure, open a dungeon, and collect entry fees.',x:18,y:9,width:4,height:3,door:{x:19,y:11}},
  {id:'gate',name:'The old catacombs',keeper:'The gatewarden',purpose:'Choose a funded expedition. What you bring can be lost.',x:19,y:1,width:4,height:3,door:{x:20,y:3}},
 ];
-export function townWalkable(p:TownPoint){return Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>=3&&p.x<townSize.width-1&&p.y>=1&&p.y<townSize.height-1&&(!places.some(b=>p.x>=b.x&&p.x<b.x+b.width&&p.y>=b.y&&p.y<b.y+b.height)||!!doorAt(p));}
+export function townWalkable(p:TownPoint){return Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>=0&&p.x<townSize.width&&p.y>=0&&p.y<townSize.height&&(p.x>=3||p.y===8)&&(!places.some(b=>p.x>=b.x&&p.x<b.x+b.width&&p.y>=b.y&&p.y<b.y+b.height)||!!doorAt(p));}
 export function townPath(from:TownPoint,to:TownPoint):TownPoint[]{
  if(!townWalkable(from)||!townWalkable(to))return [];
  const key=(p:TownPoint)=>`${p.x},${p.y}`;const queue=[from];const parents=new Map<string,TownPoint|null>([[key(from),null]]);

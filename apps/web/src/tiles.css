@@ -3,3 +3,4 @@
 .saltwake .room-board button.room-tile{min-width:0;min-height:0;padding:0;overflow:hidden}.room-tile small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.room-world .room-board{width:100%}
 /* Keep walls opaque and square even where alternating floor shading applies. */
 .saltwake .room-board button.room-wall{background:#35423b;box-shadow:inset 0 -6px #222e29,inset 0 2px #65715a;opacity:1}.saltwake .room-board button.room-fixture{background:#4f3e2b}.saltwake .room-board button.room-player{background:#bc9c57}.saltwake .room-board button.room-exit{background:#325451}
+.district-compass{position:absolute;bottom:4px;left:5%;right:5%;display:flex;justify-content:center;flex-wrap:wrap;gap:5px;pointer-events:none}.saltwake .district-compass button{pointer-events:auto;font-size:11px;padding:5px 8px;background:#162c26e8}@media(max-width:550px){.saltwake .district-compass button{font-size:9px;padding:3px 5px}}
