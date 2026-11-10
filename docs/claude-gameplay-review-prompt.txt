@@ -1,0 +1,388 @@
+Review M03-M05 and two-room practice implementation. Concrete important correctness bugs only, include reproduction; do not claim execution. Rules: charge telegraph committed lane, hazards affect enemies, 6 bag +weapon/armor, floor consumables usable once; full-bag equip empty slot allowed; displaced town item must stay bag or reject; displaced dungeon can floor. Origins immutable per run. Death: town to bank/dungeon unconsumed back to pool, consumed spent. Extract: only carried dungeon goods awarded. Void returns all unconsumed. Source IDs partition exactly once. No economics implemented yet. Review source below; return concise actionable findings.
+
+FILE packages/game/test/inventory.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRun,type RunState} from '../src/state';
+import {act} from '../src/actions';
+import {addItem,type RunItem} from '../src/inventory';
+function floor(s:RunState,id:string,type:RunItem['type']){addItem(s,{id,type,origin:'dungeon',location:{kind:'floor',room:0,x:1,y:1}});}
+function fill(s:RunState){for(let i=0;i<6;i++)addItem(s,{id:`herb${i}`,type:'herb',origin:'dungeon',location:{kind:'bag'}});}
+test('floor tonic heals once, retains origin and is consumed',()=>{const s=createRun();s.player.hp=3;floor(s,'tonic','tonic');const n=act(s,{type:'use',itemId:'tonic'});assert.equal(n.player.hp,7);assert.equal(n.items.tonic.location.kind,'consumed');assert.equal(n.items.tonic.origin,'dungeon');assert.equal(act(n,{type:'use',itemId:'tonic'}),n);});
+test('six bag slots; empty equipment slot works even when bag full',()=>{const s=createRun();fill(s);floor(s,'armor','armor');floor(s,'iron','iron');assert.equal(act(s,{type:'pickup',itemId:'iron'}),s);const n=act(s,{type:'equip',itemId:'armor'});assert.equal(n.items.armor.location.kind,'armor');assert.equal(n.player.armor,true);});
+test('full bag rejects displaced town gear; bag swap uses freed slot',()=>{const s=createRun();fill(s);floor(s,'sword','sword');assert.equal(act(s,{type:'equip',itemId:'sword'}),s);delete s.items.herb0;addItem(s,{id:'bag-sword',type:'sword',origin:'dungeon',location:{kind:'bag'}});const n=act(s,{type:'equip',itemId:'bag-sword'});assert.equal(n.items['town-club'].location.kind,'bag');assert.equal(n.player.weapon,'sword');});
+test('displaced dungeon weapon can remain on tile; town items cannot drop',()=>{let s=createRun();floor(s,'sword','sword');s=act(s,{type:'equip',itemId:'sword'});for(let i=0;i<5;i++)addItem(s,{id:`h${i}`,type:'herb',origin:'dungeon',location:{kind:'bag'}});floor(s,'club','club');const n=act(s,{type:'equip',itemId:'club'});assert.deepEqual(n.items.sword.location,{kind:'floor',room:0,x:1,y:1});assert.equal(act(n,{type:'drop',itemId:'town-club'}),n);});
+test('cannot use remote/unvisited loot, nonconsumables or consume at full health',()=>{const s=createRun();floor(s,'tonic','tonic');assert.equal(act(s,{type:'use',itemId:'tonic'}),s);s.player.hp=4;s.items.tonic.location={kind:'floor',room:1,x:1,y:1};assert.equal(act(s,{type:'use',itemId:'tonic'}),s);assert.equal(act(s,{type:'use',itemId:'town-club'}),s);});
+test('item IDs cannot be reused',()=>{const s=createRun();assert.throws(()=>addItem(s,{id:'town-club',type:'iron',origin:'dungeon',location:{kind:'bag'}}));});
+
+FILE packages/game/test/movement.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRun } from '../src/state';
+import { act } from '../src/actions';
+import { catalog } from '../../shared/src/catalog';
+test('move one cardinal step; wall and remote click leave state unchanged', () => {
+ const s=createRun();
+ assert.equal(act(s,{type:'move',x:0,y:1}),s);
+ assert.equal(act(s,{type:'move',x:5,y:1}),s);
+ const n=act(s,{type:'move',x:2,y:1});
+ assert.deepEqual(n.player,{x:2,y:1,hp:12,weapon:'club',armor:false});
+ assert.equal(n.turn,1); assert.equal(s.turn,0);
+});
+test('catalog matches eight reference prices',()=>assert.deepEqual(Object.values(catalog).map(x=>x.value),[4,12,8,2,2,2,6,8]));
+
+FILE packages/game/test/disposition.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRun} from '../src/state';
+import {act} from '../src/actions';
+import {addItem} from '../src/inventory';
+import {disposition} from '../src/disposition';
+function fixture(){const s=createRun();s.player.hp=3;addItem(s,{id:'potion',type:'tonic',origin:'dungeon',location:{kind:'floor',room:0,x:1,y:1}});addItem(s,{id:'sword',type:'sword',origin:'dungeon',location:{kind:'floor',room:0,x:1,y:1}});addItem(s,{id:'unvisited',type:'iron',origin:'dungeon',location:{kind:'floor',room:1,x:1,y:1}});return act(act(s,{type:'use',itemId:'potion'}),{type:'equip',itemId:'sword'});}
+test('death returns equipped finds and unvisited loot; forfeits town gear; consumption stays spent',()=>{const d=disposition(fixture(),'died');assert.deepEqual(d,{townConsumed:[],townReturned:[],townForfeited:['town-club'],dungeonConsumed:['potion'],dungeonExtracted:[],dungeonReturned:['sword','unvisited']});});
+test('extract awards only carried loot; void returns all surviving finds and town gear',()=>{const s=fixture();assert.deepEqual(disposition(s,'extracted').dungeonExtracted,['sword']);assert.deepEqual(disposition(s,'extracted').dungeonReturned,['unvisited']);assert.deepEqual(disposition(s,'void').townReturned,['town-club']);assert.deepEqual(disposition(s,'void').dungeonReturned,['sword','unvisited']);});
+test('previously extracted equipment admitted as town is forfeited next death',()=>{const s=createRun();addItem(s,{id:'old-find',type:'sword',origin:'town',location:{kind:'bag'}});assert.ok(disposition(s,'died').townForfeited.includes('old-find'));});
+test('corrupt manifests and consumed equipment fail closed',()=>{const s=fixture();s.items.sword.location={kind:'consumed'};assert.throws(()=>disposition(s,'died'));const n=fixture();n.reservedItemIds.push('sword');assert.throws(()=>disposition(n,'died'));const m=fixture();delete m.items.unvisited;assert.throws(()=>disposition(m,'died'));});
+test('seeded action traces partition every source exactly once for every outcome',()=>{for(let seed=1;seed<=32;seed++){let rng=seed;let s=fixture();for(let k=0;k<12;k++){rng=(Math.imul(rng,1664525)+1013904223)>>>0;const id=['sword','town-club','potion','unvisited'][rng%4];const type=(['pickup','equip','use','drop'] as const)[(rng>>>8)%4];s=act(s,{type,itemId:id});}for(const outcome of ['died','extracted','void'] as const){const d=disposition(s,outcome);const ids=Object.values(d).flat();assert.deepEqual([...ids].sort(),[...s.originalTownIds,...s.reservedItemIds].sort());assert.equal(new Set(ids).size,ids.length);assert.ok(d.dungeonConsumed.includes('potion'));}}});
+
+FILE packages/game/test/hazards.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRun} from '../src/state';
+import {act} from '../src/actions';
+import {revealIntents} from '../src/combat';
+function lane(){const s=createRun();s.player.x=3;s.player.y=3;s.enemies=[{id:'boar',kind:'charger',x:6,y:3,hp:6,intent:{x:5,y:3}}];revealIntents(s);return s;}
+test('charge is committed to a lane; sidestepping dodges; recovery gives a free turn',()=>{const s=lane();assert.equal(s.enemies[0].lane?.length,5);assert.equal(act(s,{type:'wait'}).player.hp,8);const n=act(s,{type:'move',x:3,y:4});assert.equal(n.player.hp,12);assert.equal(n.enemies[0].recovering,true);const p=act(n,{type:'wait'});assert.equal(p.player.hp,12);assert.equal(p.enemies[0].recovering,false);});
+test('charge strikes and stops at first enemy, protecting player behind',()=>{const s=lane();s.enemies.push({id:'z-rat',x:4,y:3,hp:4,intent:{x:3,y:3}});const n=act(s,{type:'wait'});assert.equal(n.player.hp,12);assert.equal(n.enemies.length,1);assert.equal(n.enemies[0].x,5);});
+test('armed traps hit player and enemies, alternate visibly; invalid moves do not toggle',()=>{const s=createRun();s.traps=[{id:'spikes',x:2,y:1,armed:true}];const hit=act(s,{type:'move',x:2,y:1});assert.equal(hit.player.hp,9);assert.equal(hit.traps[0].armed,false);assert.equal(act(s,{type:'move',x:0,y:1}),s);s.enemies=[{id:'rat',x:3,y:1,hp:3,intent:{x:2,y:1}}];const dodge=act(s,{type:'move',x:1,y:2});assert.equal(dodge.player.hp,12);assert.equal(dodge.enemies.length,0);});
+test('identical action trace reproduces hazards',()=>{const s=lane();const trace=[{type:'wait'},{type:'guard'},{type:'move',x:2,y:3}] as const;assert.deepEqual(trace.reduce(act,s),trace.reduce(act,structuredClone(s)));});
+
+FILE packages/game/test/controls.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {keyAction} from '../src/controls';
+import {createRun} from '../src/state';
+test('one discrete key action; ignore repeat and browser shortcuts',()=>{
+ const s=createRun();
+ assert.equal(keyAction(s,{key:'ArrowRight',repeat:true}),null);
+ assert.equal(keyAction(s,{key:'s',metaKey:true}),null);
+ assert.equal(keyAction(s,{key:'d',ctrlKey:true}),null);
+ assert.deepEqual(keyAction(s,{key:'D'}),{type:'move',x:2,y:1});
+ assert.deepEqual(keyAction(s,{key:'G'}),{type:'guard'});
+});
+
+FILE packages/game/test/expedition.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {practiceRun} from '../src/generation';
+import {act} from '../src/actions';
+test('cannot extract or continue through enemies, or away from exit',()=>{const s=practiceRun();assert.equal(act(s,{type:'extract'}),s);assert.equal(act(s,{type:'continue'}),s);s.enemies=[];assert.equal(act(s,{type:'extract'}),s);});
+test('continuing carries health/items but not enemies; extraction ends actions',()=>{const s=practiceRun();s.enemies=[];s.player.x=7;s.player.y=5;s.player.hp=5;const n=act(s,{type:'continue'});assert.equal(n.roomIndex,1);assert.equal(n.player.hp,5);assert.equal(n.enemies[0].kind,'charger');assert.deepEqual(n.originalTownIds,s.originalTownIds);n.enemies=[];n.player.x=7;n.player.y=5;assert.equal(act(n,{type:'continue'}),n);const done=act(n,{type:'extract'});assert.equal(done.status,'extracted');assert.equal(act(done,{type:'wait'}),done);});
+
+FILE packages/game/test/combat.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRun,type RunState} from '../src/state';
+import {act} from '../src/actions';
+function encounter():RunState { const s=createRun();s.player={x:2,y:1,hp:12,weapon:'club',armor:false};s.enemies=[{id:'rat',x:3,y:1,hp:4,intent:{x:2,y:1}}];return s; }
+test('a committed attack misses when player steps aside',()=>{const s=encounter();const n=act(s,{type:'move',x:1,y:1});assert.equal(n.player.hp,12);assert.equal(n.turn,1);});
+test('club deals two; surviving enemy hits; sword kills before enemy acts',()=>{const s=encounter();const n=act(s,{type:'attack',enemyId:'rat'});assert.equal(n.enemies[0].hp,2);assert.equal(n.player.hp,9);s.player.weapon='sword';s.enemies[0].hp=3;const k=act(s,{type:'attack',enemyId:'rat'});assert.equal(k.enemies.length,0);assert.equal(k.player.hp,12);});
+test('guard halves one hit rounded up after armor, then expires',()=>{const s=encounter();assert.equal(act(s,{type:'guard'}).player.hp,10);s.player.armor=true;const n=act(s,{type:'guard'});assert.equal(n.player.hp,11);assert.equal(act(n,{type:'wait'}).player.hp,9);});
+test('enemies act in ID order and guard absorbs only first hit',()=>{const s=encounter();s.enemies.push({id:'ant',x:1,y:1,hp:4,intent:{x:2,y:1}});const n=act(s,{type:'guard'});assert.equal(n.player.hp,7);assert.deepEqual(n.log.slice(-2),['ant hits for 2.','rat hits for 3.']);});
+test('invalid attacks and occupied movement do not spend a turn',()=>{const s=encounter();assert.equal(act(s,{type:'move',x:3,y:1}),s);assert.equal(act(s,{type:'attack',enemyId:'missing'}),s);});
+test('death stops all further actions',()=>{const s=encounter();s.player.hp=1;const n=act(s,{type:'wait'});assert.equal(n.status,'died');assert.equal(n.player.hp,0);assert.equal(act(n,{type:'guard'}),n);});
+test('pursuer routes around a wall instead of oscillating',async()=>{const {revealIntents}=await import('../src/combat');const s=createRun();s.player.x=5;s.player.y=2;s.enemies=[{id:'rat',x:2,y:2,hp:4,intent:{x:2,y:1}}];revealIntents(s);let n=s;for(let i=0;i<10;i++)n=act(n,{type:'wait'});assert.ok(n.player.hp<12,'rat must find the reachable player');});
+
+FILE packages/game/src/inventory.ts
+import {catalog} from '../../shared/src/catalog';
+import type {RunState} from './state';
+export type ItemLocation={kind:'floor';room:number;x:number;y:number}|{kind:'bag'|'weapon'|'armor'|'consumed'};
+export type RunItem={id:string;type:keyof typeof catalog;origin:'town'|'dungeon';location:ItemLocation};
+export type InventoryAction={type:'pickup'|'equip'|'use'|'drop';itemId:string};
+export const isConsumable=(type:RunItem['type'])=>type==='tonic'||type==='fineTonic';
+export function addItem(s:RunState,item:RunItem){
+ if(s.items[item.id])throw Error('Duplicate item ID');
+ s.items[item.id]=structuredClone(item);
+ (item.origin==='town'?s.originalTownIds:s.reservedItemIds).push(item.id);
+}
+export function accessible(s:RunState,i:RunItem){const l=i.location;return l.kind!=='consumed'&&(l.kind!=='floor'||(l.room===s.roomIndex&&l.x===s.player.x&&l.y===s.player.y));}
+// Called only on a clone. A rejected operation never changes caller state.
+export function inventoryAction(s:RunState,a:InventoryAction):boolean{
+ const item=s.items[a.itemId];if(!item||!accessible(s,item))return false;
+ const bagCount=()=>Object.values(s.items).filter(i=>i.location.kind==='bag').length;
+ if(a.type==='use'){
+  if(!isConsumable(item.type)||s.player.hp>=12)return false;
+  s.player.hp=Math.min(12,s.player.hp+(item.type==='tonic'?4:6));item.location={kind:'consumed'};s.log.push(`Used ${catalog[item.type].name}.`);return true;
+ }
+ if(a.type==='pickup'){
+  if(item.location.kind!=='floor'||bagCount()>=6)return false;item.location={kind:'bag'};
+ }else if(a.type==='drop'){
+  if(item.origin==='town'||item.location.kind!=='bag')return false;
+  item.location={kind:'floor',room:s.roomIndex,x:s.player.x,y:s.player.y};
+ }else{
+  const slot=item.type==='armor'?'armor':item.type==='club'||item.type==='sword'?'weapon':null;
+  if(!slot||item.location.kind===slot)return false;
+  const old=Object.values(s.items).find(i=>i.location.kind===slot);
+  const room=bagCount()-(item.location.kind==='bag'?1:0)<6;
+  if(old&&!room&&old.origin==='town')return false;
+  if(old)old.location=room?{kind:'bag'}:{kind:'floor',room:s.roomIndex,x:s.player.x,y:s.player.y};
+  item.location={kind:slot};
+  if(slot==='weapon')s.player.weapon=item.type as 'club'|'sword';else s.player.armor=true;
+ }
+ s.log.push(`${a.type}: ${catalog[item.type].name} (${item.origin}).`);return true;
+}
+
+FILE packages/game/src/state.ts
+import type {RunItem} from './inventory';
+export type Point={x:number;y:number};
+export type Enemy=Point & {id:string;hp:number;intent:Point;kind?:'pursuer'|'charger';lane?:Point[];recovering?:boolean};
+export type RunState={room:string[];roomIndex:number;items:Record<string,RunItem>;originalTownIds:string[];reservedItemIds:string[];player:Point & {hp:number;weapon:'club'|'sword';armor:boolean};enemies:Enemy[];traps:(Point & {id:string;armed:boolean})[];turn:number;status:'active'|'died'|'extracted';log:string[]};
+export function createRun():RunState {return {roomIndex:0,items:{'town-club':{id:'town-club',type:'club',origin:'town',location:{kind:'weapon'}}},originalTownIds:['town-club'],reservedItemIds:[],room:['#########','#.......#','#..##...#','#.......#','#....#..#','#.......#','#########'],player:{x:1,y:1,hp:12,weapon:'club',armor:false},enemies:[],traps:[],turn:0,status:'active',log:['Explore the cellar. Walls do not spend a turn.']};}
+export function walkable(s:RunState,p:Point){return Number.isInteger(p.x)&&Number.isInteger(p.y)&&s.room[p.y]?.[p.x]==='.';}
+export function distance(a:Point,b:Point){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);}
+
+FILE packages/game/src/disposition.ts
+import type {RunState} from './state';
+import {isConsumable} from './inventory';
+export type Outcome='extracted'|'died'|'void';
+export type Disposition={townConsumed:string[];townReturned:string[];townForfeited:string[];dungeonConsumed:string[];dungeonExtracted:string[];dungeonReturned:string[]};
+export function disposition(s:RunState,outcome:Outcome):Disposition{
+ const d:Disposition={townConsumed:[],townReturned:[],townForfeited:[],dungeonConsumed:[],dungeonExtracted:[],dungeonReturned:[]};
+ const all=[...s.originalTownIds,...s.reservedItemIds];
+ if(new Set(all).size!==all.length||all.length!==Object.keys(s.items).length)throw Error('Invalid source manifest');
+ for(const id of all){
+  const i=s.items[id];if(!i||i.id!==id||i.origin!==(s.originalTownIds.includes(id)?'town':'dungeon'))throw Error('Missing or wrong-origin item');
+  if(i.location.kind==='consumed'){
+   if(!isConsumable(i.type))throw Error('Consumed nonconsumable');
+   (i.origin==='town'?d.townConsumed:d.dungeonConsumed).push(id);
+  }else if(i.origin==='town'){
+   if(i.location.kind==='floor')throw Error('Town gear cannot be dropped');
+   (outcome==='died'?d.townForfeited:d.townReturned).push(id);
+  }else{
+   (outcome==='extracted'&&['bag','weapon','armor'].includes(i.location.kind)?d.dungeonExtracted:d.dungeonReturned).push(id);
+  }
+ }
+ return d;
+}
+
+FILE packages/game/src/actions.ts
+import {atClearedExit,enterRoom,hasNextRoom} from './generation';
+import {inventoryAction,type InventoryAction} from './inventory';
+import {distance,walkable,type RunState} from './state';
+import {resolveEnemies} from './combat';
+export type Action={type:'move';x:number;y:number}|{type:'attack';enemyId:string}|{type:'guard'}|{type:'wait'}|InventoryAction|{type:'extract'}|{type:'continue'};
+export function act(s:RunState,a:Action):RunState {
+ if(s.status!=='active')return s;
+ if(a.type==='extract'||a.type==='continue'){
+  if(!atClearedExit(s)||(a.type==='continue'&&!hasNextRoom(s)))return s;
+  const n=structuredClone(s);n.turn++;
+  if(a.type==='extract'){n.status='extracted';n.log.push('Extracted safely.');}else enterRoom(n,n.roomIndex+1);
+  return n;
+ }
+ if(a.type==='move'&&(!walkable(s,a)||distance(s.player,a)!==1||s.enemies.some(e=>e.x===a.x&&e.y===a.y)))return s;
+ if(a.type==='attack'&&!s.enemies.some(e=>e.id===a.enemyId&&distance(s.player,e)===1))return s;
+ const n=structuredClone(s);
+ if('itemId' in a&&!inventoryAction(n,a))return s;
+ if(a.type==='move'){n.player.x=a.x;n.player.y=a.y;}
+ if(a.type==='attack'){
+  const e=n.enemies.find(e=>e.id===a.enemyId)!;const damage=n.player.weapon==='sword'?3:2;e.hp-=damage;
+  n.log.push(`You hit ${e.id} for ${damage}.`);n.enemies=n.enemies.filter(e=>e.hp>0);
+ }
+ n.turn++;resolveEnemies(n,a.type==='guard');return n;
+}
+
+FILE packages/game/src/combat.ts
+import {distance,walkable,type RunState,type Point} from './state';
+export const same=(a:Point,b:Point)=>a.x===b.x&&a.y===b.y;
+// A mutable turn-local guard is shared by enemies and hazards: only one hit is halved.
+export function resolveEnemies(s:RunState,guard:boolean){
+ const hitPlayer=(damage:number,source:string)=>{
+  const raw=Math.max(1,damage-(s.player.armor?1:0));const hit=guard?Math.ceil(raw/2):raw;guard=false;
+  s.player.hp=Math.max(0,s.player.hp-hit);s.log.push(`${source} hits for ${hit}.`);
+ };
+ for(const e of [...s.enemies].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)){
+  if(s.player.hp<=0)break;
+  if(e.hp<=0)continue;
+  if(e.recovering){e.recovering=false;continue;}
+  if(e.kind==='charger'&&e.lane?.length){
+   for(const tile of e.lane){
+    if(same(tile,s.player)){hitPlayer(4,e.id);break;}
+    const other=s.enemies.find(other=>other.id!==e.id&&other.hp>0&&same(other,tile));
+    if(other){other.hp-=4;s.log.push(`${e.id} strikes ${other.id} for 4.`);break;}
+    e.x=tile.x;e.y=tile.y;
+   }
+   e.recovering=true;
+  }else if(distance(e,e.intent)===1&&same(e.intent,s.player)){
+   hitPlayer(3,e.id);
+  }else if(walkable(s,e.intent)&&!same(e.intent,s.player)&&!s.enemies.some(other=>other.id!==e.id&&other.hp>0&&same(other,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
+ }
+ for(const trap of s.traps){
+  if(trap.armed){
+   if(same(trap,s.player)&&s.player.hp>0)hitPlayer(3,'Spikes');
+   for(const e of s.enemies)if(e.hp>0&&same(trap,e)){e.hp-=3;s.log.push(`Spikes hit ${e.id} for 3.`);}
+  }
+  trap.armed=!trap.armed;
+ }
+ s.enemies=s.enemies.filter(e=>e.hp>0);
+ if(s.player.hp===0)s.status='died';
+ revealIntents(s);s.log=s.log.slice(-8);
+}
+export function revealIntents(s:RunState){
+ const key=(p:Point)=>`${p.x},${p.y}`;
+ const neighbors=(p:Point)=>[{x:p.x-1,y:p.y},{x:p.x+1,y:p.y},{x:p.x,y:p.y-1},{x:p.x,y:p.y+1}];
+ const distances=new Map<string,number>([[key(s.player),0]]);const queue:Point[]=[s.player];
+ for(let i=0;i<queue.length;i++)for(const next of neighbors(queue[i]))if(walkable(s,next)&&!distances.has(key(next))){distances.set(key(next),distances.get(key(queue[i]))!+1);queue.push(next);}
+ for(const e of s.enemies){
+  e.lane=[];
+  if(e.recovering){e.intent={x:e.x,y:e.y};continue;}
+  if(e.kind==='charger'&&(e.x===s.player.x||e.y===s.player.y)){
+   const dx=Math.sign(s.player.x-e.x),dy=Math.sign(s.player.y-e.y);
+   if(dx||dy){let p={x:e.x+dx,y:e.y+dy};while(walkable(s,p)){e.lane.push(p);p={x:p.x+dx,y:p.y+dy};}}
+   if(e.lane.some(p=>same(p,s.player))){e.intent=e.lane[0];continue;}e.lane=[];
+  }
+  const choices=neighbors(e).filter(p=>walkable(s,p)&&distances.has(key(p))&&!s.enemies.some(other=>other.id!==e.id&&same(other,p)));
+  choices.sort((a,b)=>distances.get(key(a))!-distances.get(key(b))!);
+  e.intent=choices[0]??{x:e.x,y:e.y};
+ }
+}
+
+FILE packages/game/src/generation.ts
+import rooms from '../../../content/rooms.json';
+import {createRun,type RunState,type Enemy} from './state';
+import {addItem} from './inventory';
+import {revealIntents} from './combat';
+export function enterRoom(s:RunState,index:number){const r=rooms[index];if(!r)throw Error('Missing room');s.roomIndex=index;s.room=[...r.tiles];s.player.x=r.spawn.x;s.player.y=r.spawn.y;s.enemies=structuredClone(r.enemies) as Enemy[];s.traps=structuredClone(r.traps);revealIntents(s);s.log.push(`Entered ${r.title}.`);}
+export function atClearedExit(s:RunState){const r=rooms[s.roomIndex];return !!r&&!s.enemies.length&&s.player.x===r.exit.x&&s.player.y===r.exit.y;}
+export const roomTitle=(s:RunState)=>rooms[s.roomIndex]?.title??'Practice room';
+export const roomExit=(s:RunState)=>rooms[s.roomIndex]?.exit;
+export const hasNextRoom=(s:RunState)=>s.roomIndex+1<rooms.length;
+export function practiceRun(armored=false){const s=createRun();enterRoom(s,0);
+ addItem(s,{id:'town-tonic',type:'tonic',origin:'town',location:{kind:'bag'}});
+ if(armored){addItem(s,{id:'town-armor',type:'armor',origin:'town',location:{kind:'armor'}});s.player.armor=true;}
+ for(const [id,type,room,x,y] of [['cache-tonic','tonic',0,1,1],['cache-sword','sword',0,2,3],['cache-armor','armor',0,1,3],['deep-fine','fineTonic',1,7,4],['deep-iron','iron',1,7,5]] as const)addItem(s,{id,type,origin:'dungeon',location:{kind:'floor',room,x,y}});
+ return s;
+}
+
+FILE packages/game/src/controls.ts
+import type {RunState} from './state';
+import type {Action} from './actions';
+export function keyAction(s:RunState,e:{key:string;repeat?:boolean;metaKey?:boolean;ctrlKey?:boolean;altKey?:boolean}):Action|null{
+ if(e.repeat||e.metaKey||e.ctrlKey||e.altKey)return null;
+ const key=e.key.toLowerCase();
+ if(key==='g')return {type:'guard'};
+ if(key===' ')return {type:'wait'};
+ const d:Record<string,number[]>={arrowup:[0,-1],w:[0,-1],arrowdown:[0,1],s:[0,1],arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0]};
+ if(!d[key])return null;
+ const x=s.player.x+d[key][0],y=s.player.y+d[key][1];
+ const enemy=s.enemies.find(e=>e.x===x&&e.y===y);
+ return enemy?{type:'attack',enemyId:enemy.id}:{type:'move',x,y};
+}
+
+FILE packages/shared/src/catalog.ts
+export const catalog = {
+ club:{name:'Club',value:4}, sword:{name:'Sword',value:12}, armor:{name:'Armor',value:8},
+ herb:{name:'Herb',value:2}, iron:{name:'Iron',value:2}, flask:{name:'Flask',value:2},
+ tonic:{name:'Tonic',value:6}, fineTonic:{name:'Fine tonic',value:8}
+} as const;
+
+FILE apps/web/src/App.tsx
+import React from 'react';
+import {Run} from './Run';
+export function App(){return <main><header><span className="eyebrow">DUNGEON ECONOMY / PLAYABLE PROTOTYPE</span><h1>The cellar below</h1><p>A small beginning. Read the room. Choose your next step.</p></header><Run/><footer>Free practice · No wallet, admission fee or transferable rewards. Refreshing resets this local session.</footer></main>;}
+
+FILE apps/web/src/main.tsx
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {App} from './App';
+import './style.css';
+createRoot(document.getElementById('root')!).render(<App/>);
+
+FILE apps/web/src/Run.tsx
+import React, {useState, useRef} from 'react';
+import {distance} from '../../../packages/game/src/state';
+import {keyAction} from '../../../packages/game/src/controls';
+import {act, type Action} from '../../../packages/game/src/actions';
+import {practiceRun, roomTitle, roomExit, atClearedExit, hasNextRoom} from '../../../packages/game/src/generation';
+import {accessible, isConsumable} from '../../../packages/game/src/inventory';
+import {disposition} from '../../../packages/game/src/disposition';
+import {catalog} from '../../../packages/shared/src/catalog';
+
+export function Run() {
+ const [s, set] = useState(()=>practiceRun());
+ const board = useRef<HTMLDivElement>(null);
+ const [notice, setNotice] = useState('');
+ const send = (a:Action) => {
+  const next=act(s,a);setNotice(next===s?'Cannot do that here, or no space. No turn spent.':'');set(next);board.current?.focus();
+ };
+ const click=(x:number,y:number)=>{
+  const enemy=s.enemies.find(e=>e.x===x&&e.y===y);
+  send(enemy?{type:'attack',enemyId:enemy.id}:{type:'move',x,y});
+ };
+ const restart=(armor=false)=>{set(practiceRun(armor));setNotice('');board.current?.focus();};
+ const bag=Object.values(s.items).filter(i=>i.location.kind==='bag');
+ const visibleItems=Object.values(s.items).filter(i=>accessible(s,i));
+ const ended=s.status!=='active';
+ const report=ended?disposition(s,s.status==='died'?'died':'extracted'):null;
+ const targets=s.enemies.map(e=>e.recovering?`${e.id} is recovering.`:e.lane?.length?`${e.id} will charge the marked lane.`:`${e.id} targets ${e.intent.x}, ${e.intent.y}.`).join(' ');
+ return <section className="expedition">
+  <div>
+   <div className="status"><strong>{roomTitle(s)} · {s.roomIndex+1}/2</strong><span>Health {s.player.hp}/12 · Turn {s.turn}</span></div>
+   <div className="board" ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait." onKeyDown={e=>{
+    const a=keyAction(s,e);if(a){e.preventDefault();send(a);}else if(e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)e.preventDefault();
+   }}>
+    {s.room.flatMap((row,y)=>[...row].map((tile,x)=>{
+     const player=s.player.x===x&&s.player.y===y;
+     const enemy=s.enemies.find(e=>e.x===x&&e.y===y);
+     const trap=s.traps.find(t=>t.x===x&&t.y===y);
+     const warning=s.enemies.some(e=>!e.recovering&&(e.lane?.length?e.lane.some(p=>p.x===x&&p.y===y):e.intent.x===x&&e.intent.y===y))||!!trap?.armed;
+     const loot=Object.values(s.items).some(i=>i.location.kind==='floor'&&i.location.room===s.roomIndex&&i.location.x===x&&i.location.y===y);
+     const exit=roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
+     const label=`${x},${y} ${tile==='#'?'wall':player?'you':enemy?enemy.id:trap?'spikes':loot?'loot':isExit?'exit':'floor'}${warning?' danger next turn':''}`;
+     return <button key={`${x},${y}`} className={`tile ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''}`} tabIndex={-1} disabled={tile==='#'} aria-label={label} onClick={()=>click(x,y)}>
+      {tile==='#'?'▪':player?'@':enemy?enemy.kind==='charger'?'B':'R':trap?trap.armed?'▲':'△':loot?'◆':isExit?'E':warning?'!':'·'}
+      {player&&warning&&<span className="danger-badge" aria-hidden="true">!</span>}
+      {enemy&&<small className="enemy-health">{enemy.hp} HP</small>}
+     </button>;
+    }))}
+   </div>
+   <div className="controls">
+    <button onClick={()=>send({type:'guard'})} disabled={ended}>Guard [G]</button>
+    <button onClick={()=>send({type:'wait'})} disabled={ended}>Wait [Space]</button>
+    {s.enemies.filter(e=>distance(e,s.player)===1).map(e=><button key={e.id} disabled={ended} onClick={()=>send({type:'attack',enemyId:e.id})}>Attack {e.id}</button>)}
+    <button onClick={()=>send({type:'extract'})} disabled={ended||!atClearedExit(s)}>Extract</button>
+    {hasNextRoom(s)&&<button onClick={()=>send({type:'continue'})} disabled={ended||!atClearedExit(s)}>Enter spike hall</button>}
+   </div>
+   <p className="legend">@ You · R Rat · B Charging boar · ▲ Armed spikes · △ Safe spikes · ◆ Loot · E Exit</p>
+   <p className="legend">Kill the enemies, then reach E to extract or continue. Charges hit the first creature; spikes hurt both sides. Recovery lasts one turn.</p>
+   <section className="inventory" aria-label="Run inventory">
+    <h2>Equipment & loot</h2><p>Bag {bag.length}/6 · Weapon: {s.player.weapon} · Armor: {s.player.armor?'equipped':'none'}</p>
+    {visibleItems.map(i=><div className="item" key={i.id}>
+     <span><strong>{catalog[i.type].name}</strong><small>{i.origin} · {i.location.kind} · {i.id}</small></span>
+     <div className="controls">
+      {i.location.kind==='floor'&&<button disabled={ended} onClick={()=>send({type:'pickup',itemId:i.id})}>Take {catalog[i.type].name}</button>}
+      {isConsumable(i.type)&&<button disabled={ended||s.player.hp===12} onClick={()=>send({type:'use',itemId:i.id})}>Drink {catalog[i.type].name}</button>}
+      {['club','sword','armor'].includes(i.type)&&!['weapon','armor'].includes(i.location.kind)&&<button disabled={ended} onClick={()=>send({type:'equip',itemId:i.id})}>Equip {catalog[i.type].name}</button>}
+      {i.origin==='dungeon'&&i.location.kind==='bag'&&<button disabled={ended} onClick={()=>send({type:'drop',itemId:i.id})}>Drop {catalog[i.type].name}</button>}
+     </div>
+    </div>)}
+   </section>
+  </div>
+  <aside>
+   <h2>{s.status==='died'?'You fell.':s.status==='extracted'?'You made it out.':s.enemies.length?'Read the threat':'Room cleared.'}</h2>
+   <p>Moving into an enemy attacks it. Your {s.player.weapon} deals {s.player.weapon==='sword'?3:2} damage. Each valid action spends a turn, including using or equipping loot.</p>
+   <div className="turn-feedback" role="status" aria-live="polite">Health {s.player.hp}. Position {s.player.x}, {s.player.y}. Turn {s.turn}. {notice} {s.log.at(-1)} {targets}</div>
+   {s.enemies.map(e=><p key={e.id}>{e.id}: {e.hp} health · {e.recovering?'Recovering':e.lane?.length?'CHARGING — leave the striped lane':'Pursuing'}</p>)}
+   <ol className="log" aria-label="Combat history">{s.log.map((line,i)=><li key={i}>{line}</li>)}</ol>
+   {report&&<section aria-label="Practice item outcomes"><h2>What goes where</h2><p>Practice only: these transfers are a preview, not a bank transaction.</p>{Object.entries(report).map(([group,ids])=><p key={group}><strong>{({townConsumed:'Town supplies spent',townReturned:'Town gear kept',townForfeited:'Town gear to bank',dungeonConsumed:'Found supplies spent',dungeonExtracted:'Loot carried out',dungeonReturned:'Loot returned to dungeon'} as Record<string,string>)[group]}</strong><br/>{ids.join(', ')||'None'}</p>)}</section>}
+   <button className="primary" onClick={()=>restart()}>Restart practice</button>
+   <button className="primary secondary" onClick={()=>restart(true)}>Restart with armor</button>
+   <p className="legend">All items are practice fixtures. Town gear cannot be dropped. Found gear returns to the dungeon on death; used potions stay spent.</p>
+  </aside>
+ </section>;
+}
+
+FILE content/rooms.json
+[
+ {"id":"cellar","title":"The cellar","tiles":["#########","#.......#","#..##...#","#.......#","#....#..#","#.......#","#########"],"spawn":{"x":1,"y":1},"exit":{"x":7,"y":5},"enemies":[{"id":"rat-1","kind":"pursuer","x":5,"y":1,"hp":4,"intent":{"x":4,"y":1}}],"traps":[]},
+ {"id":"gauntlet","title":"The spike hall","tiles":["#########","#.......#","#.......#","#.......#","#.......#","#.......#","#########"],"spawn":{"x":1,"y":1},"exit":{"x":7,"y":5},"enemies":[{"id":"boar-1","kind":"charger","x":6,"y":3,"hp":6,"intent":{"x":5,"y":3}}],"traps":[{"id":"spike-1","x":3,"y":3,"armed":true}]}
+]

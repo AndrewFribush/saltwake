@@ -1,0 +1,159 @@
+
+> dungeon-economy@0.1.0 test
+> npm run test:game
+
+
+> dungeon-economy@0.1.0 test:game
+> tsx --test packages/game/test/*.test.ts
+
+TAP version 13
+# Subtest: a committed attack misses when player steps aside
+ok 1 - a committed attack misses when player steps aside
+  ---
+  duration_ms: 0.716958
+  type: 'test'
+  ...
+# Subtest: club deals two; surviving enemy hits; sword kills before enemy acts
+ok 2 - club deals two; surviving enemy hits; sword kills before enemy acts
+  ---
+  duration_ms: 0.170416
+  type: 'test'
+  ...
+# Subtest: guard halves one hit rounded up after armor, then expires
+ok 3 - guard halves one hit rounded up after armor, then expires
+  ---
+  duration_ms: 0.310083
+  type: 'test'
+  ...
+# Subtest: enemies act in ID order and guard absorbs only first hit
+ok 4 - enemies act in ID order and guard absorbs only first hit
+  ---
+  duration_ms: 7.244042
+  type: 'test'
+  ...
+# Subtest: invalid attacks and occupied movement do not spend a turn
+ok 5 - invalid attacks and occupied movement do not spend a turn
+  ---
+  duration_ms: 0.067625
+  type: 'test'
+  ...
+# Subtest: death stops all further actions
+ok 6 - death stops all further actions
+  ---
+  duration_ms: 0.48075
+  type: 'test'
+  ...
+# Subtest: pursuer routes around a wall instead of oscillating
+ok 7 - pursuer routes around a wall instead of oscillating
+  ---
+  duration_ms: 2.542958
+  type: 'test'
+  ...
+# Subtest: one discrete key action; ignore repeat and browser shortcuts
+ok 8 - one discrete key action; ignore repeat and browser shortcuts
+  ---
+  duration_ms: 0.657833
+  type: 'test'
+  ...
+# Subtest: charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+not ok 9 - charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+  ---
+  duration_ms: 1.3635
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/hazards.test.ts:1:468'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    undefined !== 5
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 5
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/hazards.test.ts:7:114)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: charge strikes and stops at first enemy, protecting player behind
+not ok 10 - charge strikes and stops at first enemy, protecting player behind
+  ---
+  duration_ms: 7.206958
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/hazards.test.ts:1:876'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    9 !== 12
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 12
+  actual: 9
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/hazards.test.ts:8:189)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+not ok 11 - armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+  ---
+  duration_ms: 0.262416
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/hazards.test.ts:1:1152'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    12 !== 9
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 9
+  actual: 12
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/hazards.test.ts:9:205)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: identical action trace reproduces hazards
+ok 12 - identical action trace reproduces hazards
+  ---
+  duration_ms: 1.147167
+  type: 'test'
+  ...
+# Subtest: move one cardinal step; wall and remote click leave state unchanged
+ok 13 - move one cardinal step; wall and remote click leave state unchanged
+  ---
+  duration_ms: 0.895583
+  type: 'test'
+  ...
+# Subtest: catalog matches eight reference prices
+ok 14 - catalog matches eight reference prices
+  ---
+  duration_ms: 0.062333
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 11
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 137.35375

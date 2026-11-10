@@ -1,0 +1,28 @@
+✔︎ Opened a new tab and set it active: tabs[0], page →  (about:blank)
+TURN 1: pickup OK
+TURN 2: wait OK
+TURN 3: wait OK
+TURN 4: attack OK
+TURN 5: attack OK
+TURN 6: move OK
+TURN 7: move OK
+TURN 8: equip OK
+TURN 9: move OK
+TURN 10: equip OK
+TURN 11: move OK
+TURN 12: move OK
+TURN 13: move OK
+TURN 14: move OK
+TURN 15: move OK
+TURN 16: move OK
+TURN 17: move OK
+TURN 18: continue OK
+TURN 19: move OK
+TURN 20: move OK
+TURN 21: move OK
+STATUS=Health 9. Position 3, 2. Turn 21. Spikes hit boar-1 for 3. boar-1 will charge the marked lane.
+CONSOLE_ERRORS=[]
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK
+[ok | 13939ms]

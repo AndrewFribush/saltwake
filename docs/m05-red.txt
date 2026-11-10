@@ -1,0 +1,168 @@
+
+> dungeon-economy@0.1.0 test
+> npm run test:game
+
+
+> dungeon-economy@0.1.0 test:game
+> tsx --test packages/game/test/*.test.ts
+
+TAP version 13
+# Subtest: a committed attack misses when player steps aside
+ok 1 - a committed attack misses when player steps aside
+  ---
+  duration_ms: 0.826541
+  type: 'test'
+  ...
+# Subtest: club deals two; surviving enemy hits; sword kills before enemy acts
+ok 2 - club deals two; surviving enemy hits; sword kills before enemy acts
+  ---
+  duration_ms: 0.205292
+  type: 'test'
+  ...
+# Subtest: guard halves one hit rounded up after armor, then expires
+ok 3 - guard halves one hit rounded up after armor, then expires
+  ---
+  duration_ms: 0.322708
+  type: 'test'
+  ...
+# Subtest: enemies act in ID order and guard absorbs only first hit
+ok 4 - enemies act in ID order and guard absorbs only first hit
+  ---
+  duration_ms: 0.43775
+  type: 'test'
+  ...
+# Subtest: invalid attacks and occupied movement do not spend a turn
+ok 5 - invalid attacks and occupied movement do not spend a turn
+  ---
+  duration_ms: 0.056125
+  type: 'test'
+  ...
+# Subtest: death stops all further actions
+ok 6 - death stops all further actions
+  ---
+  duration_ms: 0.670625
+  type: 'test'
+  ...
+# Subtest: pursuer routes around a wall instead of oscillating
+ok 7 - pursuer routes around a wall instead of oscillating
+  ---
+  duration_ms: 3.206083
+  type: 'test'
+  ...
+# Subtest: one discrete key action; ignore repeat and browser shortcuts
+ok 8 - one discrete key action; ignore repeat and browser shortcuts
+  ---
+  duration_ms: 0.706708
+  type: 'test'
+  ...
+# node:internal/modules/run_main:123
+#     triggerUncaughtException(
+#     ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/src/disposition' imported from /Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/disposition.test.ts
+#     at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+#     at moduleResolve (node:internal/modules/esm/resolve:861:10)
+#     at defaultResolve (node:internal/modules/esm/resolve:985:11)
+#     at nextResolve (node:internal/modules/esm/hooks:748:28)
+#     at resolveBase (file:///Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/tsx/dist/esm/index.mjs?1794286724638:2:3744)
+#     at async resolveDirectory (file:///Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/tsx/dist/esm/index.mjs?1794286724638:2:4237)
+#     at async resolve (file:///Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/tsx/dist/esm/index.mjs?1794286724638:2:5355)
+#     at async nextResolve (node:internal/modules/esm/hooks:748:22)
+#     at async Hooks.resolve (node:internal/modules/esm/hooks:240:24)
+#     at async handleMessage (node:internal/modules/esm/worker:199:18) {
+#   code: 'ERR_MODULE_NOT_FOUND',
+#   url: 'file:///Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/src/disposition'
+# }
+# Node.js v22.23.1
+# Subtest: packages/game/test/disposition.test.ts
+not ok 3 - packages/game/test/disposition.test.ts
+  ---
+  duration_ms: 163.108959
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/disposition.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+ok 10 - charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+  ---
+  duration_ms: 0.998791
+  type: 'test'
+  ...
+# Subtest: charge strikes and stops at first enemy, protecting player behind
+ok 11 - charge strikes and stops at first enemy, protecting player behind
+  ---
+  duration_ms: 0.256583
+  type: 'test'
+  ...
+# Subtest: armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+ok 12 - armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+  ---
+  duration_ms: 0.176458
+  type: 'test'
+  ...
+# Subtest: identical action trace reproduces hazards
+ok 13 - identical action trace reproduces hazards
+  ---
+  duration_ms: 1.490917
+  type: 'test'
+  ...
+# Subtest: floor tonic heals once, retains origin and is consumed
+ok 14 - floor tonic heals once, retains origin and is consumed
+  ---
+  duration_ms: 1.12075
+  type: 'test'
+  ...
+# Subtest: six bag slots; empty equipment slot works even when bag full
+ok 15 - six bag slots; empty equipment slot works even when bag full
+  ---
+  duration_ms: 0.265583
+  type: 'test'
+  ...
+# Subtest: full bag rejects displaced town gear; bag swap uses freed slot
+ok 16 - full bag rejects displaced town gear; bag swap uses freed slot
+  ---
+  duration_ms: 0.160167
+  type: 'test'
+  ...
+# Subtest: displaced dungeon weapon can remain on tile; town items cannot drop
+ok 17 - displaced dungeon weapon can remain on tile; town items cannot drop
+  ---
+  duration_ms: 0.729792
+  type: 'test'
+  ...
+# Subtest: cannot use remote/unvisited loot, nonconsumables or consume at full health
+ok 18 - cannot use remote/unvisited loot, nonconsumables or consume at full health
+  ---
+  duration_ms: 0.10975
+  type: 'test'
+  ...
+# Subtest: item IDs cannot be reused
+ok 19 - item IDs cannot be reused
+  ---
+  duration_ms: 0.646667
+  type: 'test'
+  ...
+# Subtest: move one cardinal step; wall and remote click leave state unchanged
+ok 20 - move one cardinal step; wall and remote click leave state unchanged
+  ---
+  duration_ms: 1.143333
+  type: 'test'
+  ...
+# Subtest: catalog matches eight reference prices
+ok 21 - catalog matches eight reference prices
+  ---
+  duration_ms: 0.10075
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 20
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 172.446667

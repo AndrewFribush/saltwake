@@ -1,1 +1,23 @@
-{"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","jsx":"react-jsx","strict":true,"noEmit":true,"esModuleInterop":true,"skipLibCheck":true,"lib":["ES2022","DOM"]},"include":["packages","apps"]}
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "packages",
+    "apps",
+    "tests",
+    "scripts/*.ts"
+  ]
+}

@@ -29,3 +29,23 @@ Final first-slice evidence:
 - Ruling: no extraction/economic reward for clearing this initial practice room; next modules implement the rest. Cost: this is a mechanics test, not a complete game loop or evidence of fun.
 - Local server: 127.0.0.1:18930. No deploy, paid call, testnet transaction, remote repository or public posting.
 - Browse operational learning was recorded here because gstack-learnings-log failed (bun missing): Aside session files may be virtual; use its fs API to transfer screenshots.
+
+## Second building session — 2026-11-10 UTC
+
+M03 complete: charger lane commitment, first-creature collision, one recovery turn, alternating traps that affect enemies; reproducible action tests. Changed enemy order from localeCompare to codepoint ID order. Multiple-enemy movement intents avoid currently occupied squares.
+M04 complete: six-slot bag, two equipment slots, reachable floor use, gear swaps, town-drop refusal, origin preserved. Invalid actions leave original state unchanged. Browser proved pickups, found armor/sword equips and one-time floor tonic use.
+M05 complete: exact source-manifest partitions for death/extraction/void, malformed manifest/consumed-equipment rejection, 32 seeded action traces x three outcomes. These are local derived partitions, NOT contract settlements.
+
+29 game tests pass. Claude source review (claude-gameplay-review.md) found no important correctness defects. Fixed its malformed action and malformed initial inventory findings with two failing regression tests followed by green suite. Deferred: freezing source manifests at paid admission and error containment for corrupt persisted snapshots belong at server admission/recovery integration; current fixtures are internal and the browser has no import/persistence endpoint. No claim these are safe untrusted protocol types yet.
+
+Actual Aside browser: 32-turn full expedition extracted at 9 HP with sword/armor and all five dungeon items. Separate death sequence consumed floor tonic once; death report sent town-club/town-tonic to bank, cache-tonic to consumed, all other unconsumed rewards to dungeon. Exact logs in browser-expedition.txt and browser-death.txt. One tooling retry needed because nested locator.getByRole is unsupported in Aside; CSS locator + filter worked. Full-page screenshot stitching duplicated/scrolled sections; do not treat that artifact as a faithful whole-page layout capture. DOM action assertions passed.
+
+M08 remains in progress: deterministic contrasting loadout observations in play-observations.md. Repair/observe gate blocks M25 expansion, not independent contract work. No independent human gameplay observation claimed.
+
+Rulings: charger hit4/HP6/recovery1; trap hit3 after enemy actions and alternates every valid turn; extract/continue requires cleared-room exit tile. These are explicit tuning defaults within GDD's proposed mechanics. Cost if wrong: tune fixtures/exit flow; no actual assets at risk. Inventory use/equip/pickup/drop takes a turn, including after enemies clear while traps remain active.
+
+M06 started: isolated local sandbox smoke contract, temporary debit command only. Default Rust is 1.87; repo pins installed 1.93.0. Latest transitive near-sdk-env required Rust1.95; lock downgraded to compatible 0.1.6 / near-sys0.2.14. No shelved application modified/reused; only previously working toolchain versions consulted. npm near-sandbox's tar7.5.13 had advisories; override tar7.5.22 removes reported vulnerabilities.
+
+M06 complete: actual WASM deployed and exercised in near-sandbox2.13.4. Init once, retry3-credit debit once, conflicting payload rejected, buyer7/bank3. Compile9.90s, successful sandbox2.21s, initial red to green151s excluding prior dependency setup. First sandbox start failed because test redundantly added the package's default genesis account; inspecting package genesis generation identified duplicate records. Removed duplicate; fresh isolated sandbox passed and torn down. Full pinned tooling/artifact hash in toolchain.md. M07 remains unstarted; smoke command is explicitly temporary.
+
+Final verification this session: 29 game tests; 1 actual WASM sandbox smoke test; typechecking includes game/web/tests/scripts; web build; full browser extraction and death paths; independent Claude source review. No paid calls, testnet, deployment or remote publication. No full-game fun or economic completeness claim.

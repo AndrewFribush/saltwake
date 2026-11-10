@@ -1,0 +1,21 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test tests/contract/*.test.ts
+
+TAP version 13
+# Local sandbox receipt proof: repeated debit once, conflicting payload rejected, buyer7/bank3.
+# Subtest: WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+ok 1 - WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+  ---
+  duration_ms: 2211.360125
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2387.075625

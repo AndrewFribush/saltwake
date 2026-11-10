@@ -1,0 +1,132 @@
+
+> dungeon-economy@0.1.0 test
+> npm run test:game
+
+
+> dungeon-economy@0.1.0 test:game
+> tsx --test packages/game/test/*.test.ts
+
+TAP version 13
+# Subtest: a committed attack misses when player steps aside
+ok 1 - a committed attack misses when player steps aside
+  ---
+  duration_ms: 0.885667
+  type: 'test'
+  ...
+# Subtest: club deals two; surviving enemy hits; sword kills before enemy acts
+ok 2 - club deals two; surviving enemy hits; sword kills before enemy acts
+  ---
+  duration_ms: 0.200416
+  type: 'test'
+  ...
+# Subtest: guard halves one hit rounded up after armor, then expires
+ok 3 - guard halves one hit rounded up after armor, then expires
+  ---
+  duration_ms: 0.315917
+  type: 'test'
+  ...
+# Subtest: enemies act in ID order and guard absorbs only first hit
+ok 4 - enemies act in ID order and guard absorbs only first hit
+  ---
+  duration_ms: 0.383
+  type: 'test'
+  ...
+# Subtest: invalid attacks and occupied movement do not spend a turn
+ok 5 - invalid attacks and occupied movement do not spend a turn
+  ---
+  duration_ms: 0.052666
+  type: 'test'
+  ...
+# Subtest: death stops all further actions
+ok 6 - death stops all further actions
+  ---
+  duration_ms: 0.09175
+  type: 'test'
+  ...
+# Subtest: pursuer routes around a wall instead of oscillating
+ok 7 - pursuer routes around a wall instead of oscillating
+  ---
+  duration_ms: 3.518209
+  type: 'test'
+  ...
+# Subtest: one discrete key action; ignore repeat and browser shortcuts
+ok 8 - one discrete key action; ignore repeat and browser shortcuts
+  ---
+  duration_ms: 0.623666
+  type: 'test'
+  ...
+# Subtest: charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+ok 9 - charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+  ---
+  duration_ms: 1.037625
+  type: 'test'
+  ...
+# Subtest: charge strikes and stops at first enemy, protecting player behind
+ok 10 - charge strikes and stops at first enemy, protecting player behind
+  ---
+  duration_ms: 0.265125
+  type: 'test'
+  ...
+# Subtest: armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+ok 11 - armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+  ---
+  duration_ms: 0.173042
+  type: 'test'
+  ...
+# Subtest: identical action trace reproduces hazards
+ok 12 - identical action trace reproduces hazards
+  ---
+  duration_ms: 1.23375
+  type: 'test'
+  ...
+# node:internal/modules/run_main:123
+#     triggerUncaughtException(
+#     ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/src/inventory' imported from /Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/inventory.test.ts
+#     at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+#     at moduleResolve (node:internal/modules/esm/resolve:861:10)
+#     at defaultResolve (node:internal/modules/esm/resolve:985:11)
+#     at nextResolve (node:internal/modules/esm/hooks:748:28)
+#     at resolveBase (file:///Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/tsx/dist/esm/index.mjs?1794286676904:2:3744)
+#     at async resolveDirectory (file:///Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/tsx/dist/esm/index.mjs?1794286676904:2:4237)
+#     at async resolve (file:///Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/tsx/dist/esm/index.mjs?1794286676904:2:5355)
+#     at async nextResolve (node:internal/modules/esm/hooks:748:22)
+#     at async Hooks.resolve (node:internal/modules/esm/hooks:240:24)
+#     at async handleMessage (node:internal/modules/esm/worker:199:18) {
+#   code: 'ERR_MODULE_NOT_FOUND',
+#   url: 'file:///Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/src/inventory'
+# }
+# Node.js v22.23.1
+# Subtest: packages/game/test/inventory.test.ts
+not ok 4 - packages/game/test/inventory.test.ts
+  ---
+  duration_ms: 134.91125
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/inventory.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: move one cardinal step; wall and remote click leave state unchanged
+ok 14 - move one cardinal step; wall and remote click leave state unchanged
+  ---
+  duration_ms: 1.124625
+  type: 'test'
+  ...
+# Subtest: catalog matches eight reference prices
+ok 15 - catalog matches eight reference prices
+  ---
+  duration_ms: 0.072417
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 14
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 143.923791

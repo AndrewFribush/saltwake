@@ -1,0 +1,32 @@
+SKILL_START_PROTO: 1
+UPGRADE_AVAILABLE 1.95.5.0 1.99.0.0
+BRANCH: build/dungeon-loop
+PROACTIVE: all
+PROACTIVE_PROMPTED: yes
+SKILL_PREFIX: false
+REPO_MODE: unknown
+SESSION_KIND: interactive
+CAPY: off
+STATE_ROOT: /Users/andrewfribush/.gstack durable=yes
+SESSIONS: 1
+ACTIVATED: yes
+FIRST_LOOP_SHOWN: yes
+FIRST_TASK: 
+LAKE_INTRO: yes
+TELEMETRY: off
+TEL_PROMPTED: yes
+SESSION_ID: 18537-1794286883-86107201
+TEL_START: 1794286883
+EXPLAIN_LEVEL: default
+QUESTION_TUNING: false
+UPDATE_CHECK: true
+LEARNINGS: 0
+HAS_ROUTING: no
+ROUTING_DECLINED: true
+VENDORED_GSTACK: no
+MODEL_OVERLAY: codex
+GSTACK_PLAN_MODE: inactive
+ARTIFACTS_SYNC: off
+GSTACK_INSTRUCTION_BEGIN: upgrade-flow 18537-1794286883-86107201
+The update-check output above applies. If it shows `UPGRADE_AVAILABLE <old> <new>`: read `/Users/andrewfribush/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If it shows `JUST_UPGRADED <from> <to>`: print "Running gstack v{to} (just updated!)". If `SPAWNED_SESSION` is true, skip feature discovery. After upgrade prompts, continue the workflow.
+GSTACK_INSTRUCTION_END

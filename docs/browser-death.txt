@@ -1,0 +1,26 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Dungeon economy · Practice (http://127.0.0.1:18930/)
+DEATH_REPORT=What goes where
+
+Practice only: these transfers are a preview, not a bank transaction.
+
+Town supplies spent
+None
+
+Town gear kept
+None
+
+Town gear to bank
+town-club, town-tonic
+
+Found supplies spent
+cache-tonic
+
+Loot carried out
+None
+
+Loot returned to dungeon
+cache-sword, cache-armor, deep-fine, deep-iron
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK
+[ok | 3947ms]

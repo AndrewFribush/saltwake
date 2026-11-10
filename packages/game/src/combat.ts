@@ -1,32 +1,52 @@
 import {distance,walkable,type RunState,type Point} from './state';
-const same=(a:Point,b:Point)=>a.x===b.x&&a.y===b.y;
-// Intents are locked before the player's action. Movement never retargets a hit.
+export const same=(a:Point,b:Point)=>a.x===b.x&&a.y===b.y;
+// A mutable turn-local guard is shared by enemies and hazards: only one hit is halved.
 export function resolveEnemies(s:RunState,guard:boolean){
- for(const e of [...s.enemies].sort((a,b)=>a.id.localeCompare(b.id))){
+ const hitPlayer=(damage:number,source:string)=>{
+  const raw=Math.max(1,damage-(s.player.armor?1:0));const hit=guard?Math.ceil(raw/2):raw;guard=false;
+  s.player.hp=Math.max(0,s.player.hp-hit);s.log.push(`${source} hits for ${hit}.`);
+ };
+ for(const e of [...s.enemies].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)){
   if(s.player.hp<=0)break;
-  if(distance(e,e.intent)===1&&same(e.intent,s.player)){
-   const raw=Math.max(1,3-(s.player.armor?1:0));const hit=guard?Math.ceil(raw/2):raw;guard=false;
-   s.player.hp=Math.max(0,s.player.hp-hit);s.log.push(`${e.id} hits for ${hit}.`);
-  }else if(walkable(s,e.intent)&&!same(e.intent,s.player)&&!s.enemies.some(other=>other.id!==e.id&&same(other,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
+  if(e.hp<=0)continue;
+  if(e.recovering){e.recovering=false;continue;}
+  if(e.kind==='charger'&&e.lane?.length){
+   for(const tile of e.lane){
+    if(same(tile,s.player)){hitPlayer(4,e.id);break;}
+    const other=s.enemies.find(other=>other.id!==e.id&&other.hp>0&&same(other,tile));
+    if(other){other.hp-=4;s.log.push(`${e.id} strikes ${other.id} for 4.`);break;}
+    e.x=tile.x;e.y=tile.y;
+   }
+   e.recovering=true;
+  }else if(distance(e,e.intent)===1&&same(e.intent,s.player)){
+   hitPlayer(3,e.id);
+  }else if(walkable(s,e.intent)&&!same(e.intent,s.player)&&!s.enemies.some(other=>other.id!==e.id&&other.hp>0&&same(other,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
  }
+ for(const trap of s.traps){
+  if(trap.armed){
+   if(same(trap,s.player)&&s.player.hp>0)hitPlayer(3,'Spikes');
+   for(const e of s.enemies)if(e.hp>0&&same(trap,e)){e.hp-=3;s.log.push(`Spikes hit ${e.id} for 3.`);}
+  }
+  trap.armed=!trap.armed;
+ }
+ s.enemies=s.enemies.filter(e=>e.hp>0);
  if(s.player.hp===0)s.status='died';
- revealIntents(s);
- s.log=s.log.slice(-8);
+ revealIntents(s);s.log=s.log.slice(-8);
 }
 export function revealIntents(s:RunState){
- // Breadth-first distances prevent the greedy back-and-forth at wall corners.
  const key=(p:Point)=>`${p.x},${p.y}`;
  const neighbors=(p:Point)=>[{x:p.x-1,y:p.y},{x:p.x+1,y:p.y},{x:p.x,y:p.y-1},{x:p.x,y:p.y+1}];
- const distances=new Map<string,number>([[key(s.player),0]]);
- const queue:Point[]=[s.player];
- for(let i=0;i<queue.length;i++){
-  const p=queue[i];
-  for(const next of neighbors(p))if(walkable(s,next)&&!distances.has(key(next))){
-   distances.set(key(next),distances.get(key(p))!+1);queue.push(next);
-  }
- }
+ const distances=new Map<string,number>([[key(s.player),0]]);const queue:Point[]=[s.player];
+ for(let i=0;i<queue.length;i++)for(const next of neighbors(queue[i]))if(walkable(s,next)&&!distances.has(key(next))){distances.set(key(next),distances.get(key(queue[i]))!+1);queue.push(next);}
  for(const e of s.enemies){
-  const choices=neighbors(e).filter(p=>walkable(s,p)&&distances.has(key(p)));
+  e.lane=[];
+  if(e.recovering){e.intent={x:e.x,y:e.y};continue;}
+  if(e.kind==='charger'&&(e.x===s.player.x||e.y===s.player.y)){
+   const dx=Math.sign(s.player.x-e.x),dy=Math.sign(s.player.y-e.y);
+   if(dx||dy){let p={x:e.x+dx,y:e.y+dy};while(walkable(s,p)){e.lane.push(p);p={x:p.x+dx,y:p.y+dy};}}
+   if(e.lane.some(p=>same(p,s.player))){e.intent=e.lane[0];continue;}e.lane=[];
+  }
+  const choices=neighbors(e).filter(p=>walkable(s,p)&&distances.has(key(p))&&!s.enemies.some(other=>other.id!==e.id&&same(other,p)));
   choices.sort((a,b)=>distances.get(key(a))!-distances.get(key(b))!);
   e.intent=choices[0]??{x:e.x,y:e.y};
  }

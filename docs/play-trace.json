@@ -1,0 +1,153 @@
+{
+  "actions": [
+    {
+      "type": "pickup",
+      "itemId": "cache-tonic"
+    },
+    {
+      "type": "wait"
+    },
+    {
+      "type": "wait"
+    },
+    {
+      "type": "attack",
+      "enemyId": "rat-1"
+    },
+    {
+      "type": "attack",
+      "enemyId": "rat-1"
+    },
+    {
+      "type": "move",
+      "x": 1,
+      "y": 2
+    },
+    {
+      "type": "move",
+      "x": 1,
+      "y": 3
+    },
+    {
+      "type": "equip",
+      "itemId": "cache-armor"
+    },
+    {
+      "type": "move",
+      "x": 2,
+      "y": 3
+    },
+    {
+      "type": "equip",
+      "itemId": "cache-sword"
+    },
+    {
+      "type": "move",
+      "x": 3,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 4,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 5,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 6,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 4
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 5
+    },
+    {
+      "type": "continue"
+    },
+    {
+      "type": "move",
+      "x": 2,
+      "y": 1
+    },
+    {
+      "type": "move",
+      "x": 3,
+      "y": 1
+    },
+    {
+      "type": "move",
+      "x": 3,
+      "y": 2
+    },
+    {
+      "type": "attack",
+      "enemyId": "boar-1"
+    },
+    {
+      "type": "move",
+      "x": 4,
+      "y": 2
+    },
+    {
+      "type": "move",
+      "x": 5,
+      "y": 2
+    },
+    {
+      "type": "move",
+      "x": 6,
+      "y": 2
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 2
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 4
+    },
+    {
+      "type": "pickup",
+      "itemId": "deep-fine"
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 5
+    },
+    {
+      "type": "pickup",
+      "itemId": "deep-iron"
+    },
+    {
+      "type": "extract"
+    }
+  ],
+  "final": {
+    "health": 9,
+    "status": "extracted",
+    "turn": 32
+  }
+}

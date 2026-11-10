@@ -1,0 +1,4 @@
+[
+ {"id":"cellar","title":"The cellar","tiles":["#########","#.......#","#..##...#","#.......#","#....#..#","#.......#","#########"],"spawn":{"x":1,"y":1},"exit":{"x":7,"y":5},"enemies":[{"id":"rat-1","kind":"pursuer","x":5,"y":1,"hp":4,"intent":{"x":4,"y":1}}],"traps":[]},
+ {"id":"gauntlet","title":"The spike hall","tiles":["#########","#.......#","#.......#","#.......#","#.......#","#.......#","#########"],"spawn":{"x":1,"y":1},"exit":{"x":7,"y":5},"enemies":[{"id":"boar-1","kind":"charger","x":6,"y":3,"hp":6,"intent":{"x":5,"y":3}}],"traps":[{"id":"spike-1","x":3,"y":3,"armed":true}]}
+]

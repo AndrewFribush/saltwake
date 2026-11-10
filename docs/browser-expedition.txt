@@ -1,0 +1,59 @@
+✔︎ Opened a new tab and set it active: tabs[0], page →  (about:blank)
+TURN 1: pickup OK
+TURN 2: wait OK
+TURN 3: wait OK
+TURN 4: attack OK
+TURN 5: attack OK
+TURN 6: move OK
+TURN 7: move OK
+TURN 8: equip OK
+TURN 9: move OK
+TURN 10: equip OK
+TURN 11: move OK
+TURN 12: move OK
+TURN 13: move OK
+TURN 14: move OK
+TURN 15: move OK
+TURN 16: move OK
+TURN 17: move OK
+TURN 18: continue OK
+TURN 19: move OK
+TURN 20: move OK
+TURN 21: move OK
+TURN 22: attack OK
+TURN 23: move OK
+TURN 24: move OK
+TURN 25: move OK
+TURN 26: move OK
+TURN 27: move OK
+TURN 28: move OK
+TURN 29: pickup OK
+TURN 30: move OK
+TURN 31: pickup OK
+TURN 32: extract OK
+REPORT=What goes where
+
+Practice only: these transfers are a preview, not a bank transaction.
+
+Town supplies spent
+None
+
+Town gear kept
+town-club, town-tonic
+
+Town gear to bank
+None
+
+Found supplies spent
+None
+
+Loot carried out
+cache-tonic, cache-sword, cache-armor, deep-fine, deep-iron
+
+Loot returned to dungeon
+None
+CONSOLE_ERRORS=[]
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK
+[ok | 18987ms]

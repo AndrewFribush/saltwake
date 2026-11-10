@@ -1,0 +1,202 @@
+[
+  {
+    "loadout": "club only",
+    "policy": "rush cellar, skip found gear and potion use, close distance and attack without dodging",
+    "healthAtFirstExit": 6,
+    "finalHealth": 2,
+    "status": "active",
+    "enemiesLeft": 0,
+    "turns": 19,
+    "trace": [
+      {
+        "type": "move",
+        "x": 2,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 3,
+        "y": 1
+      },
+      {
+        "type": "attack",
+        "enemyId": "rat-1"
+      },
+      {
+        "type": "attack",
+        "enemyId": "rat-1"
+      },
+      {
+        "type": "move",
+        "x": 4,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 5,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 6,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 2
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 3
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 4
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 5
+      },
+      {
+        "type": "continue"
+      },
+      {
+        "type": "move",
+        "x": 2,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 3,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 4,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 4,
+        "y": 2
+      },
+      {
+        "type": "attack",
+        "enemyId": "boar-1"
+      },
+      {
+        "type": "attack",
+        "enemyId": "boar-1"
+      }
+    ]
+  },
+  {
+    "loadout": "club + armor",
+    "policy": "rush cellar, skip found gear and potion use, close distance and attack without dodging",
+    "healthAtFirstExit": 8,
+    "finalHealth": 5,
+    "status": "active",
+    "enemiesLeft": 0,
+    "turns": 19,
+    "trace": [
+      {
+        "type": "move",
+        "x": 2,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 3,
+        "y": 1
+      },
+      {
+        "type": "attack",
+        "enemyId": "rat-1"
+      },
+      {
+        "type": "attack",
+        "enemyId": "rat-1"
+      },
+      {
+        "type": "move",
+        "x": 4,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 5,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 6,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 2
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 3
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 4
+      },
+      {
+        "type": "move",
+        "x": 7,
+        "y": 5
+      },
+      {
+        "type": "continue"
+      },
+      {
+        "type": "move",
+        "x": 2,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 3,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 4,
+        "y": 1
+      },
+      {
+        "type": "move",
+        "x": 4,
+        "y": 2
+      },
+      {
+        "type": "attack",
+        "enemyId": "boar-1"
+      },
+      {
+        "type": "attack",
+        "enemyId": "boar-1"
+      }
+    ]
+  }
+]
