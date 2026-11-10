@@ -1,0 +1,314 @@
+
+> dungeon-economy@0.1.0 test:game
+> tsx --test packages/game/test/*.test.ts
+
+TAP version 13
+# Subtest: a committed attack misses when player steps aside
+ok 1 - a committed attack misses when player steps aside
+  ---
+  duration_ms: 0.992208
+  type: 'test'
+  ...
+# Subtest: club deals two; surviving enemy hits; sword kills before enemy acts
+ok 2 - club deals two; surviving enemy hits; sword kills before enemy acts
+  ---
+  duration_ms: 0.212875
+  type: 'test'
+  ...
+# Subtest: guard halves one hit rounded up after armor, then expires
+ok 3 - guard halves one hit rounded up after armor, then expires
+  ---
+  duration_ms: 0.347333
+  type: 'test'
+  ...
+# Subtest: enemies act in ID order and guard absorbs only first hit
+ok 4 - enemies act in ID order and guard absorbs only first hit
+  ---
+  duration_ms: 0.416834
+  type: 'test'
+  ...
+# Subtest: invalid attacks and occupied movement do not spend a turn
+ok 5 - invalid attacks and occupied movement do not spend a turn
+  ---
+  duration_ms: 0.170708
+  type: 'test'
+  ...
+# Subtest: death stops all further actions
+ok 6 - death stops all further actions
+  ---
+  duration_ms: 0.11
+  type: 'test'
+  ...
+# Subtest: pursuer routes around a wall instead of oscillating
+ok 7 - pursuer routes around a wall instead of oscillating
+  ---
+  duration_ms: 5.968459
+  type: 'test'
+  ...
+# Subtest: one discrete key action; ignore repeat and browser shortcuts
+ok 8 - one discrete key action; ignore repeat and browser shortcuts
+  ---
+  duration_ms: 0.658833
+  type: 'test'
+  ...
+# Subtest: three accurate inputs score fine, including both target boundaries
+ok 9 - three accurate inputs score fine, including both target boundaries
+  ---
+  duration_ms: 0.391625
+  type: 'test'
+  ...
+# Subtest: one miss makes a completed batch normal, never a failed batch
+ok 10 - one miss makes a completed batch normal, never a failed batch
+  ---
+  duration_ms: 0.058083
+  type: 'test'
+  ...
+# Subtest: incomplete batches have no tier and malformed timing cannot score
+ok 11 - incomplete batches have no tier and malformed timing cannot score
+  ---
+  duration_ms: 0.194417
+  type: 'test'
+  ...
+# Subtest: inputs are immutable, sequential, and accepted only once per step
+ok 12 - inputs are immutable, sequential, and accepted only once per step
+  ---
+  duration_ms: 0.355292
+  type: 'test'
+  ...
+# Subtest: restart creates fresh identity and rejects callbacks from the previous batch
+ok 13 - restart creates fresh identity and rejects callbacks from the previous batch
+  ---
+  duration_ms: 0.066125
+  type: 'test'
+  ...
+# Subtest: late input is a normal miss; invalid input leaves the attempt unchanged
+ok 14 - late input is a normal miss; invalid input leaves the attempt unchanged
+  ---
+  duration_ms: 0.068458
+  type: 'test'
+  ...
+# Subtest: death returns equipped finds and unvisited loot; forfeits town gear; consumption stays spent
+ok 15 - death returns equipped finds and unvisited loot; forfeits town gear; consumption stays spent
+  ---
+  duration_ms: 2.236
+  type: 'test'
+  ...
+# Subtest: extract awards only carried loot; void returns all surviving finds and town gear
+ok 16 - extract awards only carried loot; void returns all surviving finds and town gear
+  ---
+  duration_ms: 0.335791
+  type: 'test'
+  ...
+# Subtest: previously extracted equipment admitted as town is forfeited next death
+ok 17 - previously extracted equipment admitted as town is forfeited next death
+  ---
+  duration_ms: 0.132375
+  type: 'test'
+  ...
+# Subtest: corrupt manifests and consumed equipment fail closed
+ok 18 - corrupt manifests and consumed equipment fail closed
+  ---
+  duration_ms: 0.767916
+  type: 'test'
+  ...
+# Subtest: seeded action traces partition every source exactly once for every outcome
+ok 19 - seeded action traces partition every source exactly once for every outcome
+  ---
+  duration_ms: 9.917375
+  type: 'test'
+  ...
+# Subtest: cannot extract or continue through enemies, or away from exit
+ok 20 - cannot extract or continue through enemies, or away from exit
+  ---
+  duration_ms: 0.885875
+  type: 'test'
+  ...
+# Subtest: continuing carries health/items but not enemies; extraction ends actions
+ok 21 - continuing carries health/items but not enemies; extraction ends actions
+  ---
+  duration_ms: 0.63575
+  type: 'test'
+  ...
+# Subtest: funded geometry is deterministic, uses full economic seed and contains no generated rewards
+ok 22 - funded geometry is deterministic, uses full economic seed and contains no generated rewards
+  ---
+  duration_ms: 1.489542
+  type: 'test'
+  ...
+# Subtest: all floor tiles, four unique sockets and exits are reachable across 100 seeds and 2–4 floors
+ok 23 - all floor tiles, four unique sockets and exits are reachable across 100 seeds and 2–4 floors
+  ---
+  duration_ms: 33.245459
+  type: 'test'
+  ...
+# Subtest: seeded floors have 2–4 substantial chambers joined by narrow chokepoints, with varied geometry
+ok 24 - seeded floors have 2–4 substantial chambers joined by narrow chokepoints, with varied geometry
+  ---
+  duration_ms: 67.61425
+  type: 'test'
+  ...
+# Subtest: charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+ok 25 - charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+  ---
+  duration_ms: 1.109
+  type: 'test'
+  ...
+# Subtest: charge strikes and stops at first enemy, protecting player behind
+ok 26 - charge strikes and stops at first enemy, protecting player behind
+  ---
+  duration_ms: 0.267625
+  type: 'test'
+  ...
+# Subtest: armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+ok 27 - armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+  ---
+  duration_ms: 0.179
+  type: 'test'
+  ...
+# Subtest: identical action trace reproduces hazards
+ok 28 - identical action trace reproduces hazards
+  ---
+  duration_ms: 0.907417
+  type: 'test'
+  ...
+# Subtest: every house has reachable services and a traversable return door
+ok 29 - every house has reachable services and a traversable return door
+  ---
+  duration_ms: 11.122958
+  type: 'test'
+  ...
+# Subtest: house walls and fixtures block walking; paths never cut diagonally through them
+ok 30 - house walls and fixtures block walking; paths never cut diagonally through them
+  ---
+  duration_ms: 0.877208
+  type: 'test'
+  ...
+# Subtest: floor tonic heals once, retains origin and is consumed
+ok 31 - floor tonic heals once, retains origin and is consumed
+  ---
+  duration_ms: 1.017292
+  type: 'test'
+  ...
+# Subtest: six bag slots; empty equipment slot works even when bag full
+ok 32 - six bag slots; empty equipment slot works even when bag full
+  ---
+  duration_ms: 0.265958
+  type: 'test'
+  ...
+# Subtest: full bag rejects displaced town gear; bag swap uses freed slot
+ok 33 - full bag rejects displaced town gear; bag swap uses freed slot
+  ---
+  duration_ms: 0.222375
+  type: 'test'
+  ...
+# Subtest: displaced dungeon weapon can remain on tile; town items cannot drop
+ok 34 - displaced dungeon weapon can remain on tile; town items cannot drop
+  ---
+  duration_ms: 0.603167
+  type: 'test'
+  ...
+# Subtest: cannot use remote/unvisited loot, nonconsumables or consume at full health
+ok 35 - cannot use remote/unvisited loot, nonconsumables or consume at full health
+  ---
+  duration_ms: 0.087917
+  type: 'test'
+  ...
+# Subtest: item IDs cannot be reused
+ok 36 - item IDs cannot be reused
+  ---
+  duration_ms: 0.099625
+  type: 'test'
+  ...
+# Subtest: fixture registration rejects overfull bags, occupied/wrong slots and town floor gear
+ok 37 - fixture registration rejects overfull bags, occupied/wrong slots and town floor gear
+  ---
+  duration_ms: 0.159667
+  type: 'test'
+  ...
+# Subtest: malformed actions do not advance the turn or crash inventory lookup
+ok 38 - malformed actions do not advance the turn or crash inventory lookup
+  ---
+  duration_ms: 0.055041
+  type: 'test'
+  ...
+# Subtest: extra itemId cannot combine equipping and attacking in one turn
+ok 39 - extra itemId cannot combine equipping and attacking in one turn
+  ---
+  duration_ms: 0.210542
+  type: 'test'
+  ...
+# Subtest: matcher caps three, filters fee/style/difficulty/reward and excludes self/full
+ok 40 - matcher caps three, filters fee/style/difficulty/reward and excludes self/full
+  ---
+  duration_ms: 0.767208
+  type: 'test'
+  ...
+# Subtest: equal-fee suggestions rotate without changing or reserving offers
+ok 41 - equal-fee suggestions rotate without changing or reserving offers
+  ---
+  duration_ms: 0.099833
+  type: 'test'
+  ...
+# Subtest: move one cardinal step; wall and remote click leave state unchanged
+ok 42 - move one cardinal step; wall and remote click leave state unchanged
+  ---
+  duration_ms: 1.173792
+  type: 'test'
+  ...
+# Subtest: catalog matches eight reference prices
+ok 43 - catalog matches eight reference prices
+  ---
+  duration_ms: 0.070875
+  type: 'test'
+  ...
+# Subtest: seed reproduces an expedition; different seeds alter rooms and rewards
+ok 44 - seed reproduces an expedition; different seeds alter rooms and rewards
+  ---
+  duration_ms: 11.919125
+  type: 'test'
+  ...
+# Subtest: every generated floor and exit is reachable for 100 seeds; spawns do not overlap threats or loot
+ok 45 - every generated floor and exit is reachable for 100 seeds; spawns do not overlap threats or loot
+  ---
+  duration_ms: 78.294291
+  type: 'test'
+  ...
+# Subtest: fog hides distant floor and monsters; movement reveals explored tiles
+ok 46 - fog hides distant floor and monsters; movement reveals explored tiles
+  ---
+  duration_ms: 1.163042
+  type: 'test'
+  ...
+# Subtest: one run boon trades health for damage or heals; cannot farm or select away from exit
+ok 47 - one run boon trades health for damage or heals; cannot farm or select away from exit
+  ---
+  duration_ms: 0.962208
+  type: 'test'
+  ...
+# Subtest: unaware monsters do not hunt the player through unseen rooms
+ok 48 - unaware monsters do not hunt the player through unseen rooms
+  ---
+  duration_ms: 0.873042
+  type: 'test'
+  ...
+# Subtest: every livelihood and dungeon door is reachable from every other destination
+ok 49 - every livelihood and dungeon door is reachable from every other destination
+  ---
+  duration_ms: 5.54875
+  type: 'test'
+  ...
+# Subtest: travel cannot cross buildings, water or map edges; interactions require proximity
+ok 50 - travel cannot cross buildings, water or map edges; interactions require proximity
+  ---
+  duration_ms: 0.12725
+  type: 'test'
+  ...
+1..50
+# tests 50
+# suites 0
+# pass 50
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 454.5115

@@ -22,7 +22,7 @@ npm run server
 npm run dev -- --port 18930 --strictPort
 ```
 
-Open http://127.0.0.1:18930. **The game opens in Saltwake**, a walkable harbor town. Click a building to walk there, or use arrows/WASD and Enter at a door. Escape leaves a building. On a small screen, building interactions fill the screen.
+Open http://127.0.0.1:18930. **The game opens in Saltwake**, a walkable harbor town. Click a building to walk there, or use arrows/WASD and Enter at a door. Each building has a tile interior: walk to its service counter to trade, craft, or manage expeditions. Click a counter to walk there automatically. Walk through the south door to leave; Escape closes an interaction or leaves the room. Touch direction controls are available indoors. Click your purse, or approach an indoor account book, for balances, reserved fees, pending income, and receipts.
 
 - **Quayside market:** buy finite stock, sell finds, or stock your own stall. Select goods from your satchel to sell; select a trader's goods to buy.
 - **The Copper Kettle:** select two herbs and two flasks, then time three inputs to craft tonics. Low-asset characters can take bank-supplied recovery work. Supplies, wages and orders are bounded.

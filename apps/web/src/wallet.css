@@ -1,0 +1,14 @@
+.game-wallet { padding: 1rem; border: 1px solid #756347; border-radius: .75rem; background: #211e19; color: #f5ead4; }
+.game-wallet header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.game-wallet h2 { margin: 0; }
+.game-wallet p { line-height: 1.5; }
+.game-wallet button { min-height: 44px; }
+.game-wallet button:focus-visible { outline: 3px solid #f5c76b; outline-offset: 3px; }
+.game-wallet .wallet-balances { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; }
+.game-wallet .wallet-balances > div { padding: 1rem; background: #302b23; border-radius: .5rem; }
+.game-wallet dt { color: #dfcfb1; }
+.game-wallet dd { margin: .5rem 0 0; font-size: 1.65rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.game-wallet code { display: block; color: #dfcfb1; overflow-wrap: anywhere; }
+.game-wallet .wallet-receipts { padding: 0; list-style: none; }
+.game-wallet li { padding: .75rem 0; border-bottom: 1px solid #756347; overflow-wrap: anywhere; }
+.game-wallet .wallet-receipts li > div { display: flex; justify-content: space-between; gap: 1rem; }

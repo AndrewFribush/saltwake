@@ -92,3 +92,7 @@ Final verification exited 0: game43/43, contract30/30, server39/39, TypeScript, 
 ## Saltwake world iteration
 
 User directed a shift from menus to a game. Implemented a town-first spatial flow, contextual trade/crafting/guild/gate interactions, seeded paid V2 chamber layouts with server fog, funded starter-world transactions and return-to-town results. [Evidence](world-gameplay-verification.md). This supersedes the fixed-paid-layout gap in older checkpoint notes. M08 remains unaccepted; no four-module editor, human-play, clean-checkout or external-release gate is promoted.
+
+## Tile interiors and wallet iteration
+
+Added visible town tiles, five walkable house interiors and account books linked to authoritative purse/reserve/pending-income views. Connected existing services at indoor stations and added expedition fee history. Verified 50 game + 47 server tests, typecheck/build and Aside desktop/mobile flows. See [tile-world evidence](tile-world-verification.md). Wallet remains local custody and a partial financial history; no external wallet or release. Human gameplay acceptance and canonical 30/48 tally unchanged.
