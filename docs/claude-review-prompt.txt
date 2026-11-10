@@ -1,0 +1,116 @@
+Review this initial local practice implementation of tasks M01 and M02 for correctness and accessible keyboard/mouse play. Return concise concrete bugs with severity, file and reproduction. No tools needed. Specs: 12 HP, club 2 sword 3 damage, armor -1 minimum1, guard halves next hit rounded up until next player action; intents before action; surviving enemies stable order; walls invalid movement no turn; eight values4,12,8,2,2,2,6,8. Pure practice only, economy is future work.
+
+FILE packages/game/test/movement.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRun } from '../src/state';
+import { act } from '../src/actions';
+import { catalog } from '../../shared/src/catalog';
+test('move one cardinal step; wall and remote click leave state unchanged', () => {
+ const s=createRun();
+ assert.equal(act(s,{type:'move',x:0,y:1}),s);
+ assert.equal(act(s,{type:'move',x:5,y:1}),s);
+ const n=act(s,{type:'move',x:2,y:1});
+ assert.deepEqual(n.player,{x:2,y:1,hp:12,weapon:'club',armor:false});
+ assert.equal(n.turn,1); assert.equal(s.turn,0);
+});
+test('catalog matches eight reference prices',()=>assert.deepEqual(Object.values(catalog).map(x=>x.value),[4,12,8,2,2,2,6,8]));
+
+FILE packages/game/test/combat.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRun,type RunState} from '../src/state';
+import {act} from '../src/actions';
+function encounter():RunState { const s=createRun();s.player={x:2,y:1,hp:12,weapon:'club',armor:false};s.enemies=[{id:'rat',x:3,y:1,hp:4,intent:{x:2,y:1}}];return s; }
+test('a committed attack misses when player steps aside',()=>{const s=encounter();const n=act(s,{type:'move',x:1,y:1});assert.equal(n.player.hp,12);assert.equal(n.turn,1);});
+test('club deals two; surviving enemy hits; sword kills before enemy acts',()=>{const s=encounter();const n=act(s,{type:'attack',enemyId:'rat'});assert.equal(n.enemies[0].hp,2);assert.equal(n.player.hp,9);s.player.weapon='sword';s.enemies[0].hp=3;const k=act(s,{type:'attack',enemyId:'rat'});assert.equal(k.enemies.length,0);assert.equal(k.player.hp,12);});
+test('guard halves one hit rounded up after armor, then expires',()=>{const s=encounter();assert.equal(act(s,{type:'guard'}).player.hp,10);s.player.armor=true;const n=act(s,{type:'guard'});assert.equal(n.player.hp,11);assert.equal(act(n,{type:'wait'}).player.hp,9);});
+test('enemies act in ID order and guard absorbs only first hit',()=>{const s=encounter();s.enemies.push({id:'ant',x:1,y:1,hp:4,intent:{x:2,y:1}});const n=act(s,{type:'guard'});assert.equal(n.player.hp,7);assert.deepEqual(n.log.slice(-2),['ant hits for 2.','rat hits for 3.']);});
+test('invalid attacks and occupied movement do not spend a turn',()=>{const s=encounter();assert.equal(act(s,{type:'move',x:3,y:1}),s);assert.equal(act(s,{type:'attack',enemyId:'missing'}),s);});
+test('death stops all further actions',()=>{const s=encounter();s.player.hp=1;const n=act(s,{type:'wait'});assert.equal(n.status,'died');assert.equal(n.player.hp,0);assert.equal(act(n,{type:'guard'}),n);});
+
+FILE packages/game/src/state.ts
+export type Point={x:number;y:number};
+export type Enemy=Point & {id:string;hp:number;intent:Point};
+export type RunState={room:string[];player:Point & {hp:number;weapon:'club'|'sword';armor:boolean};enemies:Enemy[];turn:number;status:'active'|'died'|'extracted';log:string[]};
+export function createRun():RunState {return {room:['#########','#.......#','#..##...#','#.......#','#....#..#','#.......#','#########'],player:{x:1,y:1,hp:12,weapon:'club',armor:false},enemies:[],turn:0,status:'active',log:['Explore the cellar. Walls do not spend a turn.']};}
+export function walkable(s:RunState,p:Point){return Number.isInteger(p.x)&&Number.isInteger(p.y)&&s.room[p.y]?.[p.x]==='.';}
+export function distance(a:Point,b:Point){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);}
+
+FILE packages/game/src/actions.ts
+import {distance,walkable,type RunState} from './state';
+import {resolveEnemies} from './combat';
+export type Action={type:'move';x:number;y:number}|{type:'attack';enemyId:string}|{type:'guard'}|{type:'wait'};
+export function act(s:RunState,a:Action):RunState {
+ if(s.status!=='active')return s;
+ if(a.type==='move'&&(!walkable(s,a)||distance(s.player,a)!==1||s.enemies.some(e=>e.x===a.x&&e.y===a.y)))return s;
+ if(a.type==='attack'&&!s.enemies.some(e=>e.id===a.enemyId&&distance(s.player,e)===1))return s;
+ const n=structuredClone(s);
+ if(a.type==='move'){n.player.x=a.x;n.player.y=a.y;}
+ if(a.type==='attack'){
+  const e=n.enemies.find(e=>e.id===a.enemyId)!;const damage=n.player.weapon==='sword'?3:2;e.hp-=damage;
+  n.log.push(`You hit ${e.id} for ${damage}.`);n.enemies=n.enemies.filter(e=>e.hp>0);
+ }
+ n.turn++;resolveEnemies(n,a.type==='guard');return n;
+}
+
+FILE packages/game/src/combat.ts
+import {distance,walkable,type RunState,type Point} from './state';
+const same=(a:Point,b:Point)=>a.x===b.x&&a.y===b.y;
+// Intents are locked before the player's action. Movement never retargets a hit.
+export function resolveEnemies(s:RunState,guard:boolean){
+ for(const e of [...s.enemies].sort((a,b)=>a.id.localeCompare(b.id))){
+  if(s.player.hp<=0)break;
+  if(distance(e,e.intent)===1&&same(e.intent,s.player)){
+   const raw=Math.max(1,3-(s.player.armor?1:0));const hit=guard?Math.ceil(raw/2):raw;guard=false;
+   s.player.hp=Math.max(0,s.player.hp-hit);s.log.push(`${e.id} hits for ${hit}.`);
+  }else if(walkable(s,e.intent)&&!same(e.intent,s.player)&&!s.enemies.some(other=>other.id!==e.id&&same(other,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
+ }
+ if(s.player.hp===0)s.status='died';
+ revealIntents(s);
+ s.log=s.log.slice(-8);
+}
+export function revealIntents(s:RunState){
+ for(const e of s.enemies){
+  const choices=[{x:e.x-1,y:e.y},{x:e.x+1,y:e.y},{x:e.x,y:e.y-1},{x:e.x,y:e.y+1}].filter(p=>walkable(s,p));
+  choices.sort((a,b)=>distance(a,s.player)-distance(b,s.player));
+  e.intent=choices[0]??{x:e.x,y:e.y};
+ }
+}
+
+FILE packages/shared/src/catalog.ts
+export const catalog = {
+ club:{name:'Club',value:4}, sword:{name:'Sword',value:12}, armor:{name:'Armor',value:8},
+ herb:{name:'Herb',value:2}, iron:{name:'Iron',value:2}, flask:{name:'Flask',value:2},
+ tonic:{name:'Tonic',value:6}, fineTonic:{name:'Fine tonic',value:8}
+} as const;
+
+FILE apps/web/src/App.tsx
+import React from 'react';
+import {Run} from './Run';
+export function App(){return <main><header><span className="eyebrow">DUNGEON ECONOMY / PLAYABLE PROTOTYPE</span><h1>The cellar below</h1><p>A small beginning. Read the room. Choose your next step.</p></header><Run/><footer>Free practice · No wallet, admission fee or transferable rewards. Refreshing resets this local session.</footer></main>;}
+
+FILE apps/web/src/main.tsx
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {App} from './App';
+import './style.css';
+createRoot(document.getElementById('root')!).render(<App/>);
+
+FILE apps/web/src/Run.tsx
+import React,{useState} from 'react';
+import {createRun,distance} from '../../../packages/game/src/state';
+import {revealIntents} from '../../../packages/game/src/combat';
+import {act,type Action} from '../../../packages/game/src/actions';
+function practice(){const s=createRun();s.enemies=[{id:'Cellar rat',x:5,y:1,hp:4,intent:{x:4,y:1}}];revealIntents(s);return s;}
+export function Run(){
+ const [s,set]=useState(practice);
+ const send=(a:Action)=>set(old=>act(old,a));
+ const click=(x:number,y:number)=>{const enemy=s.enemies.find(e=>e.x===x&&e.y===y);send(enemy?{type:'attack',enemyId:enemy.id}:{type:'move',x,y});};
+ return <section className="expedition"><div><div className="status"><strong>Practice room</strong><span>Health {s.player.hp}/12 · Turn {s.turn}</span></div><div className="board" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move. G to guard, space to wait." onKeyDown={e=>{const d:Record<string,number[]>={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};if(d[e.key]){e.preventDefault();click(s.player.x+d[e.key][0],s.player.y+d[e.key][1]);}else if(e.key==='g'||e.key===' '){e.preventDefault();send({type:e.key==='g'?'guard':'wait'});}}}>
+ {s.room.flatMap((row,y)=>[...row].map((tile,x)=>{const player=s.player.x===x&&s.player.y===y;const enemy=s.enemies.find(e=>e.x===x&&e.y===y);const warning=s.enemies.some(e=>e.intent.x===x&&e.intent.y===y);return <button key={`${x},${y}`} className={`tile ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''}`} tabIndex={-1} aria-label={`${x},${y} ${tile==='#'?'wall':player?'you':enemy?enemy.id:'floor'}${warning?' targeted next turn':''}`} onClick={()=>click(x,y)}>{tile==='#'?'▪':player?'@':enemy?'R':warning?'!':'·'}</button>;}))}</div><div className="controls"><button onClick={()=>send({type:'guard'})} disabled={s.status!=='active'}>Guard [G]</button><button onClick={()=>send({type:'wait'})} disabled={s.status!=='active'}>Wait [Space]</button>{s.enemies.filter(e=>distance(e,s.player)===1).map(e=><button key={e.id} disabled={s.status!=='active'} onClick={()=>send({type:'attack',enemyId:e.id})}>Attack {e.id}</button>)}</div></div><aside><h2>{s.status==='died'?'You fell.':s.enemies.length?'Read the threat':'Room cleared.'}</h2><p>Click an adjacent tile or focus the board and use arrow keys / WASD. Move into an enemy to attack.</p><p><strong>@</strong> You · <strong>R</strong> Rat · <strong>!</strong> Next target. Step away to dodge. Guard halves the next hit.</p>{s.enemies.map(e=><p key={e.id}>{e.id}: {e.hp} health. Next target: {e.intent.x}, {e.intent.y}.</p>)}<div role="status" aria-live="polite">Position: {s.player.x}, {s.player.y}. Health {s.player.hp}. Turn {s.turn}. {s.status==='died'?'Run ended.':''}</div><ol className="log" aria-label="Combat history">{s.log.map((line,i)=><li key={i}>{line}</li>)}</ol><button className="primary" onClick={()=>set(practice())}>Restart practice</button></aside></section>;
+}
+
+FILE apps/web/src/style.css
+:root{color:#eee4ce;background:#151d22;font-family:system-ui,sans-serif;font-synthesis:none}*{box-sizing:border-box}body{margin:0}main{max-width:1120px;margin:auto;padding:48px 28px}header{margin-bottom:34px}h1{font:normal clamp(36px,6vw,64px) Georgia,serif;margin:14px 0}h2{font:normal 26px Georgia,serif}.eyebrow{letter-spacing:.15em;font-size:12px;color:#deb67a}p,footer{color:#b4bbba;line-height:1.65}.expedition{display:grid;grid-template-columns:minmax(0,2fr) minmax(220px,1fr);gap:28px}.status{display:flex;justify-content:space-between;gap:12px;font-size:14px;margin-bottom:16px}.board{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;padding:12px;background:#0b1116;border:1px solid #465257;border-radius:6px}.tile{aspect-ratio:1;border:0;border-radius:2px;background:#303e45;color:#839292;font-size:clamp(16px,3vw,30px);cursor:pointer}.wall{background:#172126;color:#485257}.player{background:#ddb373;color:#182126;font-weight:bold;outline:2px solid #fff3da;outline-offset:-4px}aside{padding:4px 24px;border-left:1px solid #465257}button.primary{margin-top:24px;padding:12px 18px;background:#ddb373;color:#182126;border:0;font-weight:700;border-radius:3px;cursor:pointer}:focus-visible{outline:3px solid #ffe5a6;outline-offset:4px}footer{font-size:13px;margin-top:34px}@media(max-width:700px){main{padding:24px 16px}.expedition{grid-template-columns:1fr}aside{border:0;padding:0}.status{flex-wrap:wrap}}
+.enemy{color:#ffe4d0;background:#79453b;font-weight:bold}.warning{box-shadow:inset 0 0 0 3px #f5af6a;background-image:repeating-linear-gradient(45deg,transparent,transparent 6px,#f5af6a22 6px,#f5af6a22 9px)}.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.controls button{padding:10px 14px;background:#303e45;color:#eee4ce;border:1px solid #73817f;border-radius:3px;cursor:pointer}.controls button:disabled{opacity:.45;cursor:default}.log{padding-left:20px;font-size:13px;color:#b4bbba;line-height:1.6}

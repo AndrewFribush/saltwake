@@ -1,0 +1,15 @@
+✔︎ Opened a new tab and set it active: tabs[0], page →  (about:blank)
+PASS=Position: 1, 1. Health 12. Turn 0.
+PASS=Position: 1, 1. Health 12. Turn 0.
+PASS=Position: 2, 1. Health 12. Turn 1.
+PASS=Position: 3, 1. Health 9. Turn 2.
+PASS=Position: 3, 1. Health 7. Turn 3.
+PASS=Position: 3, 1. Health 4. Turn 4.
+PASS=Position: 3, 1. Health 4. Turn 5.
+PASS=Position: 1, 1. Health 12. Turn 0.
+CONSOLE_ERRORS=[]
+ASIDE_DIR=/Users/andrewfribush/.aside/u/0/sessions/2026-11-09_oht9w5F9EPCIDKzc
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK
+[ok | 8250ms]

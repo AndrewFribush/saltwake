@@ -1,0 +1,101 @@
+
+> dungeon-economy@0.1.0 test
+> npm run test:game
+
+
+> dungeon-economy@0.1.0 test:game
+> tsx --test packages/game/test/*.test.ts
+
+TAP version 13
+# Subtest: a committed attack misses when player steps aside
+ok 1 - a committed attack misses when player steps aside
+  ---
+  duration_ms: 0.713875
+  type: 'test'
+  ...
+# Subtest: club deals two; surviving enemy hits; sword kills before enemy acts
+ok 2 - club deals two; surviving enemy hits; sword kills before enemy acts
+  ---
+  duration_ms: 0.167167
+  type: 'test'
+  ...
+# Subtest: guard halves one hit rounded up after armor, then expires
+ok 3 - guard halves one hit rounded up after armor, then expires
+  ---
+  duration_ms: 0.25975
+  type: 'test'
+  ...
+# Subtest: enemies act in ID order and guard absorbs only first hit
+ok 4 - enemies act in ID order and guard absorbs only first hit
+  ---
+  duration_ms: 7.129458
+  type: 'test'
+  ...
+# Subtest: invalid attacks and occupied movement do not spend a turn
+ok 5 - invalid attacks and occupied movement do not spend a turn
+  ---
+  duration_ms: 0.074833
+  type: 'test'
+  ...
+# Subtest: death stops all further actions
+ok 6 - death stops all further actions
+  ---
+  duration_ms: 0.171042
+  type: 'test'
+  ...
+# Subtest: pursuer routes around a wall instead of oscillating
+ok 7 - pursuer routes around a wall instead of oscillating
+  ---
+  duration_ms: 2.933875
+  type: 'test'
+  ...
+# Subtest: one discrete key action; ignore repeat and browser shortcuts
+not ok 8 - one discrete key action; ignore repeat and browser shortcuts
+  ---
+  duration_ms: 1.19775
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/controls.test.ts:1:143'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + {
+    +   type: 'wait'
+    + }
+    - null
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual:
+    type: 'wait'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/controls.test.ts:7:9)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: move one cardinal step; wall and remote click leave state unchanged
+ok 9 - move one cardinal step; wall and remote click leave state unchanged
+  ---
+  duration_ms: 0.86425
+  type: 'test'
+  ...
+# Subtest: catalog matches eight reference prices
+ok 10 - catalog matches eight reference prices
+  ---
+  duration_ms: 0.062959
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 9
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 124.218875

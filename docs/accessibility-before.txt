@@ -1,0 +1,5 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Dungeon economy · Practice (http://127.0.0.1:18930/)
+APPLICATION_ROLE=0
+Error: Role selector not found: role:button[name=Wait%20%5BSpace%5D]
+    at <eval> (repl.js:1:267)
+[error | 1426ms]
