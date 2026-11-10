@@ -1,0 +1,92 @@
+TAP version 13
+# Subtest: one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+not ok 1 - one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+  ---
+  duration_ms: 1779.941916
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/admission.test.ts:1:680'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      [
+    -   'Applied',
+        'Rejected',
+    +   'Rejected'
+      ]
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    0: 'Applied'
+    1: 'Rejected'
+  actual:
+    0: 'Rejected'
+    1: 'Rejected'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/admission.test.ts:10:9)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+not ok 2 - three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+  ---
+  duration_ms: 2879.759834
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/admission.test.ts:1:1905'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'Rejected'
+    - 'Applied'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'Applied'
+  actual: 'Rejected'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/admission.test.ts:29:48)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: zero-reward edition still caps at four and honors opening window
+not ok 3 - zero-reward edition still caps at four and honors opening window
+  ---
+  duration_ms: 2133.662333
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/admission.test.ts:1:3156'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'Rejected'
+    - 'Applied'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'Applied'
+  actual: 'Rejected'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/admission.test.ts:40:53)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 0
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6971.755541

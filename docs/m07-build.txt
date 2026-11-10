@@ -1,0 +1,15 @@
+
+> dungeon-economy@0.1.0 build:contract
+> cargo build --manifest-path contracts/economy/Cargo.toml --target wasm32-unknown-unknown --release --locked
+
+   Compiling dungeon-economy v0.1.0 (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/contracts/economy)
+warning: function `now_ms` is never used
+  --> src/lib.rs:14:4
+   |
+14 | fn now_ms()->u64{env::block_timestamp()/1_000_000}
+   |    ^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `dungeon-economy` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 2.35s

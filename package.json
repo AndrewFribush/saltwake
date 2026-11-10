@@ -12,7 +12,8 @@
     "test:contract": "tsx --test tests/contract/*.test.ts",
     "test:server": "node scripts/not-ready.mjs server",
     "test:e2e": "node scripts/not-ready.mjs e2e",
-    "build:contract": "cargo build --manifest-path contracts/economy/Cargo.toml --target wasm32-unknown-unknown --release --locked"
+    "build:contract": "cargo build --manifest-path contracts/economy/Cargo.toml --target wasm32-unknown-unknown --release --locked",
+    "verify": "npm run typecheck && npm run build:contract && npm test && npm run test:contract && npm run build"
   },
   "dependencies": {
     "react": "19.2.0",

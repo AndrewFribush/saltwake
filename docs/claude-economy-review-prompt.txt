@@ -1,0 +1,534 @@
+Review this local-only NEAR economy contract for important correctness flaws. Rules: operator custodial test profiles. Every command op ID + canonical Borsh hash; validation rejects atomic and persisted; conflicting payload must not replay; funded maker publication owns exact stock, admission full reward bundles reserved only once, fee escrow until settlement, self entry and 4/profile1 caps; exact origin partitions, consume only potions, no dungeon extraction on loss/void; void surviving town+fee refund, consumed remain spent; closure only after cutoff and zero active runs; no leftover maker refund. Combat assertions trusted operator. Bounded seeded demo, no production. Command/types must match TS hash. Find concrete reproduction paths, missing tests, and acceptance gaps. Do not claim tests run. Source follows:
+
+FILE contracts/economy/src/settlement.rs
+use crate::*;
+use std::collections::BTreeSet;
+fn exact_partition(source:&[String],groups:&[&Vec<String>])->bool{
+ let flat:Vec<_>=groups.iter().flat_map(|g|g.iter()).collect();
+ flat.len()==source.len()&&flat.iter().copied().collect::<BTreeSet<_>>().len()==flat.len()&&flat.into_iter().collect::<BTreeSet<_>>()==source.iter().collect::<BTreeSet<_>>()
+}
+impl Economy {
+ pub(crate) fn settle(&mut self,actor:String,run_id:String,outcome:Option<Outcome>,reason:Option<String>,d:Partition,carried:Vec<String>,operation:String)->Result<String,String>{
+  let run=self.runs.get(&run_id).ok_or("MissingRun")?.clone();
+  if actor!=run.player{return Err("WrongProfile".into());}if run.status!="active"{return Err("TerminalRun".into());}
+  if outcome==Some(Outcome::Expired)&&now_ms()<run.deadline_ms.0{return Err("PrematureExpiry".into());}
+  if outcome.is_none()&&reason.as_ref().map(|r|r.trim().is_empty()||r.len()>200).unwrap_or(true){return Err("VoidReasonRequired".into());}
+  let rewards:Vec<_>=run.assignments.iter().map(|a|a.item_id.clone()).collect();
+  if !exact_partition(&run.loadout_ids,&[&d.town_consumed,&d.town_returned,&d.town_forfeited])||!exact_partition(&rewards,&[&d.dungeon_consumed,&d.dungeon_extracted,&d.dungeon_returned]){return Err("InvalidPartition".into());}
+  let loss=matches!(outcome,Some(Outcome::Died|Outcome::Abandoned|Outcome::Expired));
+  if loss&&!d.town_returned.is_empty()||!loss&&!d.town_forfeited.is_empty()||outcome!=Some(Outcome::Extracted)&&!d.dungeon_extracted.is_empty(){return Err("IllegalDestination".into());}
+  if carried.iter().collect::<BTreeSet<_>>().len()!=carried.len()||carried.iter().any(|id|!rewards.contains(id)||d.dungeon_consumed.contains(id)){return Err("InvalidCarriedSet".into());}
+  if outcome==Some(Outcome::Extracted)&&carried.iter().collect::<BTreeSet<_>>()!=d.dungeon_extracted.iter().collect::<BTreeSet<_>>(){return Err("UnacquiredExtraction".into());}
+  for id in &run.loadout_ids{if self.items.get(id).ok_or("MissingItem")?.location!=(Location::Loadout{run:run_id.clone(),profile:actor.clone()}){return Err("WrongSourceLocation".into());}}
+  for a in &run.assignments{if self.items.get(&a.item_id).ok_or("MissingItem")?.location!=(Location::Reserved{run:run_id.clone(),socket:a.socket.clone(),source_pool:a.source_pool.clone()}){return Err("WrongSourceLocation".into());}}
+  for id in d.town_consumed.iter().chain(d.dungeon_consumed.iter()){if !self.items.get(id).unwrap().item_type.consumable(){return Err("NonConsumable".into());}}
+  for id in d.town_consumed.iter().chain(d.dungeon_consumed.iter()){self.items.get_mut(id).unwrap().location=Location::Consumed{operation:operation.clone()};}
+  for id in d.town_returned.iter().chain(d.dungeon_extracted.iter()){self.items.get_mut(id).unwrap().location=Location::Owned{profile:actor.clone()};}
+  for id in &d.town_forfeited{self.items.get_mut(id).unwrap().location=Location::Bank;}
+  for id in &d.dungeon_returned{let i=self.items.get_mut(id).unwrap();i.location=Location::EditionFixed{edition:run.edition.clone(),item_type:i.item_type};}
+  let edition=self.editions.get_mut(&run.edition).unwrap();edition.active_runs.retain(|id|id!=&run_id);
+  let recipient=if outcome.is_none(){&actor}else{&edition.maker};*self.credits.get_mut(recipient).unwrap()+=run.fee.0;
+  let r=self.runs.get_mut(&run_id).unwrap();r.status=match outcome{Some(Outcome::Extracted)=>"extracted",Some(Outcome::Died)=>"died",Some(Outcome::Abandoned)=>"abandoned",Some(Outcome::Expired)=>"expired",None=>"void"}.into();r.terminal_reason=reason;
+  Ok(run_id)
+ }
+}
+
+FILE contracts/economy/src/lib.rs
+mod model;
+mod editions;
+mod runs;
+mod settlement;
+use model::*;
+use near_sdk::{near, env, AccountId, PanicOnDefault, json_types::U64, borsh};
+use std::collections::BTreeMap;
+
+#[near(contract_state)]
+#[derive(PanicOnDefault,Clone)]
+pub struct Economy {
+ operator:AccountId, credits:BTreeMap<String,u64>, bank:u64,
+ items:BTreeMap<String,Item>, editions:BTreeMap<String,Edition>, runs:BTreeMap<String,Run>,
+ receipts:BTreeMap<String,Receipt>, next_edition:u64, next_run:u64,
+}
+fn hash<T:borsh::BorshSerialize>(value:&T)->String{env::sha256(&borsh::to_vec(value).unwrap()).iter().map(|b|format!("{b:02x}")).collect()}
+fn now_ms()->u64{env::block_timestamp()/1_000_000}
+
+#[near]
+impl Economy {
+ #[init]
+ pub fn init_demo()->Self{
+  let mut s=Self{operator:env::predecessor_account_id(),credits:BTreeMap::new(),bank:0,items:BTreeMap::new(),editions:BTreeMap::new(),runs:BTreeMap::new(),receipts:BTreeMap::new(),next_edition:0,next_run:0};
+  for p in ["buyer","p2","p3","p4","p5"]{s.credits.insert(p.into(),10);s.items.insert(format!("{p}-club"),Item{id:format!("{p}-club"),item_type:ItemType::Club,location:Location::Owned{profile:p.into()}});}
+  s.credits.insert("maker".into(),100);
+  for (ty,prefix,count) in [(ItemType::Sword,"sword",3),(ItemType::Tonic,"tonic",6)]{for n in 0..count{let id=format!("maker-{prefix}-{n}");s.items.insert(id.clone(),Item{id,item_type:ty,location:Location::Owned{profile:"maker".into()}});}}
+  s
+ }
+ pub fn execute(&mut self,op_id:String,command:Command)->Receipt{
+  assert_eq!(env::predecessor_account_id(),self.operator,"Operator only");
+  assert!(env::input().map(|b|b.len()).unwrap_or(0)<=32768,"Request too large");
+  assert!(!op_id.is_empty()&&op_id.len()<=64,"Invalid operation ID");
+  let payload_hash=hash(&command);
+  if let Some(r)=self.receipts.get(&op_id){assert_eq!(r.payload_hash,payload_hash,"Operation payload conflict");return r.clone();}
+  assert!(self.receipts.len()<256,"Receipt capacity exhausted");
+  // All validation is transactional, including validation rejections retained as receipts.
+  let mut staged=self.clone();
+  let outcome=if !staged.credits.contains_key(&command.actor){Err("UnknownProfile".into())}else{staged.apply(command,&op_id)};
+  let (status,result)=match outcome{Ok(result)=>{*self=staged;("Applied",result)},Err(code)=>("Rejected",code)};
+  let run=if status=="Applied"{self.runs.get(&result).cloned()}else{None};
+  let receipt=Receipt{op_id:op_id.clone(),payload_hash,status:status.into(),result,run};self.receipts.insert(op_id,receipt.clone());receipt
+ }
+ pub fn operation(&self,op_id:String)->Option<Receipt>{self.receipts.get(&op_id).cloned()}
+ pub fn clock_ms(&self)->U64{U64(now_ms())}
+ pub fn roundtrip_command(&self,command:Command)->Command{command}
+ pub fn command_hash(&self,command:Command)->String{hash(&command)}
+ pub fn snapshot(&self)->Snapshot{Snapshot{credits:self.credits.iter().map(|(k,v)|(k.clone(),U64(*v))).collect(),bank:U64(self.bank),items:self.items.values().cloned().collect(),editions:self.editions.values().cloned().collect(),runs:self.runs.values().cloned().collect()}}
+ pub fn rules(&self)->Rules{Rules{catalog:[ItemType::Club,ItemType::Sword,ItemType::Armor,ItemType::Herb,ItemType::Iron,ItemType::Flask,ItemType::Tonic,ItemType::FineTonic].into_iter().map(|t|CatalogEntry{item_type:t,value:U64(t.value()),consumable:t.consumable()}).collect(),costs:Costs{publication:U64(2),pursuer:U64(2),charger:U64(3),trap:U64(1),reward_socket:U64(1)}}}
+ // Compatibility with the M06 smoke test; will be removed when its command is retired.
+ pub fn debit(&mut self,op_id:String,profile:String,amount:U64)->Receipt{let r=self.execute(op_id,Command{actor:profile,action:Action::Debit{amount}});assert_eq!(r.status,"Applied","{}",r.result);r}
+ pub fn balances(&self)->BTreeMap<String,U64>{BTreeMap::from([("buyer".into(),U64(*self.credits.get("buyer").unwrap())),("bank".into(),U64(self.bank))])}
+}
+impl Economy {
+ fn apply(&mut self,c:Command,op_id:&str)->Result<String,String>{match c.action{
+  Action::Debit{amount}=>{let balance=self.credits.get_mut(&c.actor).unwrap();if amount.0==0||amount.0>*balance{return Err("InvalidDebit".into());}*balance-=amount.0;self.bank+=amount.0;Ok(balance.to_string())},
+  Action::Publish{terms,fee,funding}=>self.publish(c.actor,terms,fee,funding),
+  Action::Admit{edition_id,expected_version,expected_fee,loadout_ids,seed}=>self.admit(c.actor,edition_id,expected_version,expected_fee,loadout_ids,seed),
+  Action::Settle{run_id,outcome,disposition,carried_dungeon_ids}=>self.settle(c.actor,run_id,Some(outcome),None,disposition,carried_dungeon_ids,op_id.into()),
+  Action::Void{run_id,reason,disposition}=>self.settle(c.actor,run_id,None,Some(reason),disposition,vec![],op_id.into()),
+  Action::FinalizeClose{edition_id}=>self.finalize_close(c.actor,edition_id),
+ }}
+}
+
+FILE contracts/economy/src/runs.rs
+use crate::*;
+use std::collections::BTreeSet;
+impl Economy {
+ pub(crate) fn admit(&mut self,actor:String,edition_id:String,expected_version:U64,expected_fee:U64,loadout_ids:Vec<String>,seed:U64)->Result<String,String>{
+  let edition=self.editions.get(&edition_id).ok_or("MissingEdition")?.clone();let now=now_ms();
+  if edition.maker==actor{return Err("SelfEntry".into());}
+  if now<edition.terms.opens_at_ms.0||now>=edition.terms.closes_at_ms.0{return Err("EditionNotOpen".into());}
+  if expected_version.0!=edition.version.0||expected_fee.0!=edition.fee.0{return Err("StaleOffer".into());}
+  if self.runs.len()>=64||edition.active_runs.len()>=4{return Err("RunCapacity".into());}
+  if self.runs.values().any(|r|r.player==actor&&r.status=="active"){return Err("ProfileAlreadyRunning".into());}
+  if loadout_ids.len()>8||loadout_ids.iter().collect::<BTreeSet<_>>().len()!=loadout_ids.len(){return Err("InvalidLoadout".into());}
+  let mut weapons=0;let mut armor=0;
+  for id in &loadout_ids{let i=self.items.get(id).ok_or("MissingItem")?;if i.location!=(Location::Owned{profile:actor.clone()}){return Err("UnownedLoadout".into());}if matches!(i.item_type,ItemType::Club|ItemType::Sword){weapons+=1;}if i.item_type==ItemType::Armor{armor+=1;}}
+  if loadout_ids.len()-weapons.min(1)-armor.min(1)>6{return Err("BagCapacity".into());}
+  let mut selected=BTreeSet::new();let mut assignments=vec![];
+  for socket in &edition.terms.sockets{
+   if let Some(ty)=socket.reward{
+    let item=self.items.values().find(|i|i.item_type==ty&&i.location==(Location::EditionFixed{edition:edition_id.clone(),item_type:ty})&&!selected.contains(&i.id)).ok_or("IncompleteBundle")?;
+    selected.insert(item.id.clone());assignments.push(Assignment{socket:socket.id.clone(),item_id:item.id.clone(),source_pool:format!("fixed:{}",near_sdk::serde_json::to_string(&ty).unwrap())});
+   }
+  }
+  let balance=self.credits.get_mut(&actor).unwrap();if *balance<edition.fee.0{return Err("InsufficientCredits".into());}*balance-=edition.fee.0;
+  let id=format!("run-{}",self.next_run);self.next_run+=1;
+  for a in &assignments{self.items.get_mut(&a.item_id).unwrap().location=Location::Reserved{run:id.clone(),socket:a.socket.clone(),source_pool:a.source_pool.clone()};}
+  for item_id in &loadout_ids{self.items.get_mut(item_id).unwrap().location=Location::Loadout{run:id.clone(),profile:actor.clone()};}
+  self.editions.get_mut(&edition_id).unwrap().active_runs.push(id.clone());
+  self.runs.insert(id.clone(),Run{id:id.clone(),edition:edition_id,player:actor,fee:edition.fee,deadline_ms:U64(now.checked_add(900000).ok_or("TimeOverflow")?),seed,loadout_ids,assignments,status:"active".into(),terminal_reason:None});Ok(id)
+ }
+}
+
+FILE contracts/economy/src/editions.rs
+use crate::*;
+use std::collections::{BTreeMap,BTreeSet};
+impl Economy {
+ pub(crate) fn publish(&mut self,actor:String,terms:Terms,fee:U64,funding:Vec<String>)->Result<String,String>{
+  let now=now_ms();
+  if self.editions.len()>=32{return Err("EditionCapacity".into());}
+  if terms.title.trim().is_empty()||terms.title.len()>80||terms.rules_version!=1||!(2..=4).contains(&terms.modules.len())||terms.modules.iter().any(|m|m!="cellar"&&m!="gauntlet"){return Err("InvalidTerms".into());}
+  if terms.closes_at_ms.0<=now||terms.closes_at_ms.0<=terms.opens_at_ms.0||terms.closes_at_ms.0-terms.opens_at_ms.0>86_400_000||fee.0>1_000_000||terms.sockets.len()>16||funding.len()>128{return Err("InvalidTerms".into());}
+  let mut ids=BTreeSet::new();let mut slots=BTreeSet::new();let mut required=BTreeMap::<ItemType,usize>::new();let mut cost=2;
+  for socket in &terms.sockets{
+   if socket.id.is_empty()||socket.id.len()>40||socket.room as usize>=terms.modules.len()||socket.slot>=4||!ids.insert(socket.id.clone())||!slots.insert((socket.room,socket.slot)){return Err("InvalidSocket".into());}
+   cost+=match socket.enemy{Enemy::None=>0,Enemy::Pursuer=>2,Enemy::Charger=>3};
+   cost+=u64::from(socket.trap);
+   if let Some(ty)=socket.reward{*required.entry(ty).or_default()+=1;cost+=1;}
+  }
+  if terms.no_reward!=required.is_empty(){return Err("RewardDeclaration".into());}
+  if funding.iter().collect::<BTreeSet<_>>().len()!=funding.len(){return Err("DuplicateFunding".into());}
+  let mut available=BTreeMap::<ItemType,usize>::new();let mut value=0;
+  for id in &funding{
+   let item=self.items.get(id).ok_or("MissingItem")?;
+   if item.location!=(Location::Owned{profile:actor.clone()}){return Err("UnownedFunding".into());}
+   if !required.contains_key(&item.item_type){return Err("UnusedFundingType".into());}
+   *available.entry(item.item_type).or_default()+=1;value+=item.item_type.value();
+  }
+  if required.iter().any(|(ty,count)|available.get(ty).copied().unwrap_or(0)<*count){return Err("IncompleteBundle".into());}
+  let balance=self.credits.get_mut(&actor).unwrap();if *balance<cost{return Err("InsufficientCredits".into());}
+  *balance-=cost;self.bank+=cost;
+  let id=format!("edition-{}",self.next_edition);self.next_edition+=1;
+  for item_id in &funding{let item=self.items.get_mut(item_id).unwrap();item.location=Location::EditionFixed{edition:id.clone(),item_type:item.item_type};}
+  let edition=Edition{id:id.clone(),maker:actor,terms_hash:hash(&terms),terms,fee,version:U64(1),placement_paid:U64(cost),original_value:U64(value),active_runs:vec![],funded_ids:funding,closed:false};
+  self.editions.insert(id.clone(),edition);Ok(id)
+ }
+}
+
+impl Economy {
+ pub(crate) fn finalize_close(&mut self,actor:String,edition_id:String)->Result<String,String>{
+  let edition=self.editions.get(&edition_id).ok_or("MissingEdition")?;
+  if edition.maker!=actor{return Err("WrongMaker".into());}
+  if edition.closed{return Err("AlreadyClosed".into());}
+  if now_ms()<edition.terms.closes_at_ms.0{return Err("BeforeCutoff".into());}
+  if !edition.active_runs.is_empty(){return Err("ActiveReservations".into());}
+  for item in self.items.values_mut(){if matches!(&item.location,Location::EditionFixed{edition,..}|Location::EditionRandom{edition,..} if edition==&edition_id){item.location=Location::Bank;}}
+  self.editions.get_mut(&edition_id).unwrap().closed=true;Ok(edition_id)
+ }
+}
+
+FILE contracts/economy/src/model.rs
+use near_sdk::{near,json_types::U64};
+#[near(serializers=[borsh,json])]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord)]
+#[serde(rename_all="camelCase")]
+pub enum ItemType { Club,Sword,Armor,Herb,Iron,Flask,Tonic,FineTonic }
+impl ItemType {
+ pub fn value(self)->u64{match self{Self::Club=>4,Self::Sword=>12,Self::Armor=>8,Self::Herb|Self::Iron|Self::Flask=>2,Self::Tonic=>6,Self::FineTonic=>8}}
+ pub fn consumable(self)->bool{matches!(self,Self::Tonic|Self::FineTonic)}
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone,Debug,PartialEq,Eq)]
+#[serde(tag="kind",rename_all="snake_case")]
+pub enum Location {
+ Owned{profile:String}, Listed{listing:String}, EditionFixed{edition:String,item_type:ItemType},
+ EditionRandom{edition:String,table_id:String}, Reserved{run:String,socket:String,source_pool:String},
+ Loadout{run:String,profile:String}, Crafting{batch:String,source_owner:String}, Bank, Consumed{operation:String}
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Item {pub id:String,pub item_type:ItemType,pub location:Location}
+#[near(serializers=[borsh,json])]
+#[derive(Clone,Copy,PartialEq)]
+#[serde(rename_all="snake_case")]
+pub enum Enemy {None,Pursuer,Charger}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Socket {pub id:String,pub room:u8,pub slot:u8,pub enemy:Enemy,pub trap:bool,pub reward:Option<ItemType>}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Terms {pub title:String,pub rules_version:u8,pub modules:Vec<String>,pub sockets:Vec<Socket>,pub opens_at_ms:U64,pub closes_at_ms:U64,pub no_reward:bool}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+#[serde(tag="type",rename_all="snake_case")]
+pub enum Action {
+ Debit{amount:U64},
+ Publish{terms:Terms,fee:U64,funding:Vec<String>},
+ Admit{edition_id:String,expected_version:U64,expected_fee:U64,loadout_ids:Vec<String>,seed:U64},
+ Settle{run_id:String,outcome:Outcome,disposition:Partition,carried_dungeon_ids:Vec<String>},
+ Void{run_id:String,reason:String,disposition:Partition},
+ FinalizeClose{edition_id:String}
+}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Command {pub actor:String,pub action:Action}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Receipt {pub op_id:String,pub payload_hash:String,pub status:String,pub result:String,pub run:Option<Run>}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Edition {pub id:String,pub maker:String,pub terms:Terms,pub terms_hash:String,pub fee:U64,pub version:U64,pub placement_paid:U64,pub original_value:U64,pub active_runs:Vec<String>,pub funded_ids:Vec<String>,pub closed:bool}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Assignment {pub socket:String,pub item_id:String,pub source_pool:String}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Run {pub id:String,pub edition:String,pub player:String,pub fee:U64,pub deadline_ms:U64,pub seed:U64,pub loadout_ids:Vec<String>,pub assignments:Vec<Assignment>,pub status:String,pub terminal_reason:Option<String>}
+#[near(serializers=[json])]
+pub struct CatalogEntry {pub item_type:ItemType,pub value:U64,pub consumable:bool}
+#[near(serializers=[json])]
+pub struct Costs {pub publication:U64,pub pursuer:U64,pub charger:U64,pub trap:U64,pub reward_socket:U64}
+#[near(serializers=[json])]
+pub struct Rules {pub catalog:Vec<CatalogEntry>,pub costs:Costs}
+#[near(serializers=[json])]
+pub struct Snapshot {pub credits:std::collections::BTreeMap<String,U64>,pub bank:U64,pub items:Vec<Item>,pub editions:Vec<Edition>,pub runs:Vec<Run>}
+
+#[near(serializers=[borsh,json])]
+#[derive(Clone,Copy,PartialEq)]
+#[serde(rename_all="snake_case")]
+pub enum Outcome {Extracted,Died,Abandoned,Expired}
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Partition {pub town_consumed:Vec<String>,pub town_returned:Vec<String>,pub town_forfeited:Vec<String>,pub dungeon_consumed:Vec<String>,pub dungeon_extracted:Vec<String>,pub dungeon_returned:Vec<String>}
+
+FILE packages/shared/src/types.ts
+export type ItemType='club'|'sword'|'armor'|'herb'|'iron'|'flask'|'tonic'|'fineTonic';
+export type ItemLocation =
+ | {kind:'owned';profile:string}|{kind:'listed';listing:string}
+ | {kind:'edition_fixed';edition:string;item_type:ItemType}|{kind:'edition_random';edition:string;table_id:string}
+ | {kind:'reserved';run:string;socket:string;source_pool:string}|{kind:'loadout';run:string;profile:string}
+ | {kind:'crafting';batch:string;source_owner:string}|{kind:'bank'}|{kind:'consumed';operation:string};
+export type Item={id:string;item_type:ItemType;location:ItemLocation};
+export type Socket={readonly id:string;readonly room:number;readonly slot:number;readonly enemy:'none'|'pursuer'|'charger';readonly trap:boolean;readonly reward:ItemType|null};
+export type EditionTerms={readonly title:string;readonly rules_version:number;readonly modules:readonly string[];readonly sockets:readonly Socket[];readonly opens_at_ms:string;readonly closes_at_ms:string;readonly no_reward:boolean};
+export type Command={readonly actor:string;readonly action:
+ |{readonly type:'debit';readonly amount:string}
+ |{readonly type:'publish';readonly terms:EditionTerms;readonly fee:string;readonly funding:readonly string[]}
+ |{readonly type:'admit';readonly edition_id:string;readonly expected_version:string;readonly expected_fee:string;readonly loadout_ids:readonly string[];readonly seed:string}
+ |{readonly type:'settle';readonly run_id:string;readonly outcome:'extracted'|'died'|'abandoned'|'expired';readonly disposition:Partition;readonly carried_dungeon_ids:readonly string[]}
+ |{readonly type:'void';readonly run_id:string;readonly reason:string;readonly disposition:Partition}
+ |{readonly type:'finalize_close';readonly edition_id:string}};
+export type OperationStatus={status:'Applied'|'Rejected';op_id:string;payload_hash:string;result:string}|{status:'Pending';op_id:string;tx_hash?:string}|{status:'Unknown';op_id:string;reason:string};
+
+export type Partition={readonly town_consumed:readonly string[];readonly town_returned:readonly string[];readonly town_forfeited:readonly string[];readonly dungeon_consumed:readonly string[];readonly dungeon_extracted:readonly string[];readonly dungeon_returned:readonly string[]};
+
+FILE packages/shared/src/rules.ts
+// Prototype defaults; costs are strings because the contract uses integer credits.
+export const placementCosts={publication:'2',pursuer:'2',charger:'3',trap:'1',reward_socket:'1'} as const;
+export const runDurationMs=900000;
+export const maxRunsPerEdition=4;
+
+FILE packages/shared/src/protocol.ts
+// Server-side canonical Borsh encoder. Order/enum indices are pinned by sandbox parity tests.
+import {createHash} from 'node:crypto';
+import type {Command} from './types';
+export function encodeCommand(c:Command):Uint8Array{
+ const chunks:Buffer[]=[];
+ const byte=(n:number)=>{if(!Number.isInteger(n)||n<0||n>255)throw Error('Invalid u8');chunks.push(Buffer.from([n]));};
+ const u32=(n:number)=>{const b=Buffer.alloc(4);b.writeUInt32LE(n);chunks.push(b);};
+ const u64=(n:string)=>{if(typeof n!=='string'||!/^(0|[1-9]\d*)$/.test(n))throw Error('Canonical integer string required');const value=BigInt(n);if(value>18446744073709551615n)throw Error('u64 overflow');const b=Buffer.alloc(8);b.writeBigUInt64LE(value);chunks.push(b);};
+ const str=(s:string)=>{const b=Buffer.from(s,'utf8');u32(b.length);chunks.push(b);};
+ const strings=(ss:readonly string[])=>{u32(ss.length);ss.forEach(str);};
+ const bool=(b:boolean)=>{if(typeof b!=='boolean')throw Error('Boolean required');byte(b?1:0);};
+ str(c.actor);const a=c.action;
+ if(a.type==='debit'){byte(0);u64(a.amount);}
+ else if(a.type==='publish'){
+  byte(1);const t=a.terms;str(t.title);byte(t.rules_version);strings(t.modules);u32(t.sockets.length);
+  for(const s of t.sockets){str(s.id);byte(s.room);byte(s.slot);byte(['none','pursuer','charger'].indexOf(s.enemy));bool(s.trap);byte(s.reward===null?0:1);if(s.reward!==null)byte(['club','sword','armor','herb','iron','flask','tonic','fineTonic'].indexOf(s.reward));}
+  u64(t.opens_at_ms);u64(t.closes_at_ms);bool(t.no_reward);u64(a.fee);strings(a.funding);
+ }else if(a.type==='settle'||a.type==='void'){
+  byte(a.type==='settle'?3:4);str(a.run_id);if(a.type==='settle')byte(['extracted','died','abandoned','expired'].indexOf(a.outcome));else str(a.reason);
+  const d=a.disposition;for(const ids of [d.town_consumed,d.town_returned,d.town_forfeited,d.dungeon_consumed,d.dungeon_extracted,d.dungeon_returned])strings(ids);
+  if(a.type==='settle')strings(a.carried_dungeon_ids);
+ }else if(a.type==='admit'){byte(2);str(a.edition_id);u64(a.expected_version);u64(a.expected_fee);strings(a.loadout_ids);u64(a.seed);}
+ else if(a.type==='finalize_close'){byte(5);str(a.edition_id);}
+ else throw Error('Unknown action');
+ return Buffer.concat(chunks);
+}
+export function commandHash(c:Command){return createHash('sha256').update(encodeCommand(c)).digest('hex');}
+
+FILE packages/shared/src/catalog.ts
+export const catalog = {
+ club:{name:'Club',value:4}, sword:{name:'Sword',value:12}, armor:{name:'Armor',value:8},
+ herb:{name:'Herb',value:2}, iron:{name:'Iron',value:2}, flask:{name:'Flask',value:2},
+ tonic:{name:'Tonic',value:6}, fineTonic:{name:'Fine tonic',value:8}
+} as const;
+
+FILE tests/contract/editions.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fixture,terms} from './helpers';
+test('funded publication locks exact stock, charges pinned cost once; bad funding has no effects',{timeout:120000},async()=>{
+ const f=await fixture();try{
+ const t=terms(Date.now());const publish={actor:'maker',action:{type:'publish',terms:t,fee:'3',funding:['maker-sword-0','maker-tonic-0','maker-tonic-1']}};
+ const before=await f.view('snapshot');
+ const bad=await f.apply('bad-stock',{...publish,action:{...publish.action,funding:['buyer-club']}});assert.equal(bad.status,'Rejected');assert.deepEqual(await f.view('snapshot'),before);
+ assert.deepEqual(await f.apply('bad-stock',{...publish,action:{...publish.action,funding:['buyer-club']}}),bad);
+ const r=await f.apply('publish',publish);assert.equal(r.status,'Applied');assert.equal(r.result,'edition-0');assert.deepEqual(await f.apply('publish',publish),r);
+ const after=await f.view('snapshot');assert.equal(after.credits.maker,'89');assert.equal(after.bank,'11');assert.equal(after.editions[0].original_value,'24');
+ assert.equal(after.items.filter((i:any)=>i.location.kind==='edition_fixed').length,3);
+ const locked=await f.apply('double-fund',publish);assert.equal(locked.status,'Rejected');assert.deepEqual(await f.view('snapshot'),after);
+ }finally{await f.sandbox.tearDown();}
+});
+test('explicit no-reward editions publish; invalid terms and incomplete bundles reject',{timeout:120000},async()=>{
+ const f=await fixture();try{
+ const t=terms(Date.now());const before=await f.view('snapshot');
+ for(const [id,terms_,funding] of [
+  ['past',{...t,closes_at_ms:'1'},[]],['room',{...t,modules:['unknown','gauntlet']},[]],
+  ['slot',{...t,sockets:[{...t.sockets[0],slot:99}]},[]],['partial',t,['maker-sword-0','maker-tonic-0']],
+  ['duplicate',t,['maker-sword-0','maker-tonic-0','maker-tonic-0']],
+  ['hidden-zero',{...t,sockets:[]},[]]
+ ] as const){const r=await f.apply(id,{actor:'maker',action:{type:'publish',terms:terms_,fee:'3',funding}});assert.equal(r.status,'Rejected',id);assert.deepEqual(await f.view('snapshot'),before);}
+ const r=await f.apply('zero',{actor:'maker',action:{type:'publish',terms:{...t,sockets:[],no_reward:true},fee:'1',funding:[]}});assert.equal(r.status,'Applied');assert.equal((await f.view('snapshot')).bank,'2');
+ await assert.rejects(()=>f.outsider.callFunction({contractId:f.contractId,methodName:'execute',args:{op_id:'intruder',command:{actor:'buyer',action:{type:'debit',amount:'1'}}},gas:100_000_000_000_000n}));
+ }finally{await f.sandbox.tearDown();}
+});
+
+FILE tests/contract/invariants.ts
+import assert from 'node:assert/strict';
+import {catalog} from '../../packages/shared/src/catalog';
+export function audit(s:any){
+ const items=new Map<string,any>(s.items.map((i:any)=>[i.id,i]));assert.equal(items.size,14,'seeded instances neither lost nor duplicated');
+ const credits=Object.values(s.credits).reduce<bigint>((n,v)=>n+BigInt(v as string),0n);
+ const pending=s.runs.filter((r:any)=>r.status==='active').reduce((n:bigint,r:any)=>n+BigInt(r.fee),0n);
+ assert.equal(credits+BigInt(s.bank)+pending,150n,'credits plus bank plus escrow conserved');
+ for(const e of s.editions){
+  assert.deepEqual([...e.active_runs].sort(),s.runs.filter((r:any)=>r.edition===e.id&&r.status==='active').map((r:any)=>r.id).sort());
+  const funded=e.funded_ids.map((id:string)=>items.get(id));assert.equal(new Set(e.funded_ids).size,e.funded_ids.length);
+  assert.equal(funded.reduce((n:bigint,i:any)=>n+BigInt(catalog[i.item_type as keyof typeof catalog].value),0n),BigInt(e.original_value));
+  if(e.closed)assert.ok(!s.items.some((i:any)=>['edition_fixed','edition_random'].includes(i.location.kind)&&i.location.edition===e.id));
+ }
+ for(const i of s.items){const l=i.location;
+  if(l.kind==='owned')assert.ok(Object.hasOwn(s.credits,l.profile));
+  if(l.kind==='consumed')assert.ok(['tonic','fineTonic'].includes(i.item_type));
+  if(l.kind==='reserved'||l.kind==='loadout'){
+   const r=s.runs.find((r:any)=>r.id===l.run);assert.equal(r?.status,'active');
+   if(l.kind==='reserved')assert.ok(r.assignments.some((a:any)=>a.item_id===i.id&&a.socket===l.socket&&a.source_pool===l.source_pool));else assert.ok(r.player===l.profile&&r.loadout_ids.includes(i.id));
+  }
+ }
+}
+
+FILE tests/contract/admission.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fixture,terms} from './helpers';
+const admit=(actor:string,edition_id='edition-0')=>({actor,action:{type:'admit',edition_id,expected_version:'1',expected_fee:'3',loadout_ids:[`${actor}-club`],seed:'42'}});
+async function publish(f:Awaited<ReturnType<typeof fixture>>,copies:number){const funding=[];for(let i=0;i<copies;i++)funding.push(`maker-sword-${i}`,`maker-tonic-${i*2}`,`maker-tonic-${i*2+1}`);return f.apply('pub',{actor:'maker',action:{type:'publish',terms:terms(Date.now()),fee:'3',funding}});}
+test('one complete bundle: racing admissions yield one charged run, exact loadout and deadline',{timeout:120000},async()=>{
+ const f=await fixture();try{
+ assert.equal((await publish(f,1)).status,'Applied');
+ const results=await Promise.all([f.apply('enter-a',admit('buyer')),f.apply('enter-b',admit('p2'))]);
+ assert.deepEqual(results.map(r=>r.status).sort(),['Applied','Rejected']);
+ const state=await f.view('snapshot');assert.equal(state.runs.length,1);const run=state.runs[0];
+ assert.equal(run.assignments.length,3);assert.equal(new Set(run.assignments.map((a:any)=>a.item_id)).size,3);
+ assert.equal(state.credits[run.player],'7');assert.equal(state.credits[run.player==='buyer'?'p2':'buyer'],'10');assert.equal(state.credits.maker,'89');assert.equal(run.fee,'3');
+ assert.ok(BigInt(run.deadline_ms)>BigInt(Date.now()+880000));assert.ok(BigInt(run.deadline_ms)<BigInt(Date.now()+920000));
+ assert.equal(state.items.filter((i:any)=>i.location.kind==='reserved').length,3);assert.equal(state.items.filter((i:any)=>i.location.kind==='loadout').length,1);
+ const winner=results.find(r=>r.status==='Applied');assert.deepEqual(winner.run,run);assert.deepEqual(await f.apply(winner.op_id,admit(run.player)),winner);assert.deepEqual(await f.view('snapshot'),state);
+ }finally{await f.sandbox.tearDown();}
+});
+test('three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject',{timeout:120000},async()=>{
+ const f=await fixture();try{
+ await publish(f,3);const before=await f.view('snapshot');
+ for(const [id,c] of [
+ ['stale',{actor:'buyer',action:{...admit('buyer').action,expected_version:'0'}}],
+ ['price',{actor:'buyer',action:{...admit('buyer').action,expected_fee:'4'}}],
+ ['unowned',{actor:'buyer',action:{...admit('buyer').action,loadout_ids:['p2-club']}}],
+ ['duplicate',{actor:'buyer',action:{...admit('buyer').action,loadout_ids:['buyer-club','buyer-club']}}],
+ ['self',{actor:'maker',action:{...admit('maker').action,loadout_ids:[]}}]
+ ] as const){assert.equal((await f.apply(id,c)).status,'Rejected',id);assert.deepEqual(await f.view('snapshot'),before);}
+ for(const actor of ['buyer','p2','p3'])assert.equal((await f.apply(actor,admit(actor))).status,'Applied');
+ const full=await f.view('snapshot');assert.equal(full.runs.length,3);assert.equal(full.items.filter((i:any)=>i.location.kind==='reserved').length,9);
+ assert.equal((await f.apply('repeat',admit('buyer'))).status,'Rejected');assert.equal((await f.apply('fourth',admit('p4'))).status,'Rejected');assert.deepEqual(await f.view('snapshot'),full);
+ }finally{await f.sandbox.tearDown();}
+});
+test('zero-reward edition still caps at four and honors opening window',{timeout:120000},async()=>{
+ const f=await fixture();try{
+ const t={...terms(Date.now()),sockets:[],no_reward:true};
+ await f.apply('future',{actor:'maker',action:{type:'publish',terms:{...t,opens_at_ms:String(Date.now()+60000)},fee:'3',funding:[]}});
+ const before=await f.view('snapshot');assert.equal((await f.apply('early',admit('buyer'))).status,'Rejected');assert.deepEqual(await f.view('snapshot'),before);
+ await f.apply('open',{actor:'maker',action:{type:'publish',terms:t,fee:'3',funding:[]}});
+ for(const actor of ['buyer','p2','p3','p4'])assert.equal((await f.apply(actor,admit(actor,'edition-1'))).status,'Applied');
+ const full=await f.view('snapshot');assert.equal((await f.apply('fifth',admit('p5','edition-1'))).status,'Rejected');assert.deepEqual(await f.view('snapshot'),full);
+ }finally{await f.sandbox.tearDown();}
+});
+
+FILE tests/contract/helpers.ts
+import {audit} from './invariants';
+import {readFileSync} from 'node:fs';
+import {Sandbox,GenesisAccount} from 'near-sandbox';
+import {Account,JsonRpcProvider,type KeyPairString} from 'near-api-js';
+export async function fixture(){
+ const genesis=GenesisAccount.createDefault();const other=GenesisAccount.createDefault('outsider');
+ const sandbox=await Sandbox.start({config:{additionalAccounts:[other]}});
+ try{
+ const provider=new JsonRpcProvider({url:sandbox.rpcUrl});
+ const account=new Account(genesis.accountId,provider,genesis.privateKey as KeyPairString);
+ const outsider=new Account(other.accountId,provider,other.privateKey as KeyPairString);
+ await account.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));
+ const call=(methodName:string,args:Record<string,unknown>={})=>account.callFunction<any>({contractId:genesis.accountId,methodName,args,gas:100_000_000_000_000n});
+ const view=(method:string,args:Record<string,unknown>={})=>provider.callFunction<any>({contractId:genesis.accountId,method,args});
+ await call('init_demo');
+ return {sandbox,call,view,apply:async(op_id:string,command:object)=>{const receipt=await call('execute',{op_id,command});audit(await view('snapshot'));return receipt;},outsider,contractId:genesis.accountId};
+ }catch(e){await sandbox.tearDown();throw e;}
+}
+export function terms(now:number){return {title:'First expedition',rules_version:1,modules:['cellar','gauntlet'],sockets:[{id:'sword',room:0,slot:0,enemy:'pursuer',trap:false,reward:'sword'},{id:'tonic-a',room:0,slot:1,enemy:'none',trap:false,reward:'tonic'},{id:'tonic-b',room:1,slot:0,enemy:'charger',trap:true,reward:'tonic'}],opens_at_ms:String(now-1000),closes_at_ms:String(now+120000),no_reward:false} as const;}
+
+FILE tests/contract/smoke.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {Sandbox,GenesisAccount} from 'near-sandbox';
+import {Account,JsonRpcProvider,type KeyPairString} from 'near-api-js';
+test('WASM sandbox: initialize once, debit three once, reject ID/payload conflict', {timeout:120_000},async()=>{
+ const wasm=readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm');
+ const genesis=GenesisAccount.createDefault();
+ const sandbox=await Sandbox.start({});
+ try{
+  assert.match(sandbox.rpcUrl,/^http:\/\/(127\.0\.0\.1|localhost):/);
+  const provider=new JsonRpcProvider({url:sandbox.rpcUrl});
+  const account=new Account(genesis.accountId,provider,genesis.privateKey as KeyPairString);
+  await account.deployContract(wasm);
+  const call=(methodName:string,args:object={})=>account.callFunction({contractId:genesis.accountId,methodName,args,gas:100_000_000_000_000n});
+  await call('init_demo');
+  await assert.rejects(()=>call('init_demo'));
+  await call('debit',{op_id:'admit-1',profile:'buyer',amount:'3'});
+  await call('debit',{op_id:'admit-1',profile:'buyer',amount:'3'});
+  await assert.rejects(()=>call('debit',{op_id:'admit-1',profile:'buyer',amount:'4'}));
+  const state=await provider.callFunction({contractId:genesis.accountId,method:'balances',args:{}});
+  assert.deepEqual(state,{buyer:'7',bank:'3'});
+  console.log('Local sandbox receipt proof: repeated debit once, conflicting payload rejected, buyer7/bank3.');
+ }finally{await sandbox.tearDown();}
+});
+
+FILE tests/contract/items.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fixture,terms} from './helpers';
+import {catalog} from '../../packages/shared/src/catalog';
+// Hash implementation is loaded only after contract methods exist, giving a real missing-method red check.
+test('Rust protocol exposes exact catalog, costs and canonical command hash', {timeout:120000},async()=>{
+ const f=await fixture();try{
+ const rules=await f.view('rules');
+ assert.deepEqual(rules.catalog,Object.entries(catalog).map(([item_type,i])=>({item_type,value:String(i.value),consumable:['tonic','fineTonic'].includes(item_type)})));
+ const {commandHash}=await import('../../packages/shared/src/protocol');
+ const commands=[{actor:'buyer',action:{type:'debit',amount:'9007199254740993'}},{actor:'maker',action:{type:'publish',terms:terms(Date.now()),fee:'3',funding:['maker-sword-0','maker-tonic-0','maker-tonic-1']}},{actor:'buyer',action:{type:'admit',edition_id:'edition-0',expected_version:'1',expected_fee:'3',loadout_ids:['buyer-club'],seed:'18446744073709551615'}}] as const;
+ for(const command of commands){assert.equal(await f.view('command_hash',{command}),commandHash(command));assert.deepEqual(await f.view('roundtrip_command',{command}),command);}
+ const partition={town_consumed:[],town_returned:['buyer-club'],town_forfeited:[],dungeon_consumed:['x'],dungeon_extracted:['y'],dungeon_returned:['z']};
+ for(const action of [{type:'settle',run_id:'run-0',outcome:'extracted',disposition:partition,carried_dungeon_ids:['y']},{type:'void',run_id:'run-0',reason:'café 💀',disposition:partition},{type:'finalize_close',edition_id:'edition-0'}] as const){const command={actor:'buyer',action};assert.equal(await f.view('command_hash',{command}),commandHash(command));assert.deepEqual(await f.view('roundtrip_command',{command}),command);}
+ assert.throws(()=>commandHash({actor:'buyer',action:{type:'debit',amount:'01'}}));assert.throws(()=>commandHash({actor:'buyer',action:{type:'debit',amount:'18446744073709551616'}}));
+ const {placementCosts}=await import('../../packages/shared/src/rules');assert.deepEqual(rules.costs,placementCosts);
+ const state=await f.view('snapshot');assert.equal(new Set(state.items.map((i:any)=>i.id)).size,state.items.length);assert.ok(state.items.every((i:any)=>i.location.kind==='owned'));
+ }finally{await f.sandbox.tearDown();}
+});
+
+FILE tests/contract/settlement.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fixture,terms} from './helpers';
+async function admitted(){const f=await fixture();await f.apply('publish',{actor:'maker',action:{type:'publish',terms:terms(Date.now()),fee:'3',funding:['maker-sword-0','maker-tonic-0','maker-tonic-1']}});await f.apply('admit',{actor:'buyer',action:{type:'admit',edition_id:'edition-0',expected_version:'1',expected_fee:'3',loadout_ids:['buyer-club'],seed:'1'}});return f;}
+import type {Partition} from '../../packages/shared/src/types';
+const d=():Partition=>({town_consumed:[],town_returned:['buyer-club'],town_forfeited:[],dungeon_consumed:['maker-tonic-0'],dungeon_extracted:['maker-sword-0'],dungeon_returned:['maker-tonic-1']});
+const settle=(partition=d())=>({actor:'buyer',action:{type:'settle',run_id:'run-0',outcome:'extracted',disposition:partition,carried_dungeon_ids:['maker-sword-0']}});
+test('extraction partitions exact items; fees settle once; malformed claims cannot mutate economics',{timeout:120000},async()=>{const f=await admitted();try{
+ const before=await f.view('snapshot');
+ for(const [id,command] of [
+ ['missing',settle({...d(),dungeon_returned:[]})],['duplicate',settle({...d(),dungeon_returned:['maker-tonic-1','maker-tonic-1']})],
+ ['origin',settle({...d(),town_returned:['maker-sword-0']})],['equipment-consumed',settle({...d(),town_returned:[],town_consumed:['buyer-club']})],
+ ['unacquired',{...settle(),action:{...settle().action,carried_dungeon_ids:[]}}],
+ ['early-expired',{...settle(),action:{...settle().action,outcome:'expired'}}]
+ ] as const){assert.equal((await f.apply(id,command)).status,'Rejected',id);assert.deepEqual(await f.view('snapshot'),before);}
+ const r=await f.apply('settle',settle());assert.equal(r.status,'Applied');const after=await f.view('snapshot');assert.equal(after.credits.maker,'92');assert.equal(after.credits.buyer,'7');assert.equal(after.runs[0].status,'extracted');assert.deepEqual(after.editions[0].active_runs,[]);
+ const item=(id:string)=>after.items.find((i:any)=>i.id===id).location;
+ assert.deepEqual(item('maker-sword-0'),{kind:'owned',profile:'buyer'});assert.equal(item('maker-tonic-0').kind,'consumed');assert.equal(item('maker-tonic-1').kind,'edition_fixed');assert.equal(item('buyer-club').kind,'owned');
+ assert.deepEqual(await f.apply('settle',settle()),r);assert.equal((await f.apply('again',settle())).status,'Rejected');assert.deepEqual(await f.view('snapshot'),after);
+ }finally{await f.sandbox.tearDown();}});
+test('death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards',{timeout:120000},async()=>{
+ for(const outcome of ['died','void']){const f=await admitted();try{
+ const partition={...d(),town_returned:outcome==='void'?['buyer-club']:[],town_forfeited:outcome==='died'?['buyer-club']:[],dungeon_extracted:[],dungeon_returned:['maker-sword-0','maker-tonic-1']};
+ const action=outcome==='void'?{type:'void',run_id:'run-0',reason:'operator lost combat state',disposition:partition}:{type:'settle',run_id:'run-0',outcome,disposition:partition,carried_dungeon_ids:['maker-sword-0']};
+ const r=await f.apply('end',{actor:'buyer',action});assert.equal(r.status,'Applied');const s=await f.view('snapshot');assert.equal(s.credits.buyer,outcome==='void'?'10':'7');assert.equal(s.credits.maker,outcome==='void'?'89':'92');assert.equal(s.items.find((i:any)=>i.id==='buyer-club').location.kind,outcome==='void'?'owned':'bank');assert.equal(s.items.find((i:any)=>i.id==='maker-tonic-0').location.kind,'consumed');assert.equal(s.items.filter((i:any)=>i.location.kind==='edition_fixed').length,2);
+ assert.deepEqual(await f.apply('end',{actor:'buyer',action}),r);
+ }finally{await f.sandbox.tearDown();}}
+});
+
+FILE tests/contract/closure.test.ts
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fixture,terms} from './helpers';
+test('cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once',{timeout:120000},async()=>{
+ const f=await fixture();try{
+ const t={...terms(Date.now()),closes_at_ms:String(Date.now()+12000)};
+ await f.apply('pub',{actor:'maker',action:{type:'publish',terms:t,fee:'3',funding:['maker-sword-0','maker-tonic-0','maker-tonic-1']}});
+ const admit={actor:'buyer',action:{type:'admit',edition_id:'edition-0',expected_version:'1',expected_fee:'3',loadout_ids:['buyer-club'],seed:'5'}};
+ await f.apply('enter',admit);
+ const close={actor:'maker',action:{type:'finalize_close',edition_id:'edition-0'}};
+ assert.equal((await f.apply('early',close)).status,'Rejected');
+ // Advance only this ephemeral sandbox. Check contract time, not host guesses.
+ const res=await fetch(f.sandbox.rpcUrl,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:'fast-forward',method:'sandbox_fast_forward',params:{delta_height:100}})});const body=await res.json();assert.equal(body.error,undefined);
+ assert.ok(BigInt(await f.view('clock_ms'))>=BigInt(t.closes_at_ms));
+ const before=await f.view('snapshot');assert.equal((await f.apply('active',close)).status,'Rejected');assert.equal((await f.apply('late-entry',{actor:'p2',action:{...admit.action,loadout_ids:['p2-club']}})).status,'Rejected');assert.deepEqual(await f.view('snapshot'),before);
+ const partition={town_consumed:[],town_returned:['buyer-club'],town_forfeited:[],dungeon_consumed:['maker-tonic-0'],dungeon_extracted:[],dungeon_returned:['maker-sword-0','maker-tonic-1']};
+ assert.equal((await f.apply('late-void',{actor:'buyer',action:{type:'void',run_id:'run-0',reason:'operator recovery',disposition:partition}})).status,'Applied');
+ const r=await f.apply('close',close);assert.equal(r.status,'Applied');const after=await f.view('snapshot');assert.equal(after.editions[0].closed,true);assert.equal(after.items.filter((i:any)=>i.location.kind==='bank').length,2);assert.equal(after.credits.maker,'89');assert.equal(after.credits.buyer,'10');
+ assert.deepEqual(await f.apply('close',close),r);assert.equal((await f.apply('close-again',close)).status,'Rejected');assert.deepEqual(await f.view('snapshot'),after);
+ }finally{await f.sandbox.tearDown();}
+});

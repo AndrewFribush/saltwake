@@ -1,0 +1,40 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test tests/contract/*.test.ts
+
+TAP version 13
+# Subtest: Rust protocol exposes exact catalog, costs and canonical command hash
+not ok 1 - Rust protocol exposes exact catalog, costs and canonical command hash
+  ---
+  duration_ms: 1844.933625
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/items.test.ts:1:160'
+  failureType: 'testCodeFailure'
+  error: 'Contract method is not found at block height 5'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ContractMethodNotFoundError'
+  stack: |-
+    parseRpcErrorMessage (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/errors/parse.ts:628:20)
+    JsonRpcProvider.sendJsonRpc (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/json-rpc-provider.ts:689:23)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async JsonRpcProvider.callFunction (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/json-rpc-provider.ts:328:28)
+    async TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/items.test.ts:8:14)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Local sandbox receipt proof: repeated debit once, conflicting payload rejected, buyer7/bank3.
+# Subtest: WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+ok 2 - WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+  ---
+  duration_ms: 2240.244916
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2442.529

@@ -1,0 +1,54 @@
+TAP version 13
+# Subtest: extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+not ok 1 - extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+  ---
+  duration_ms: 2010.563042
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/settlement.test.ts:1:1000'
+  failureType: 'testCodeFailure'
+  error: 'WebAssembly trap: An `unreachable` opcode was executed.'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ContractExecutionError'
+  stack: |-
+    parseFunctionCallError (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/errors/parse.ts:420:43)
+    parseActionError (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/errors/parse.ts:870:16)
+    parseTransactionExecutionError (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/errors/parse.ts:645:23)
+    Account.signAndSendTransaction (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/accounts/account.ts:455:19)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Account.callFunctionRaw (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/accounts/account.ts:762:16)
+    async Account.callFunction (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/accounts/account.ts:739:25)
+    async TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/settlement.test.ts:14:28)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+not ok 2 - death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+  ---
+  duration_ms: 1871.983542
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/settlement.test.ts:1:2555'
+  failureType: 'testCodeFailure'
+  error: 'WebAssembly trap: An `unreachable` opcode was executed.'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ContractExecutionError'
+  stack: |-
+    parseFunctionCallError (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/errors/parse.ts:420:43)
+    parseActionError (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/errors/parse.ts:870:16)
+    parseTransactionExecutionError (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/providers/errors/parse.ts:645:23)
+    Account.signAndSendTransaction (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/accounts/account.ts:455:19)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Account.callFunctionRaw (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/accounts/account.ts:762:16)
+    async Account.callFunction (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/node_modules/near-api-js/src/accounts/account.ts:739:25)
+    async TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/settlement.test.ts:24:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4062.564666

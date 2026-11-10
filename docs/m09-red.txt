@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+not ok 1 - funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+  ---
+  duration_ms: 1888.676708
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/editions.test.ts:1:105'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'Rejected'
+    - 'Applied'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'Applied'
+  actual: 'Rejected'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/editions.test.ts:10:50)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: explicit no-reward editions publish; invalid terms and incomplete bundles reject
+not ok 2 - explicit no-reward editions publish; invalid terms and incomplete bundles reject
+  ---
+  duration_ms: 2899.446625
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/editions.test.ts:1:1322'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'Rejected'
+    - 'Applied'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'Applied'
+  actual: 'Rejected'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/editions.test.ts:25:137)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4967.002708

@@ -1,0 +1,39 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test tests/contract/*.test.ts
+
+TAP version 13
+# Subtest: funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+ok 1 - funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+  ---
+  duration_ms: 3054.343458
+  type: 'test'
+  ...
+# Subtest: explicit no-reward editions publish; invalid terms and incomplete bundles reject
+ok 2 - explicit no-reward editions publish; invalid terms and incomplete bundles reject
+  ---
+  duration_ms: 3329.944625
+  type: 'test'
+  ...
+# Subtest: Rust protocol exposes exact catalog, costs and canonical command hash
+ok 3 - Rust protocol exposes exact catalog, costs and canonical command hash
+  ---
+  duration_ms: 2132.570959
+  type: 'test'
+  ...
+# Local sandbox receipt proof: repeated debit once, conflicting payload rejected, buyer7/bank3.
+# Subtest: WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+ok 4 - WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+  ---
+  duration_ms: 2917.420458
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6626.963667

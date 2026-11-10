@@ -1,0 +1,69 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test tests/contract/*.test.ts
+
+TAP version 13
+# Subtest: one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+ok 1 - one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+  ---
+  duration_ms: 2101.38025
+  type: 'test'
+  ...
+# Subtest: three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+ok 2 - three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+  ---
+  duration_ms: 3937.281083
+  type: 'test'
+  ...
+# Subtest: zero-reward edition still caps at four and honors opening window
+ok 3 - zero-reward edition still caps at four and honors opening window
+  ---
+  duration_ms: 3155.581541
+  type: 'test'
+  ...
+# Subtest: funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+ok 4 - funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+  ---
+  duration_ms: 2599.825625
+  type: 'test'
+  ...
+# Subtest: explicit no-reward editions publish; invalid terms and incomplete bundles reject
+ok 5 - explicit no-reward editions publish; invalid terms and incomplete bundles reject
+  ---
+  duration_ms: 3282.742833
+  type: 'test'
+  ...
+# Subtest: Rust protocol exposes exact catalog, costs and canonical command hash
+ok 6 - Rust protocol exposes exact catalog, costs and canonical command hash
+  ---
+  duration_ms: 1891.729583
+  type: 'test'
+  ...
+# Subtest: extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+ok 7 - extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+  ---
+  duration_ms: 4104.939
+  type: 'test'
+  ...
+# Subtest: death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+ok 8 - death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+  ---
+  duration_ms: 4312.488042
+  type: 'test'
+  ...
+# Local sandbox receipt proof: repeated debit once, conflicting payload rejected, buyer7/bank3.
+# Subtest: WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+ok 9 - WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+  ---
+  duration_ms: 2357.493334
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9410.370541

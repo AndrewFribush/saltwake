@@ -1,0 +1,27 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test tests/contract/*.test.ts
+
+TAP version 13
+# Subtest: Rust protocol exposes exact catalog, costs and canonical command hash
+ok 1 - Rust protocol exposes exact catalog, costs and canonical command hash
+  ---
+  duration_ms: 1764.073042
+  type: 'test'
+  ...
+# Local sandbox receipt proof: repeated debit once, conflicting payload rejected, buyer7/bank3.
+# Subtest: WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+ok 2 - WASM sandbox: initialize once, debit three once, reject ID/payload conflict
+  ---
+  duration_ms: 2218.974792
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2401.462833

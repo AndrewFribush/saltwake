@@ -19,6 +19,15 @@ npm run typecheck
 npm run build
 ```
 
-`npm test` runs the game suite. Server/E2E suites are not implemented and their commands fail explicitly. Browser evidence was captured with Aside and is saved in docs. Contract smoke instructions/results are in docs/toolchain.md when available; it is separate from the browser, not a working economic backend.
+`npm test` runs the game suite. Server/E2E suites are not implemented and their commands fail explicitly. Browser evidence was captured with Aside and is saved in docs. The local contract now implements fixed-funded publication, admission, settlement/void and closure. It remains separate from the browser. Protocol and evidence: [fixed economy](docs/protocol/fixed-economy.md), [verification](docs/economy-verification.md).
 
 [Build checklist](../design/dungeon-economy/CHECKLIST.md) · [Progress/evidence](docs/progress.md) · [Gameplay observations](docs/play-observations.md)
+
+
+Verify the contract and game together (requires pinned Rust toolchain):
+
+```sh
+npm run verify
+```
+
+Contract tests create isolated local NEAR sandboxes and remove them afterward. The capacity/exhaustion and simulated-deadline tests take longer than unit tests. No paid calls, testnet or live deployment is involved. Test credits and stock are disclosed seed grants.

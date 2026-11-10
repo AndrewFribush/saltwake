@@ -1,0 +1,93 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test tests/contract/*.test.ts
+
+TAP version 13
+# Subtest: one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+ok 1 - one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+  ---
+  duration_ms: 3012.683334
+  type: 'test'
+  ...
+# Subtest: three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+ok 2 - three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+  ---
+  duration_ms: 3924.508375
+  type: 'test'
+  ...
+# Subtest: zero-reward edition still caps at four and honors opening window
+ok 3 - zero-reward edition still caps at four and honors opening window
+  ---
+  duration_ms: 3162.571208
+  type: 'test'
+  ...
+# Subtest: receipt exhaustion cannot strand paid runs or prevent later closure
+ok 4 - receipt exhaustion cannot strand paid runs or prevent later closure
+  ---
+  duration_ms: 86488.576334
+  type: 'test'
+  ...
+# Subtest: cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once
+ok 5 - cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once
+  ---
+  duration_ms: 5401.597083
+  type: 'test'
+  ...
+# Subtest: seeded mixed outcomes conserve all credits and funded items through closure
+ok 6 - seeded mixed outcomes conserve all credits and funded items through closure
+  ---
+  duration_ms: 22629.304417
+  type: 'test'
+  ...
+# Subtest: funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+ok 7 - funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+  ---
+  duration_ms: 3471.971167
+  type: 'test'
+  ...
+# Subtest: explicit no-reward editions publish; invalid terms and incomplete bundles reject
+ok 8 - explicit no-reward editions publish; invalid terms and incomplete bundles reject
+  ---
+  duration_ms: 3809.675875
+  type: 'test'
+  ...
+# Subtest: Rust protocol exposes exact catalog, costs and canonical command hash
+ok 9 - Rust protocol exposes exact catalog, costs and canonical command hash
+  ---
+  duration_ms: 2401.202875
+  type: 'test'
+  ...
+# Subtest: extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+ok 10 - extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+  ---
+  duration_ms: 5042.510625
+  type: 'test'
+  ...
+# Subtest: death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+ok 11 - death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+  ---
+  duration_ms: 4253.055083
+  type: 'test'
+  ...
+# Sandbox cleanup: forced exit after five-second grace.
+# Subtest: extracted finds brought into a later run become town risk; expiry forfeits that loadout
+ok 12 - extracted finds brought into a later run become town risk; expiry forfeits that loadout
+  ---
+  duration_ms: 43585.180041
+  type: 'test'
+  ...
+# Subtest: WASM initializes once and preserves rejected receipts for retired debit command
+ok 13 - WASM initializes once and preserves rejected receipts for retired debit command
+  ---
+  duration_ms: 3625.632208
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 86770.782459
