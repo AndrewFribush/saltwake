@@ -92,3 +92,30 @@ test('v2 no-reward admission with empty loadout stays empty across shrine and th
   assert.deepEqual(runs.get(row.id,'buyer').state.items,{});
  }finally{f.close();}
 });
+
+test('v3 authored geometry, funded positions, fog and settlement survive restart',async()=>{
+ const {encodeCustomModule}=await import('../../../packages/shared/src/custom-layout');
+ const floor={tiles:['#############',...Array(7).fill('#...........#'),'#############'],spawn:{x:2,y:2},exit:{x:10,y:7},sockets:[{x:9,y:6},{x:10,y:6},{x:9,y:7},{x:11,y:7}]};
+ const f=setup();try{
+  f.snapshot.editions[0].terms={...f.snapshot.editions[0].terms,rules_version:3,modules:[encodeCustomModule(floor),encodeCustomModule({...floor,spawn:{x:3,y:2}})]};
+  const runs=new Runs(f.db,f.box,()=>1000),row=runs.materialize('admit',f.snapshot);
+  assert.deepEqual(row.state.layout![0].tiles,floor.tiles);assert.deepEqual(row.state.layout![0].spawn,floor.spawn);assert.deepEqual(row.state.layout![0].exit,floor.exit);
+  assert.deepEqual({x:row.state.player.x,y:row.state.player.y},floor.spawn);
+  assert.deepEqual(Object.keys(row.state.items).sort(),['club','hidden','sword','tonic']);
+  assert.deepEqual(row.state.items.sword.location,{kind:'floor',room:0,...floor.sockets[0]});
+  assert.deepEqual(row.state.items.tonic.location,{kind:'floor',room:0,...floor.sockets[1]});
+  assert.deepEqual(row.state.items.hidden.location,{kind:'floor',room:1,...floor.sockets[0]});
+  assert.equal(row.state.layout![1].enemies[0].x,floor.sockets[0].x);assert.equal(row.state.layout![1].traps[0].y,floor.sockets[0].y);
+  const view=runs.view(row.id,'buyer');assert.ok(view.state.room.some(r=>r.includes('?')));assert.deepEqual(Object.keys(view.state.items),['club']);assert.deepEqual(view.state.enemies,[]);assert.equal(view.state.layout,undefined);
+  f.db.close();const db=new Store(join(f.dir,'db'));try{
+   const restarted=new Runs(db,new Outbox(db,{} as any),()=>1000);
+   assert.deepEqual(restarted.get(row.id,'buyer'),row);assert.deepEqual(restarted.view(row.id,'buyer'),view);
+   assert.deepEqual(restarted.materialize('admit',{...f.snapshot,editions:[]}),row);
+   const move=restarted.action(row.id,'buyer','custom-step',0,{type:'move',x:3,y:2});assert.deepEqual(restarted.action(row.id,'buyer','custom-step',0,{type:'move',x:3,y:2}),move);
+   restarted.finish(restarted.get(row.id,'buyer'),'abandoned');const op=db.operation('terminal-run-1')!;
+   assert.equal(op.command.action.type,'settle');if(op.command.action.type!=='settle')throw Error('Expected settlement');
+   assert.deepEqual([...op.command.action.disposition.dungeon_returned].sort(),['hidden','sword','tonic']);
+   op.status='Applied';db.putOperation(op);const terminal=restarted.view(row.id,'buyer');assert.equal(terminal.settlement?.withheldCounts?.dungeon_returned,3);assert.ok(!JSON.stringify(terminal).includes('hidden'));
+  }finally{db.close();}
+ }finally{f.close();}
+});

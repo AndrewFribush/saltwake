@@ -96,3 +96,7 @@ User directed a shift from menus to a game. Implemented a town-first spatial flo
 ## Tile interiors and wallet iteration
 
 Added visible town tiles, five walkable house interiors and account books linked to authoritative purse/reserve/pending-income views. Connected existing services at indoor stations and added expedition fee history. Verified 50 game + 47 server tests, typecheck/build and Aside desktop/mobile flows. See [tile-world evidence](tile-world-verification.md). Wallet remains local custody and a partial financial history; no external wallet or release. Human gameplay acceptance and canonical 30/48 tally unchanged.
+
+## Authored floor and interior builders
+
+Implemented tile editors with validation, local drafts, playable previews, and actual version-3 funded dungeon publication. Browser proof took a maker-owned fine tonic through authored placement, another profile's admission, pickup and Applied extraction. Local contract upgrade preserved the complete preexisting snapshot. 54 game + 49 server tests passed; all 33 contract cases passed across the full suite and one isolated retry after a fee-test timeout. Typecheck/build passed. [Details and limits](builders-verification.md). Canonical M26/M27 now in progress; human gates and completed tally remain unchanged.

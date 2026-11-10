@@ -1,0 +1,11 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+FUNDING={"type":"fineTonic","id":"maker-fine-tonic-2"}
+PREVIEW_STEP=true
+DRAFT_RELOADED=true
+PUBLICATION_TEXT=Publication submitted. Check your editions and receipts below for confirmation.
+PUBLISHED_EDITION=Maker · Your editionsFunding transfers the selected town items into an edition. This panel adds only fixed rewards. Fee changes apply to future admissions. Final closure sends unused stock to the bank.Refresh maker viewSelected funding: Select owned items in town.The smugglers’ hollowedition-0 · Version 1 · Entry 2 credits · 0 active runsSettled entry fees: 4 · Pending fee escrow: 0 · Placement paid: 11 · Finished attempts: 2. These figures exclude the acquisition cost of funded goods and are not net profit.Player feedback: fun: 0 · confusing: 0 · too-hard: 0Accepting changes · Cutoff 11/11/2026, 9:45:25 AMNew entry fee (0–1,000,000 credits)  Set entry feeFixed reward types: Sword, Tonic.Fund with 0 selected itemsClosure is available after cutoff when all active runs have settled. Unused funding is not returned to you.Finalize closure · send unused stock to bankBuilder verificationedition-1 · Version 1 · Entry 0 credits · 0 active runsSettled entry fees: 0 · Pending fee escrow: 0 · Placement paid: 3 · Finished attempts: 0. These figures exclude the acquisition cost of funded goods and are not net profit.Player feedback: fun: 0 · confusing: 0 · too-hard: 0Accepting changes · Cutoff 11/10/2026, 11:44:47 AMNew entry fee (0–1,000,000 credits)  Set entry feeFixed reward types: Fine tonic.Fund with 0 selected itemsClosure is available after cutoff when all active runs have settled. Unused funding is not returned to you.Finalize closure · send unused stock to bank
+FLOOR_MOBILE_WIDTH=390
+GSTACK_STEP_OK
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+[ok | 29384ms]

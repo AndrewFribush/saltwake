@@ -22,13 +22,15 @@ npm run server
 npm run dev -- --port 18930 --strictPort
 ```
 
-Open http://127.0.0.1:18930. **The game opens in Saltwake**, a walkable harbor town. Click a building to walk there, or use arrows/WASD and Enter at a door. Each building has a tile interior: walk to its service counter to trade, craft, or manage expeditions. Click a counter to walk there automatically. Walk through the south door to leave; Escape closes an interaction or leaves the room. Touch direction controls are available indoors. Click your purse, or approach an indoor account book, for balances, reserved fees, pending income, and receipts.
+Open http://127.0.0.1:18930. **The game opens in Saltwake**, a walkable harbor town. Click a building to walk there, or use arrows/WASD to walk into its doorway. Entering is automatic. Each building has a tile interior: walk to its service counter to trade, craft, or manage expeditions. Click a counter to walk there automatically. Walk through the south door to leave; Escape closes an interaction or leaves the room. Touch direction controls are available indoors. Click your purse, or approach an indoor account book, for balances, reserved fees, pending income, and receipts.
 
 - **Quayside market:** buy finite stock, sell finds, or stock your own stall. Select goods from your satchel to sell; select a trader's goods to buy.
 - **The Copper Kettle:** select two herbs and two flasks, then time three inputs to craft tonics. Low-asset characters can take bank-supplied recovery work. Supplies, wages and orders are bounded.
-- **Delvers' guild:** fund a new expedition from owned treasure, set its fee, refresh stock and inspect receipts. The current charter uses two seeded floors; the full layout editor is not built.
-- **The old catacombs:** pack selected equipment, inspect the fee and funded treasure, and pay for an attempt. New editions use server-seeded chambers/corridors and fog. Only actual funded items can be found. Older version-1 editions retain their fixed layout.
+- **Delvers' guild:** draw 2–4 dungeon floors, place walls, arrival/stairs and four encounter sockets per floor, configure enemies/traps/rewards, save drafts and play a free rehearsal. Publishing charges the displayed placement cost and funds rewards from selected owned goods. Existing editions retain their immutable layouts; refresh stock and inspect receipts below the builder.
+- **The old catacombs:** pack selected equipment, inspect the fee and funded treasure, and pay for an attempt. New editions use server-seeded chambers/corridors and fog. Only actual funded items can be found. Older version-1 editions retain their fixed layout; maker-built version-3 editions use their published authored tiles.
 - **The Salt Lantern:** stored belongings, settled-run journal and free practice. Practice creates no economic rewards.
+
+Inside any house, choose **Edit interior** to move walls, furniture, the service counter, account book, arrival and south-wall door. Preview it, then **Save and enter room**. Rooms are saved per house in this browser across demo characters; they do not change ownership or item balances. Dungeon drafts are saved separately per character. Invalid/unreachable layouts cannot be installed or published.
 
 Fresh worlds include a proprietor-funded expedition with two reward bundles and two finite tonic listings. These consume existing seeded inventory and the proprietor's placement fee; they do not add assets. Use `npm run sandbox -- --empty` for the old unconfigured seed. Starting stock is demo supply, not organic market activity.
 
@@ -47,3 +49,7 @@ npm run verify
 Includes typecheck, WASM build, game tests, actual-WASM contract tests, server/recovery/HTTP economy-loop tests, and web build. Individual suites: `npm run test:game`, `npm run test:contract`, `npm run test:server`. Contract capacity/deadline tests take longer and start only ephemeral local nodes. `npm run test:e2e` runs the integrated HTTP gameplay/economy proofs; these do not replace browser or human playtests.
 
 [Checklist](../design/dungeon-economy/CHECKLIST.md) · [Progress](docs/progress.md) · [Trust and limitations](docs/trust.md) · [Gameplay observations](docs/play-observations.md)
+
+## Update an already-running local sandbox
+
+After rebuilding the contract, stop only the API process (keep the sandbox running), then run `npx tsx scripts/upgrade-local.ts` and restart `npm run server`. This helper requires loopback RPC, takes the existing database writer lock, refuses unresolved operations, deploys code without reinitializing, and verifies the entire economy snapshot is unchanged. It is only for this isolated local prototype.

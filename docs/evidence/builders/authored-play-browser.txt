@@ -1,0 +1,9 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+PLAYER=The mercenarySaltwake resident
+AUTHORED_SPAWN=Health 12. Position 1, 1. Turn 0.  Entered Floor 1. 
+AUTHORED_SETTLEMENT=extractedSettlement: Applied. town consumed: Nonetown returned: Nonetown forfeited: Nonedungeon consumed: Nonedungeon extracted: maker-fine-tonic-2dungeon returned: None
+RETURNED_TO_TOWN=true
+GSTACK_STEP_OK
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+[ok | 14949ms]

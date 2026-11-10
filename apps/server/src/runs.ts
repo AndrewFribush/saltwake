@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import templates from '../../../content/rooms.json';
 import {createRun,type RunState,type RoomLayout} from '../../../packages/game/src/state';
+import {decodeCustomModule} from '../../../packages/shared/src/custom-layout';
 import {fundedLayout} from '../../../packages/game/src/funded-layout';
 import {explore,visibleTiles} from '../../../packages/game/src/roguelike';
 import {enterRoom,atClearedExit,hasNextRoom} from '../../../packages/game/src/generation';
@@ -19,13 +20,16 @@ export class Runs {
   const economic=op.receipt.run;const prior=this.db.get<SavedRun>('run',economic.id);if(prior)return prior;
   const edition=snapshot.editions.find(e=>e.id===economic.edition);if(!edition)throw Error('Missing confirmed edition');
   const state=createRun();state.items={};state.originalTownIds=[];state.reservedItemIds=[];
-  if(![1,2].includes(edition.terms.rules_version))throw Error('Unsupported rules version');
-  const generated=edition.terms.rules_version===2?fundedLayout(economic.seed,edition.terms.modules):undefined;
+  if(![1,2,3].includes(edition.terms.rules_version))throw Error('Unsupported rules version');
+  const generated=edition.terms.rules_version===3?edition.terms.modules.map((module,index)=>{
+   const floor=decodeCustomModule(module);
+   return {slots:floor.sockets,layout:{id:`custom-${index}`,title:`Floor ${index+1}`,tiles:floor.tiles,spawn:floor.spawn,exit:floor.exit,enemies:[],traps:[]} as RoomLayout};
+  }):edition.terms.rules_version===2?fundedLayout(economic.seed,edition.terms.modules):undefined;
   if(generated){state.roguelike=true;state.explored=[];}
   const position=(room:number,slot:number)=>generated?generated[room]?.slots[slot]:slots[slot];
   state.layout=edition.terms.modules.map((id,index)=>{
-   const template=templates.find(t=>t.id===id);if(!template)throw Error('Unsupported room template');
-   const r:RoomLayout=generated?generated[index].layout:{...structuredClone(template),enemies:[],traps:[]};
+   const template=templates.find(t=>t.id===id);if(!generated&&!template)throw Error('Unsupported room template');
+   const r:RoomLayout=generated?generated[index].layout:{...structuredClone(template!),enemies:[],traps:[]};
    for(const socket of edition.terms.sockets.filter(s=>s.room===index)){
     const p=position(index,socket.slot);if(!p)throw Error('Invalid socket slot');
     if(socket.enemy!=='none')r.enemies.push({...p,id:socket.id,kind:socket.enemy,hp:socket.enemy==='charger'?6:4,intent:{...p},...(generated?{alerted:false}:{})});

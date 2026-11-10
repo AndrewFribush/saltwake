@@ -1,0 +1,330 @@
+
+> dungeon-economy@0.1.0 test:server
+> tsx --test --test-concurrency=2 apps/server/test/*.test.ts
+
+TAP version 13
+# Subtest: exact complete bundles rather than item count determine availability
+ok 1 - exact complete bundles rather than item count determine availability
+  ---
+  duration_ms: 0.484667
+  type: 'test'
+  ...
+# Subtest: random and fixed pools cannot substitute; explicit no-reward editions open
+ok 2 - random and fixed pools cannot substitute; explicit no-reward editions open
+  ---
+  duration_ms: 0.169958
+  type: 'test'
+  ...
+# (node:25565) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: persist challenge and begin atomically; require matching confirmed batch before play
+ok 3 - persist challenge and begin atomically; require matching confirmed batch before play
+  ---
+  duration_ms: 6.104291
+  type: 'test'
+  ...
+# Subtest: three server-timed inputs finish fine exactly once and stay pending until confirmation
+ok 4 - three server-timed inputs finish fine exactly once and stay pending until confirmation
+  ---
+  duration_ms: 4.227125
+  type: 'test'
+  ...
+# Subtest: restart preserves explicit start; spoofed timings cannot improve tier; IDs and ownership enforced
+ok 5 - restart preserves explicit start; spoofed timings cannot improve tier; IDs and ownership enforced
+  ---
+  duration_ms: 3.669333
+  type: 'test'
+  ...
+# Subtest: deadline expires to normal once across restart, including a retry of the triggering input
+ok 6 - deadline expires to normal once across restart, including a retry of the triggering input
+  ---
+  duration_ms: 3.913916
+  type: 'test'
+  ...
+# Subtest: worker expires an untouched batch after restart and late admission confirmation
+ok 7 - worker expires an untouched batch after restart and late admission confirmation
+  ---
+  duration_ms: 3.919833
+  type: 'test'
+  ...
+# Subtest: rejected begins release profile but same request never rerolls or re-enqueues
+ok 8 - rejected begins release profile but same request never rerolls or re-enqueues
+  ---
+  duration_ms: 3.219333
+  type: 'test'
+  ...
+# Subtest: enqueue failures roll back both challenge creation and final input
+ok 9 - enqueue failures roll back both challenge creation and final input
+  ---
+  duration_ms: 2.601666
+  type: 'test'
+  ...
+# Subtest: normal tier is derived from early and late server timings; final input rollback is atomic
+ok 10 - normal tier is derived from early and late server timings; final input rollback is atomic
+  ---
+  duration_ms: 2.792375
+  type: 'test'
+  ...
+# Subtest: premature expiry retries once only after confirmed chain deadline without reopening play
+ok 11 - premature expiry retries once only after confirmed chain deadline without reopening play
+  ---
+  duration_ms: 3.530209
+  type: 'test'
+  ...
+# Subtest: request history is bounded and independent profiles cannot affect one another
+ok 12 - request history is bounded and independent profiles cannot affect one another
+  ---
+  duration_ms: 44.739667
+  type: 'test'
+  ...
+# Subtest: custom codec validates geometry, connectivity and unique traversable markers
+ok 13 - custom codec validates geometry, connectivity and unique traversable markers
+  ---
+  duration_ms: 1.61575
+  type: 'test'
+  ...
+# (node:25567) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Full local loop confirmed: artisan made stock, buyer paid shop and entry, used purchased tonic during gameplay, extracted, zero-capital worker earned wage.
+# Subtest: extended local loop: craft -> stock shop -> buyer purchases -> paid run uses purchased potion -> extract; recovery wage
+ok 14 - extended local loop: craft -> stock shop -> buyer purchases -> paid run uses purchased potion -> extract; recovery wage
+  ---
+  duration_ms: 7436.651958
+  type: 'test'
+  ...
+# (node:25568) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: requires a stored run owned by the caller and a local terminal outcome
+ok 15 - requires a stored run owned by the caller and a local terminal outcome
+  ---
+  duration_ms: 3.496541
+  type: 'test'
+  ...
+# Subtest: accepts each terminal outcome and all three feedback choices
+ok 16 - accepts each terminal outcome and all three feedback choices
+  ---
+  duration_ms: 3.397
+  type: 'test'
+  ...
+# Subtest: same-choice retries persist across restart; changing choice or owner cannot rewrite it
+ok 17 - same-choice retries persist across restart; changing choice or owner cannot rewrite it
+  ---
+  duration_ms: 2.8125
+  type: 'test'
+  ...
+# Subtest: runtime rejects unsupported choices without saving any feedback
+ok 18 - runtime rejects unsupported choices without saving any feedback
+  ---
+  duration_ms: 1.984
+  type: 'test'
+  ...
+# Subtest: counts are edition-scoped; feedback has no run or economic effects
+ok 19 - counts are edition-scoped; feedback has no run or economic effects
+  ---
+  duration_ms: 3.307208
+  type: 'test'
+  ...
+# (node:25569) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# HTTP action response ms {"samples":19,"min":1.2356250000002547,"median":2.3264580000000024,"max":9.679208000000017}
+# HTTP played extraction: turns 20 ; buyer credits 8; maker credits 91; sword owned; used tonic consumed; unvisited tonic returned
+# Subtest: HTTP maker funding -> paid play -> consumed tonic -> extracted sword, session isolation and CSRF
+ok 20 - HTTP maker funding -> paid play -> consumed tonic -> extracted sword, session isolation and CSRF
+  ---
+  duration_ms: 6703.98175
+  type: 'test'
+  ...
+# (node:25579) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: save command and signed bytes before broadcast, preserve ID on uncertain retry and restart
+ok 21 - save command and signed bytes before broadcast, preserve ID on uncertain retry and restart
+  ---
+  duration_ms: 5.087666
+  type: 'test'
+  ...
+# Subtest: missing receipt keeps uncertainty and blocks later signing
+ok 22 - missing receipt keeps uncertainty and blocks later signing
+  ---
+  duration_ms: 3.094417
+  type: 'test'
+  ...
+# Subtest: exclusive writer and bounded request storage
+ok 23 - exclusive writer and bounded request storage
+  ---
+  duration_ms: 2.115
+  type: 'test'
+  ...
+# Subtest: confirmed failed transaction can be replaced under the SAME operation and command
+ok 24 - confirmed failed transaction can be replaced under the SAME operation and command
+  ---
+  duration_ms: 2.402125
+  type: 'test'
+  ...
+# Subtest: capacity preserves terminal headroom for admitted run
+ok 25 - capacity preserves terminal headroom for admitted run
+  ---
+  duration_ms: 120.09725
+  type: 'test'
+  ...
+# Subtest: malformed string fields reject before persisting and cannot jam later settlements
+ok 26 - malformed string fields reject before persisting and cannot jam later settlements
+  ---
+  duration_ms: 2.453584
+  type: 'test'
+  ...
+# (node:25580) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Fog-limited paid expedition extracted after 113 turns; bought tonic consumed; funded sword owned.
+# Subtest: a bought tonic and funded rewards survive a played, fog-limited two-floor expedition
+ok 27 - a bought tonic and funded rewards survive a played, fog-limited two-floor expedition
+  ---
+  duration_ms: 5604.868333
+  type: 'test'
+  ...
+# Subtest: a sync requested after the current scan drains newly queued work before resolving
+ok 28 - a sync requested after the current scan drains newly queued work before resolving
+  ---
+  duration_ms: 0.690458
+  type: 'test'
+  ...
+# Subtest: a failed pass rejects callers and a later request can recover
+ok 29 - a failed pass rejects callers and a later request can recover
+  ---
+  duration_ms: 0.232125
+  type: 'test'
+  ...
+# Subtest: background polling joins an active pass without extending it forever
+ok 30 - background polling joins an active pass without extending it forever
+  ---
+  duration_ms: 0.122
+  type: 'test'
+  ...
+# Subtest: later requests do not hold an earlier caller hostage to a subsequent pass
+ok 31 - later requests do not hold an earlier caller hostage to a subsequent pass
+  ---
+  duration_ms: 0.128792
+  type: 'test'
+  ...
+# (node:25587) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: only applied admissions materialize; hidden seed/rewards absent from run view
+ok 32 - only applied admissions materialize; hidden seed/rewards absent from run view
+  ---
+  duration_ms: 6.900417
+  type: 'test'
+  ...
+# Subtest: actions commit once, survive restart, reject stale sequence and expire once
+ok 33 - actions commit once, survive restart, reject stale sequence and expire once
+  ---
+  duration_ms: 9.455667
+  type: 'test'
+  ...
+# Subtest: terminal view redacts receipt seed/assignments and expiry retries replay consistently
+ok 34 - terminal view redacts receipt seed/assignments and expiry retries replay consistently
+  ---
+  duration_ms: 7.293625
+  type: 'test'
+  ...
+# Subtest: consumed potion and exact retry response survive process restart
+ok 35 - consumed potion and exact retry response survive process restart
+  ---
+  duration_ms: 6.76375
+  type: 'test'
+  ...
+# Subtest: v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart
+ok 36 - v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart
+  ---
+  duration_ms: 7.970292
+  type: 'test'
+  ...
+# Subtest: v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns
+ok 37 - v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns
+  ---
+  duration_ms: 5.743833
+  type: 'test'
+  ...
+# Subtest: v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent
+ok 38 - v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent
+  ---
+  duration_ms: 4.030916
+  type: 'test'
+  ...
+# Subtest: v3 authored geometry, funded positions, fog and settlement survive restart
+ok 39 - v3 authored geometry, funded positions, fog and settlement survive restart
+  ---
+  duration_ms: 9.49225
+  type: 'test'
+  ...
+# (node:25588) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: real WASM admission survives broadcast-response crash and restart without a second fee
+ok 40 - real WASM admission survives broadcast-response crash and restart without a second fee
+  ---
+  duration_ms: 3607.5485
+  type: 'test'
+  ...
+# Subtest: independent sessions get random cookies and exclusive server-assigned profiles
+ok 41 - independent sessions get random cookies and exclusive server-assigned profiles
+  ---
+  duration_ms: 0.886208
+  type: 'test'
+  ...
+# Subtest: spoofed actor fields cannot authorize commands or access another owner
+ok 42 - spoofed actor fields cannot authorize commands or access another owner
+  ---
+  duration_ms: 0.693958
+  type: 'test'
+  ...
+# Subtest: release permits an exclusive claim and logout invalidates the token
+ok 43 - release permits an exclusive claim and logout invalidates the token
+  ---
+  duration_ms: 0.226542
+  type: 'test'
+  ...
+# Subtest: expiration is absolute, enforced at the boundary and releases claims
+ok 44 - expiration is absolute, enforced at the boundary and releases claims
+  ---
+  duration_ms: 0.179459
+  type: 'test'
+  ...
+# Subtest: session capacity is bounded even when clients release profiles
+ok 45 - session capacity is bounded even when clients release profiles
+  ---
+  duration_ms: 0.164
+  type: 'test'
+  ...
+# (node:25603) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: wallet separates purse, reserved fees, catalog assets and unearned wages exactly
+ok 46 - wallet separates purse, reserved fees, catalog assets and unearned wages exactly
+  ---
+  duration_ms: 3.370208
+  type: 'test'
+  ...
+# Subtest: only matching authoritative receipts survive restart; unknown is never a receipt
+ok 47 - only matching authoritative receipts survive restart; unknown is never a receipt
+  ---
+  duration_ms: 3.282334
+  type: 'test'
+  ...
+# Subtest: wallet API requires a session and ignores requested actors; world embeds the same view
+ok 48 - wallet API requires a session and ignores requested actors; world embeds the same view
+  ---
+  duration_ms: 29.593167
+  type: 'test'
+  ...
+# Subtest: run fee history uses edition ownership, exact amounts and settled outcomes, excluding voids
+ok 49 - run fee history uses edition ownership, exact amounts and settled outcomes, excluding voids
+  ---
+  duration_ms: 2.090041
+  type: 'test'
+  ...
+1..49
+# tests 49
+# suites 0
+# pass 49
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 13301.308208

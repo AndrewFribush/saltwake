@@ -22,12 +22,15 @@ impl Economy {
         }
         if terms.title.trim().is_empty()
             || terms.title.len() > 80
-            || !matches!(terms.rules_version, 1 | 2)
+            || !matches!(terms.rules_version, 1 | 2 | 3)
             || !(2..=4).contains(&terms.modules.len())
-            || terms
-                .modules
-                .iter()
-                .any(|m| m != "cellar" && m != "gauntlet")
+            || terms.modules.iter().any(|m| {
+                if terms.rules_version == 3 {
+                    !valid_custom_module(m)
+                } else {
+                    m != "cellar" && m != "gauntlet"
+                }
+            })
         {
             return Err("InvalidTerms".into());
         }
@@ -335,4 +338,77 @@ impl Economy {
         e.refresh_ids.extend(seen);
         Ok(edition_id)
     }
+}
+
+// JSON-only validation types: deliberately not part of the persisted Borsh schema.
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct CustomPoint {
+    x: usize,
+    y: usize,
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct CustomFloor {
+    tiles: Vec<String>,
+    spawn: CustomPoint,
+    exit: CustomPoint,
+    sockets: Vec<CustomPoint>,
+}
+fn valid_custom_module(module: &str) -> bool {
+    if module.len() > 2048 {
+        return false;
+    }
+    let Some(json) = module.strip_prefix("custom:") else {
+        return false;
+    };
+    let Ok(floor) = near_sdk::serde_json::from_str::<CustomFloor>(json) else {
+        return false;
+    };
+    if floor.tiles.len() != 9 || floor.sockets.len() != 4 {
+        return false;
+    }
+    for (y, row) in floor.tiles.iter().enumerate() {
+        if row.len() != 13 {
+            return false;
+        }
+        for (x, tile) in row.bytes().enumerate() {
+            if !matches!(tile, b'#' | b'.')
+                || ((x == 0 || x == 12 || y == 0 || y == 8) && tile != b'#')
+            {
+                return false;
+            }
+        }
+    }
+    let mut positions = BTreeSet::new();
+    for p in [&floor.spawn, &floor.exit]
+        .into_iter()
+        .chain(floor.sockets.iter())
+    {
+        if p.x >= 13
+            || p.y >= 9
+            || floor.tiles[p.y].as_bytes()[p.x] != b'.'
+            || !positions.insert((p.x, p.y))
+        {
+            return false;
+        }
+    }
+    let mut seen = BTreeSet::new();
+    let mut queue = vec![(floor.spawn.x, floor.spawn.y)];
+    seen.insert(queue[0]);
+    while let Some((x, y)) = queue.pop() {
+        // Closed boundaries guarantee every queued floor cell is interior.
+        for p in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)] {
+            if floor.tiles[p.1].as_bytes()[p.0] == b'.' && seen.insert(p) {
+                queue.push(p);
+            }
+        }
+    }
+    seen.len()
+        == floor
+            .tiles
+            .iter()
+            .flat_map(|row| row.bytes())
+            .filter(|tile| *tile == b'.')
+            .count()
 }

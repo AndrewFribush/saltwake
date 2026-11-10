@@ -1,3 +1,4 @@
+import {CharacterSprite} from './CharacterSprite';
 import React, {useState, useRef} from 'react';
 import {distance} from '../../../packages/game/src/state';
 import {keyAction} from '../../../packages/game/src/controls';
@@ -45,7 +46,7 @@ export function Run({remote}:{remote?:{state:ReturnType<typeof practiceRun>;send
      const exit=remote?.exit??roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
      const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?enemy.id:trap?'spikes':loot?'loot':isExit?'exit':'floor'}${warning?' danger next turn':''}`;
      return <button key={`${x},${y}`} className={`tile ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''}`} tabIndex={-1} disabled={!seen||tile==='#'} aria-label={label} onClick={()=>click(x,y)}>
-      {seen&&(lit||isExit)&&<span aria-hidden="true" className={`game-sprite ${player?'delver':enemy?enemy.kind==='charger'?'boar':'rat':trap?trap.armed?'spikes':'safe-spikes':loot?'loot':isExit?'stairs':tile==='#'?'stone':'ground'}`}>{player?'':enemy?'':trap?'':loot?'◆':isExit?'≡':''}</span>}
+      {seen&&(lit||isExit)&&(player?<CharacterSprite/>:<span aria-hidden="true" className={`game-sprite ${player?'delver':enemy?enemy.kind==='charger'?'boar':'rat':trap?trap.armed?'spikes':'safe-spikes':loot?'loot':isExit?'stairs':tile==='#'?'stone':'ground'}`}>{player?'':enemy?'':trap?'':loot?'◆':isExit?'≡':''}</span>)}
       {player&&warning&&<span className="danger-badge" aria-hidden="true">!</span>}
       {enemy&&<small className="enemy-health">{enemy.hp} HP</small>}
      </button>;

@@ -1,0 +1,572 @@
+
+> dungeon-economy@0.1.0 verify
+> npm run typecheck && npm run build:contract && npm test && npm run test:contract && npm run test:server && npm run build
+
+
+> dungeon-economy@0.1.0 typecheck
+> tsc --noEmit
+
+
+> dungeon-economy@0.1.0 build:contract
+> cargo build --manifest-path contracts/economy/Cargo.toml --target wasm32-unknown-unknown --release --locked
+
+    Finished `release` profile [optimized] target(s) in 0.14s
+
+> dungeon-economy@0.1.0 test
+> npm run test:game
+
+
+> dungeon-economy@0.1.0 test:game
+> tsx --test packages/game/test/*.test.ts
+
+TAP version 13
+# Subtest: a committed attack misses when player steps aside
+ok 1 - a committed attack misses when player steps aside
+  ---
+  duration_ms: 0.947833
+  type: 'test'
+  ...
+# Subtest: club deals two; surviving enemy hits; sword kills before enemy acts
+ok 2 - club deals two; surviving enemy hits; sword kills before enemy acts
+  ---
+  duration_ms: 0.204875
+  type: 'test'
+  ...
+# Subtest: guard halves one hit rounded up after armor, then expires
+ok 3 - guard halves one hit rounded up after armor, then expires
+  ---
+  duration_ms: 0.326708
+  type: 'test'
+  ...
+# Subtest: enemies act in ID order and guard absorbs only first hit
+ok 4 - enemies act in ID order and guard absorbs only first hit
+  ---
+  duration_ms: 0.399959
+  type: 'test'
+  ...
+# Subtest: invalid attacks and occupied movement do not spend a turn
+ok 5 - invalid attacks and occupied movement do not spend a turn
+  ---
+  duration_ms: 0.158375
+  type: 'test'
+  ...
+# Subtest: death stops all further actions
+ok 6 - death stops all further actions
+  ---
+  duration_ms: 0.101667
+  type: 'test'
+  ...
+# Subtest: pursuer routes around a wall instead of oscillating
+ok 7 - pursuer routes around a wall instead of oscillating
+  ---
+  duration_ms: 6.667708
+  type: 'test'
+  ...
+# Subtest: one discrete key action; ignore repeat and browser shortcuts
+ok 8 - one discrete key action; ignore repeat and browser shortcuts
+  ---
+  duration_ms: 0.686
+  type: 'test'
+  ...
+# Subtest: three accurate inputs score fine, including both target boundaries
+ok 9 - three accurate inputs score fine, including both target boundaries
+  ---
+  duration_ms: 0.937792
+  type: 'test'
+  ...
+# Subtest: one miss makes a completed batch normal, never a failed batch
+ok 10 - one miss makes a completed batch normal, never a failed batch
+  ---
+  duration_ms: 0.094792
+  type: 'test'
+  ...
+# Subtest: incomplete batches have no tier and malformed timing cannot score
+ok 11 - incomplete batches have no tier and malformed timing cannot score
+  ---
+  duration_ms: 0.369709
+  type: 'test'
+  ...
+# Subtest: inputs are immutable, sequential, and accepted only once per step
+ok 12 - inputs are immutable, sequential, and accepted only once per step
+  ---
+  duration_ms: 1.243584
+  type: 'test'
+  ...
+# Subtest: restart creates fresh identity and rejects callbacks from the previous batch
+ok 13 - restart creates fresh identity and rejects callbacks from the previous batch
+  ---
+  duration_ms: 0.23975
+  type: 'test'
+  ...
+# Subtest: late input is a normal miss; invalid input leaves the attempt unchanged
+ok 14 - late input is a normal miss; invalid input leaves the attempt unchanged
+  ---
+  duration_ms: 0.172125
+  type: 'test'
+  ...
+# Subtest: death returns equipped finds and unvisited loot; forfeits town gear; consumption stays spent
+ok 15 - death returns equipped finds and unvisited loot; forfeits town gear; consumption stays spent
+  ---
+  duration_ms: 3.282917
+  type: 'test'
+  ...
+# Subtest: extract awards only carried loot; void returns all surviving finds and town gear
+ok 16 - extract awards only carried loot; void returns all surviving finds and town gear
+  ---
+  duration_ms: 0.809625
+  type: 'test'
+  ...
+# Subtest: previously extracted equipment admitted as town is forfeited next death
+ok 17 - previously extracted equipment admitted as town is forfeited next death
+  ---
+  duration_ms: 0.374416
+  type: 'test'
+  ...
+# Subtest: corrupt manifests and consumed equipment fail closed
+ok 18 - corrupt manifests and consumed equipment fail closed
+  ---
+  duration_ms: 1.594208
+  type: 'test'
+  ...
+# Subtest: seeded action traces partition every source exactly once for every outcome
+ok 19 - seeded action traces partition every source exactly once for every outcome
+  ---
+  duration_ms: 14.922833
+  type: 'test'
+  ...
+# Subtest: cannot extract or continue through enemies, or away from exit
+ok 20 - cannot extract or continue through enemies, or away from exit
+  ---
+  duration_ms: 2.077666
+  type: 'test'
+  ...
+# Subtest: continuing carries health/items but not enemies; extraction ends actions
+ok 21 - continuing carries health/items but not enemies; extraction ends actions
+  ---
+  duration_ms: 0.730458
+  type: 'test'
+  ...
+# Subtest: funded geometry is deterministic, uses full economic seed and contains no generated rewards
+ok 22 - funded geometry is deterministic, uses full economic seed and contains no generated rewards
+  ---
+  duration_ms: 3.870917
+  type: 'test'
+  ...
+# Subtest: all floor tiles, four unique sockets and exits are reachable across 100 seeds and 2–4 floors
+ok 23 - all floor tiles, four unique sockets and exits are reachable across 100 seeds and 2–4 floors
+  ---
+  duration_ms: 39.441541
+  type: 'test'
+  ...
+# Subtest: seeded floors have 2–4 substantial chambers joined by narrow chokepoints, with varied geometry
+ok 24 - seeded floors have 2–4 substantial chambers joined by narrow chokepoints, with varied geometry
+  ---
+  duration_ms: 149.258708
+  type: 'test'
+  ...
+# Subtest: charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+ok 25 - charge is committed to a lane; sidestepping dodges; recovery gives a free turn
+  ---
+  duration_ms: 1.736125
+  type: 'test'
+  ...
+# Subtest: charge strikes and stops at first enemy, protecting player behind
+ok 26 - charge strikes and stops at first enemy, protecting player behind
+  ---
+  duration_ms: 0.268584
+  type: 'test'
+  ...
+# Subtest: armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+ok 27 - armed traps hit player and enemies, alternate visibly; invalid moves do not toggle
+  ---
+  duration_ms: 0.188417
+  type: 'test'
+  ...
+# Subtest: identical action trace reproduces hazards
+ok 28 - identical action trace reproduces hazards
+  ---
+  duration_ms: 0.889167
+  type: 'test'
+  ...
+# Subtest: every house has reachable services and a traversable return door
+ok 29 - every house has reachable services and a traversable return door
+  ---
+  duration_ms: 15.625959
+  type: 'test'
+  ...
+# Subtest: house walls and fixtures block walking; paths never cut diagonally through them
+ok 30 - house walls and fixtures block walking; paths never cut diagonally through them
+  ---
+  duration_ms: 0.68875
+  type: 'test'
+  ...
+# Subtest: authored interiors move counters and doors without losing reachability
+ok 31 - authored interiors move counters and doors without losing reachability
+  ---
+  duration_ms: 37.554
+  type: 'test'
+  ...
+# Subtest: interior saves reject blocked doors, isolated counters and malformed drafts
+ok 32 - interior saves reject blocked doors, isolated counters and malformed drafts
+  ---
+  duration_ms: 17.340625
+  type: 'test'
+  ...
+# Subtest: floor tonic heals once, retains origin and is consumed
+ok 33 - floor tonic heals once, retains origin and is consumed
+  ---
+  duration_ms: 1.022708
+  type: 'test'
+  ...
+# Subtest: six bag slots; empty equipment slot works even when bag full
+ok 34 - six bag slots; empty equipment slot works even when bag full
+  ---
+  duration_ms: 0.268208
+  type: 'test'
+  ...
+# Subtest: full bag rejects displaced town gear; bag swap uses freed slot
+ok 35 - full bag rejects displaced town gear; bag swap uses freed slot
+  ---
+  duration_ms: 0.215542
+  type: 'test'
+  ...
+# Subtest: displaced dungeon weapon can remain on tile; town items cannot drop
+ok 36 - displaced dungeon weapon can remain on tile; town items cannot drop
+  ---
+  duration_ms: 0.586417
+  type: 'test'
+  ...
+# Subtest: cannot use remote/unvisited loot, nonconsumables or consume at full health
+ok 37 - cannot use remote/unvisited loot, nonconsumables or consume at full health
+  ---
+  duration_ms: 0.084792
+  type: 'test'
+  ...
+# Subtest: item IDs cannot be reused
+ok 38 - item IDs cannot be reused
+  ---
+  duration_ms: 0.100417
+  type: 'test'
+  ...
+# Subtest: fixture registration rejects overfull bags, occupied/wrong slots and town floor gear
+ok 39 - fixture registration rejects overfull bags, occupied/wrong slots and town floor gear
+  ---
+  duration_ms: 0.153875
+  type: 'test'
+  ...
+# Subtest: malformed actions do not advance the turn or crash inventory lookup
+ok 40 - malformed actions do not advance the turn or crash inventory lookup
+  ---
+  duration_ms: 0.059625
+  type: 'test'
+  ...
+# Subtest: extra itemId cannot combine equipping and attacking in one turn
+ok 41 - extra itemId cannot combine equipping and attacking in one turn
+  ---
+  duration_ms: 0.216333
+  type: 'test'
+  ...
+# Subtest: matcher caps three, filters fee/style/difficulty/reward and excludes self/full
+ok 42 - matcher caps three, filters fee/style/difficulty/reward and excludes self/full
+  ---
+  duration_ms: 3.5825
+  type: 'test'
+  ...
+# Subtest: equal-fee suggestions rotate without changing or reserving offers
+ok 43 - equal-fee suggestions rotate without changing or reserving offers
+  ---
+  duration_ms: 0.166667
+  type: 'test'
+  ...
+# Subtest: move one cardinal step; wall and remote click leave state unchanged
+ok 44 - move one cardinal step; wall and remote click leave state unchanged
+  ---
+  duration_ms: 1.77925
+  type: 'test'
+  ...
+# Subtest: catalog matches eight reference prices
+ok 45 - catalog matches eight reference prices
+  ---
+  duration_ms: 0.078584
+  type: 'test'
+  ...
+# Subtest: seed reproduces an expedition; different seeds alter rooms and rewards
+ok 46 - seed reproduces an expedition; different seeds alter rooms and rewards
+  ---
+  duration_ms: 19.597916
+  type: 'test'
+  ...
+# Subtest: every generated floor and exit is reachable for 100 seeds; spawns do not overlap threats or loot
+ok 47 - every generated floor and exit is reachable for 100 seeds; spawns do not overlap threats or loot
+  ---
+  duration_ms: 97.131875
+  type: 'test'
+  ...
+# Subtest: fog hides distant floor and monsters; movement reveals explored tiles
+ok 48 - fog hides distant floor and monsters; movement reveals explored tiles
+  ---
+  duration_ms: 1.281041
+  type: 'test'
+  ...
+# Subtest: one run boon trades health for damage or heals; cannot farm or select away from exit
+ok 49 - one run boon trades health for damage or heals; cannot farm or select away from exit
+  ---
+  duration_ms: 1.183791
+  type: 'test'
+  ...
+# Subtest: unaware monsters do not hunt the player through unseen rooms
+ok 50 - unaware monsters do not hunt the player through unseen rooms
+  ---
+  duration_ms: 0.952208
+  type: 'test'
+  ...
+# Subtest: every livelihood and dungeon door is reachable from every other destination
+ok 51 - every livelihood and dungeon door is reachable from every other destination
+  ---
+  duration_ms: 6.734292
+  type: 'test'
+  ...
+# Subtest: travel cannot cross buildings, water or map edges; interactions require proximity
+ok 52 - travel cannot cross buildings, water or map edges; interactions require proximity
+  ---
+  duration_ms: 0.139
+  type: 'test'
+  ...
+# Subtest: stepping onto doors enters and leaves a safe outside return position
+ok 53 - stepping onto doors enters and leaves a safe outside return position
+  ---
+  duration_ms: 4.576625
+  type: 'test'
+  ...
+# Subtest: click-to-walk routes avoid entering unrelated door tiles
+ok 54 - click-to-walk routes avoid entering unrelated door tiles
+  ---
+  duration_ms: 13.055042
+  type: 'test'
+  ...
+1..54
+# tests 54
+# suites 0
+# pass 54
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1146.51425
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test --test-concurrency=2 tests/contract/*.test.ts
+
+TAP version 13
+# Subtest: one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+ok 1 - one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+  ---
+  duration_ms: 3354.081375
+  type: 'test'
+  ...
+# Subtest: three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+ok 2 - three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+  ---
+  duration_ms: 7221.571334
+  type: 'test'
+  ...
+# Subtest: zero-reward edition still caps at four and honors opening window
+ok 3 - zero-reward edition still caps at four and honors opening window
+  ---
+  duration_ms: 5631.385
+  type: 'test'
+  ...
+# Subtest: bank trades exact finite inventory at reference/half-reference prices, never unlimited cash
+ok 4 - bank trades exact finite inventory at reference/half-reference prices, never unlimited cash
+  ---
+  duration_ms: 9584.10875
+  type: 'test'
+  ...
+# Subtest: forfeited gear is finite resellable bank stock; racing buyers cannot share an instance
+ok 5 - forfeited gear is finite resellable bank stock; racing buyers cannot share an instance
+  ---
+  duration_ms: 3666.103125
+  type: 'test'
+  ...
+# Subtest: receipt exhaustion cannot strand paid runs or prevent later closure
+ok 6 - receipt exhaustion cannot strand paid runs or prevent later closure
+  ---
+  duration_ms: 150896.899125
+  type: 'test'
+  ...
+# Subtest: cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once
+ok 7 - cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once
+  ---
+  duration_ms: 7511.22575
+  type: 'test'
+  ...
+# Subtest: seeded mixed outcomes conserve all credits and funded items through closure
+ok 8 - seeded mixed outcomes conserve all credits and funded items through closure
+  ---
+  duration_ms: 26299.720917
+  type: 'test'
+  ...
+# Subtest: recipe locks exactly two herbs/two flasks, excludes listed inputs, and issues two outputs once
+ok 9 - recipe locks exactly two herbs/two flasks, excludes listed inputs, and issues two outputs once
+  ---
+  duration_ms: 19392.508958
+  type: 'test'
+  ...
+# Subtest: deadline is stored; late completion forces normal tier and timeout cannot mint twice
+ok 10 - deadline is stored; late completion forces normal tier and timeout cannot mint twice
+  ---
+  duration_ms: 22606.165709
+  type: 'test'
+  ...
+# Subtest: receipt exhaustion preserves terminal capacity for a locked crafting batch
+ok 11 - receipt exhaustion preserves terminal capacity for a locked crafting batch
+  ---
+  duration_ms: 166829.027791
+  type: 'test'
+  ...
+# Subtest: WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock
+ok 12 - WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock
+  ---
+  duration_ms: 11335.392917
+  type: 'test'
+  ...
+# Subtest: funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+ok 13 - funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+  ---
+  duration_ms: 4154.982375
+  type: 'test'
+  ...
+# Subtest: explicit no-reward editions publish; invalid terms and incomplete bundles reject
+ok 14 - explicit no-reward editions publish; invalid terms and incomplete bundles reject
+  ---
+  duration_ms: 6630.193084
+  type: 'test'
+  ...
+# Subtest: v2 accepts bounded seeded rules with unchanged module IDs and exact funding; unknown versions reject
+ok 15 - v2 accepts bounded seeded rules with unchanged module IDs and exact funding; unknown versions reject
+  ---
+  duration_ms: 5195.2655
+  type: 'test'
+  ...
+# Subtest: SetFee invalidates quotes without changing escrow; retries, ownership, limits and cutoff enforced
+not ok 16 - SetFee invalidates quotes without changing escrow; retries, ownership, limits and cutoff enforced
+  ---
+  duration_ms: 120001.228458
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/fees.test.ts:1:219'
+  failureType: 'testTimeoutFailure'
+  error: 'test timed out after 120000ms'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: Rust protocol exposes exact catalog, costs and canonical command hash
+ok 17 - Rust protocol exposes exact catalog, costs and canonical command hash
+  ---
+  duration_ms: 1779.939916
+  type: 'test'
+  ...
+# Subtest: unseeded order has no spendable budget
+ok 18 - unseeded order has no spendable budget
+  ---
+  duration_ms: 2149.054792
+  type: 'test'
+  ...
+# Subtest: seeded NPC demand pays at most 20 credits for four fine tonics, with atomic validation and replay
+ok 19 - seeded NPC demand pays at most 20 credits for four fine tonics, with atomic validation and replay
+  ---
+  duration_ms: 13805.347
+  type: 'test'
+  ...
+# Subtest: random pools reserve without replacement, replay deterministically, return on death and exclude extracted/consumed goods
+ok 20 - random pools reserve without replacement, replay deterministically, return on death and exclude extracted/consumed goods
+  ---
+  duration_ms: 6970.31025
+  type: 'test'
+  ...
+# Subtest: random table validation and fixed/random funding isolation reject atomically
+ok 21 - random table validation and fixed/random funding isolation reject atomically
+  ---
+  duration_ms: 6473.066625
+  type: 'test'
+  ...
+# Subtest: recovery reserves finite bank materials and wages, pays once, and keeps output at bank; epoch cap and budget never reset
+ok 22 - recovery reserves finite bank materials and wages, pays once, and keeps output at bank; epoch cap and budget never reset
+  ---
+  duration_ms: 12625.349584
+  type: 'test'
+  ...
+# Subtest: competing jobs cannot reserve the same bank materials; timeout still pays the reserved wage once
+ok 23 - competing jobs cannot reserve the same bank materials; timeout still pays the reserved wage once
+  ---
+  duration_ms: 12079.725916
+  type: 'test'
+  ...
+# Subtest: holdings include listed assets, town loadouts, crafting inputs, and pending maker fees
+ok 24 - holdings include listed assets, town loadouts, crafting inputs, and pending maker fees
+  ---
+  duration_ms: 11781.497208
+  type: 'test'
+  ...
+# Subtest: refresh deposits exact owned stock without reallocating runs or charging again; partial pools cannot admit
+ok 25 - refresh deposits exact owned stock without reallocating runs or charging again; partial pools cannot admit
+  ---
+  duration_ms: 18748.935125
+  type: 'test'
+  ...
+# Subtest: extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+ok 26 - extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+  ---
+  duration_ms: 7300.302083
+  type: 'test'
+  ...
+# Subtest: death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+ok 27 - death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+  ---
+  duration_ms: 7890.821333
+  type: 'test'
+  ...
+# Sandbox cleanup: forced exit after five-second grace.
+# Subtest: extracted finds brought into a later run become town risk; expiry forfeits that loadout
+ok 28 - extracted finds brought into a later run become town risk; expiry forfeits that loadout
+  ---
+  duration_ms: 45307.729833
+  type: 'test'
+  ...
+# Subtest: listing locks exact IDs, validates quotes atomically, and cancellation returns only unsold stock
+ok 29 - listing locks exact IDs, validates quotes atomically, and cancellation returns only unsold stock
+  ---
+  duration_ms: 11481.151042
+  type: 'test'
+  ...
+# Subtest: last-item concurrent buys yield one charged sale; listed gear cannot enter a loadout
+ok 30 - last-item concurrent buys yield one charged sale; listed gear cannot enter a loadout
+  ---
+  duration_ms: 6171.621459
+  type: 'test'
+  ...
+# Subtest: WASM initializes once and preserves rejected receipts for retired debit command
+ok 31 - WASM initializes once and preserves rejected receipts for retired debit command
+  ---
+  duration_ms: 2739.904625
+  type: 'test'
+  ...
+# Subtest: starter town spends existing maker stock and funds two playable openings and finite shops
+ok 32 - starter town spends existing maker stock and funds two playable openings and finite shops
+  ---
+  duration_ms: 5511.323667
+  type: 'test'
+  ...
+# Subtest: edition reference values reconcile stock, reservations, extract, consume, refresh, void and closure exactly once
+ok 33 - edition reference values reconcile stock, reservations, extract, consume, refresh, void and closure exactly once
+  ---
+  duration_ms: 27149.587459
+  type: 'test'
+  ...
+1..33
+# tests 33
+# suites 0
+# pass 32
+# fail 0
+# cancelled 1
+# skipped 0
+# todo 0
+# duration_ms 391305.364417
