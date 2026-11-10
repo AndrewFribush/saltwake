@@ -1,7 +1,9 @@
 import {createHash} from 'node:crypto';
 import templates from '../../../content/rooms.json';
 import {createRun,type RunState,type RoomLayout} from '../../../packages/game/src/state';
-import {enterRoom} from '../../../packages/game/src/generation';
+import {fundedLayout} from '../../../packages/game/src/funded-layout';
+import {explore,visibleTiles} from '../../../packages/game/src/roguelike';
+import {enterRoom,atClearedExit,hasNextRoom} from '../../../packages/game/src/generation';
 import {addItem} from '../../../packages/game/src/inventory';
 import {act,type Action} from '../../../packages/game/src/actions';
 import {disposition} from '../../../packages/game/src/disposition';
@@ -17,12 +19,16 @@ export class Runs {
   const economic=op.receipt.run;const prior=this.db.get<SavedRun>('run',economic.id);if(prior)return prior;
   const edition=snapshot.editions.find(e=>e.id===economic.edition);if(!edition)throw Error('Missing confirmed edition');
   const state=createRun();state.items={};state.originalTownIds=[];state.reservedItemIds=[];
+  if(![1,2].includes(edition.terms.rules_version))throw Error('Unsupported rules version');
+  const generated=edition.terms.rules_version===2?fundedLayout(economic.seed,edition.terms.modules):undefined;
+  if(generated){state.roguelike=true;state.explored=[];}
+  const position=(room:number,slot:number)=>generated?generated[room]?.slots[slot]:slots[slot];
   state.layout=edition.terms.modules.map((id,index)=>{
    const template=templates.find(t=>t.id===id);if(!template)throw Error('Unsupported room template');
-   const r:RoomLayout={...structuredClone(template),enemies:[],traps:[]};
+   const r:RoomLayout=generated?generated[index].layout:{...structuredClone(template),enemies:[],traps:[]};
    for(const socket of edition.terms.sockets.filter(s=>s.room===index)){
-    const p=slots[socket.slot];if(!p)throw Error('Invalid socket slot');
-    if(socket.enemy!=='none')r.enemies.push({...p,id:socket.id,kind:socket.enemy,hp:socket.enemy==='charger'?6:4,intent:{...p}});
+    const p=position(index,socket.slot);if(!p)throw Error('Invalid socket slot');
+    if(socket.enemy!=='none')r.enemies.push({...p,id:socket.id,kind:socket.enemy,hp:socket.enemy==='charger'?6:4,intent:{...p},...(generated?{alerted:false}:{})});
     if(socket.trap)r.traps.push({...p,id:socket.id+'-trap',armed:true});
    }return r;
   });
@@ -30,17 +36,32 @@ export class Runs {
    const equipped=Object.values(state.items);const kind=item.item_type==='armor'&&!equipped.some(i=>i.location.kind==='armor')?'armor':['club','sword'].includes(item.item_type)&&!equipped.some(i=>i.location.kind==='weapon')?'weapon':'bag';
    addItem(state,{id,type:item.item_type,origin:'town',location:{kind}});if(kind==='weapon')state.player.weapon=item.item_type as 'club'|'sword';if(kind==='armor')state.player.armor=true;
   }
-  for(const assignment of economic.assignments){const item=snapshot.items.find(i=>i.id===assignment.item_id);const socket=edition.terms.sockets.find(s=>s.id===assignment.socket);if(!item||!socket)throw Error('Missing reserved assignment');addItem(state,{id:item.id,type:item.item_type,origin:'dungeon',location:{kind:'floor',room:socket.room,...slots[socket.slot]}});}
-  enterRoom(state,0);const row:SavedRun={id:economic.id,profile:economic.player,economic,state,seq:0};this.db.put('run',row.id,row);return row;
+  for(const assignment of economic.assignments){const item=snapshot.items.find(i=>i.id===assignment.item_id);const socket=edition.terms.sockets.find(s=>s.id===assignment.socket);if(!item||!socket)throw Error('Missing reserved assignment');addItem(state,{id:item.id,type:item.item_type,origin:'dungeon',location:{kind:'floor',room:socket.room,...position(socket.room,socket.slot)!}});}
+  enterRoom(state,0);explore(state);const row:SavedRun={id:economic.id,profile:economic.player,economic,state,seq:0};this.db.put('run',row.id,row);return row;
  }
  get(id:string,profile:string){const row=this.db.get<SavedRun>('run',id);if(!row||row.profile!==profile)throw Error('Run owner mismatch');return row;}
  view(id:string,profile:string){const row=this.get(id,profile);const state=structuredClone(row.state);
   // Only the present room's geometry/encounters and already carried goods cross HTTP.
   delete state.layout;
-  state.items=Object.fromEntries(Object.entries(state.items).filter(([,i])=>i.location.kind!=='floor'||i.location.room===state.roomIndex));
+  delete state.expeditionSeed;
+  const visible=visibleTiles(row.state);
+  const isVisible=(p:{x:number;y:number})=>visible.has(`${p.x},${p.y}`);
+  if(state.roguelike){
+   const explored=new Set(state.explored??[]);
+   state.room=state.room.map((line,y)=>[...line].map((tile,x)=>explored.has(`${state.roomIndex}:${x},${y}`)?tile:'?').join(''));
+   state.enemies=state.enemies.filter(isVisible).map(e=>({...e,intent:isVisible(e.intent)?e.intent:{x:e.x,y:e.y},lane:e.lane?.filter(isVisible)}));
+   state.traps=state.traps.filter(isVisible);
+   // Off-screen combat can name dormant enemies; do not disclose those IDs via logs.
+   const hiddenIds=row.state.layout!.flatMap(r=>r.enemies).filter(e=>!state.enemies.some(v=>v.id===e.id)).map(e=>e.id);
+   state.log=state.log.filter(line=>!hiddenIds.some(id=>line.includes(id)));
+  }
+  state.items=Object.fromEntries(Object.entries(state.items).filter(([,i])=>i.location.kind!=='floor'||(i.location.room===state.roomIndex&&(!state.roguelike||isVisible(i.location)))));
   state.reservedItemIds=state.reservedItemIds.filter(id=>id in state.items);
   const terminalOp=row.settlement?this.db.operation(row.settlement):undefined;
-  return {id,profile,seq:row.seq,state,deadline:row.economic.deadline_ms,roomTitle:row.state.layout![state.roomIndex].title,exit:row.state.layout![state.roomIndex].exit,roomCount:row.state.layout!.length,terminal:row.terminal??null,settlement:terminalOp?{status:terminalOp.status,reason:terminalOp.reason??null,receipt:terminalOp.receipt?.status==='Applied'||terminalOp.receipt?.status==='Rejected'?{status:terminalOp.receipt.status,result:terminalOp.receipt.result}:null,disposition:terminalOp.status==='Applied'&&(terminalOp.command.action.type==='settle'||terminalOp.command.action.type==='void')?terminalOp.command.action.disposition:null}:null};
+  const settled=terminalOp?.status==='Applied'&&(terminalOp.command.action.type==='settle'||terminalOp.command.action.type==='void')?terminalOp.command.action.disposition:null;
+  const disclosed=settled?Object.fromEntries(Object.entries(settled).map(([key,ids])=>[key,state.roguelike?ids.filter(itemId=>itemId in state.items):ids])):null;
+  const withheldCounts=settled?Object.fromEntries(Object.entries(settled).map(([key,ids])=>[key,ids.length-(disclosed?.[key]?.length??0)])):null;
+  return {id,profile,seq:row.seq,state,deadline:row.economic.deadline_ms,roomTitle:row.state.layout![state.roomIndex].title,exit:row.state.layout![state.roomIndex].exit,roomCount:row.state.layout!.length,canExtract:!row.terminal&&state.status==='active'&&this.clock()<Number(row.economic.deadline_ms)&&atClearedExit(row.state),hasNextRoom:hasNextRoom(row.state),terminal:row.terminal??null,settlement:terminalOp?{status:terminalOp.status,reason:terminalOp.reason??null,receipt:terminalOp.receipt?.status==='Applied'||terminalOp.receipt?.status==='Rejected'?{status:terminalOp.receipt.status,result:terminalOp.receipt.result}:null,disposition:disclosed,withheldCounts}:null};
  }
  action(id:string,profile:string,actionId:string,expectedSeq:number,action:Action){
   if(!/^[\w-]{1,64}$/.test(actionId)||!Number.isSafeInteger(expectedSeq)||JSON.stringify(action).length>2048)throw Error('Invalid action envelope');

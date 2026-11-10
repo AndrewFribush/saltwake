@@ -1,0 +1,5 @@
+import React from 'react';
+export function ItemIcon({type}:{type:string}){return <svg className={`item-icon icon-${type}`} viewBox="0 0 48 48" aria-hidden="true">
+ <rect x="1" y="1" width="46" height="46" rx="6" fill="#26342f" stroke="#736b50"/>
+ {['tonic','fineTonic','flask'].includes(type)?<><path d="M19 8h10v11l7 9v10H12V28l7-9Z" fill={type==='flask'?'#64838a':type==='fineTonic'?'#e1b75a':'#a34b49'} stroke="#d7c799" strokeWidth="2"/><path d="M17 8h14M16 29h16" stroke="#d7c799" strokeWidth="3"/></>:type==='herb'?<><path d="m17 39 16-29M24 28Q4 24 11 12q16 0 13 16M27 23q-2-17 13-15 3 15-13 15" fill="#87a85c" stroke="#d5d296" strokeWidth="2"/></>:type==='armor'?<path d="m17 9-9 8 7 8v15h19V25l7-8-10-8q-6 8-14 0Z" fill="#7f9194" stroke="#d9cda6" strokeWidth="2"/>:type==='iron'?<path d="m10 29 8-16 20 4 3 15-25 7Z" fill="#8b9696" stroke="#d6cba5" strokeWidth="2"/>:<><path d="m15 36 20-25-4-3-23 21Z" fill={type==='club'?'#a07848':'#c1d3d0'} stroke="#e4cc96" strokeWidth="2"/><path d="m9 30 11 10m-6-5-6 7" stroke="#b28b4e" strokeWidth="4"/></>}
+ </svg>;}

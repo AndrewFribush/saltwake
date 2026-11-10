@@ -25,13 +25,14 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
     const created=sessions.create();res.setHeader('Set-Cookie',created.setCookie);return reply(200,{session:created.session,label:DEMO_CUSTODY_LABEL});
    }
    const profile=sessions.requireProfile(req.headers.cookie);
-   if(url.pathname==='/api/profile'&&req.method==='POST'){const body=await bodyOf(req);return reply(200,sessions.claim(req.headers.cookie,body.profile));}
+   const readAction=async()=>{const body=await bodyOf(req);const current=sessions.requireProfile(req.headers.cookie);if(current!==profile||(body.expectedProfile!==undefined&&body.expectedProfile!==current))throw Error('Profile changed; refresh before acting');return body;};
+   if(url.pathname==='/api/profile'&&req.method==='POST'){const body=await readAction();return reply(200,sessions.claim(req.headers.cookie,body.profile));}
    if(url.pathname==='/api/world'&&req.method==='GET'){
     await sync();const world=await snapshot();
     return reply(200,{profile,craft:craft.view(profile),credits:world.credits[profile],items:world.items.filter(i=>i.location.kind==='owned'&&i.location.profile===profile),listings:world.listings,bankItems:world.items.filter(i=>i.location.kind==='bank'),listedItems:world.items.filter(i=>i.location.kind==='listed'),bank:world.bank,bank_prices:world.bank_prices,npc_order:world.npc_order,recovery:world.recovery,editions:world.editions.map(e=>({id:e.id,maker:e.maker,terms:e.terms,fee:e.fee,version:e.version,closed:e.closed,active:e.active_runs.length,placementPaid:e.placement_paid,pendingConsumptionValue:box.db.all<SavedRun>('run').filter(r=>r.economic.edition===e.id&&(!r.settlement||box.db.operation(r.settlement)?.status!=='Applied')).flatMap(r=>Object.values(r.state.items)).filter(i=>i.origin==='dungeon'&&i.location.kind==='consumed').reduce((n,i)=>n+catalog[i.type].value,0),pendingFees:world.runs.filter(r=>r.edition===e.id&&r.status==='active').reduce((n,r)=>n+Number(r.fee),0),completedRuns:world.runs.filter(r=>r.edition===e.id&&r.status!=='active').length,feedback:feedback.counts(e.id),...availability(e,world.items,Date.now()),settledRevenue:world.runs.filter(r=>r.edition===e.id&&!['active','void'].includes(r.status)).reduce((n,r)=>n+Number(r.fee),0)})),runs:box.db.all<SavedRun>('run').filter(r=>r.profile===profile).map(r=>runs.view(r.id,profile)),operations:box.db.operations().filter(o=>o.command.actor===profile).map(o=>({id:o.id,status:o.status,reason:o.reason,result:o.receipt?.status==='Applied'||o.receipt?.status==='Rejected'?o.receipt.result:undefined}))});
    }
    if(url.pathname==='/api/command'&&req.method==='POST'){
-    const body=await bodyOf(req);if(!/^[\w-]{1,40}$/.test(body.id))throw Error('Invalid request ID');
+    const body=await readAction();if(!/^[\w-]{1,40}$/.test(body.id))throw Error('Invalid request ID');
     const id=profile+'-'+body.id;let action=body.action as Command['action'];
     if(!action||!['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order'].includes(action.type))throw Error('Command not allowed');
     if(action.type==='admit'){
@@ -43,12 +44,12 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
     box.enqueue(id,sessions.bindCommand(req.headers.cookie,action));await sync();const op=box.db.operation(id)!;
     return reply(200,{id,status:op.status,reason:op.reason,result:op.receipt?.status==='Applied'||op.receipt?.status==='Rejected'?op.receipt.result:undefined});
    }
-   if(url.pathname==='/api/craft/begin'&&req.method==='POST'){const body=await bodyOf(req);craft.begin(profile,body.id,body.inputIds,body.recovery??false);await sync();return reply(200,craft.view(profile));}
-   if((url.pathname==='/api/craft/start'||url.pathname==='/api/craft/input')&&req.method==='POST'){const body=await bodyOf(req);const result=url.pathname.endsWith('/start')?craft.startStep(profile,body.batch,body.id,body.seq,body.step):craft.input(profile,body.batch,body.id,body.seq,body.step);void sync().catch(()=>{});return reply(200,result);}
-   if(url.pathname==='/api/feedback'&&req.method==='POST'){const body=await bodyOf(req);return reply(200,feedback.submit(body.run,profile,body.choice));}
+   if(url.pathname==='/api/craft/begin'&&req.method==='POST'){const body=await readAction();craft.begin(profile,body.id,body.inputIds,body.recovery??false);await sync();return reply(200,craft.view(profile));}
+   if((url.pathname==='/api/craft/start'||url.pathname==='/api/craft/input')&&req.method==='POST'){const body=await readAction();const result=url.pathname.endsWith('/start')?craft.startStep(profile,body.batch,body.id,body.seq,body.step):craft.input(profile,body.batch,body.id,body.seq,body.step);void sync().catch(()=>{});return reply(200,result);}
+   if(url.pathname==='/api/feedback'&&req.method==='POST'){const body=await readAction();return reply(200,feedback.submit(body.run,profile,body.choice));}
    const match=url.pathname.match(/^\/api\/runs\/([\w-]+)(?:\/(action|abandon))?$/);
    if(match){const id=match[1];if(req.method==='GET')return reply(200,runs.view(id,profile));if(req.method==='POST'){
-    const body=await bodyOf(req);
+    const body=await readAction();
     if(match[2]==='action'){const result=runs.action(id,profile,body.id,body.seq,body.action);void sync().catch(()=>{});return reply(200,result);}
     if(match[2]==='abandon'){box.db.transaction(()=>runs.finish(runs.get(id,profile),'abandoned'));await sync();return reply(200,runs.view(id,profile));}
    }}

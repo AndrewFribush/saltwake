@@ -88,3 +88,7 @@ No completed Claude review of this integration was obtained (`docs/claude-integr
 ## Final integration checkpoint
 
 Final verification exited 0: game43/43, contract30/30, server39/39, TypeScript, WASM and Vite builds. Evidence: [integration-verification.md](integration-verification.md), [full log](evidence/local-integration-tests.txt). M18 now includes observed local HTTP latency (19 samples; min1.379/median2.484/max4.063ms); M30 matcher verification passed. These two acceptance updates bring the canonical tally to **30/48**. Earlier pending-checkpoint statements above are historical. M08 remains rejected/unaccepted; no content-expansion or external-action gate was bypassed.
+
+## Saltwake world iteration
+
+User directed a shift from menus to a game. Implemented a town-first spatial flow, contextual trade/crafting/guild/gate interactions, seeded paid V2 chamber layouts with server fog, funded starter-world transactions and return-to-town results. [Evidence](world-gameplay-verification.md). This supersedes the fixed-paid-layout gap in older checkpoint notes. M08 remains unaccepted; no four-module editor, human-play, clean-checkout or external-release gate is promoted.

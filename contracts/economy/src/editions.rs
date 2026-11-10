@@ -22,7 +22,7 @@ impl Economy {
         }
         if terms.title.trim().is_empty()
             || terms.title.len() > 80
-            || terms.rules_version != 1
+            || !matches!(terms.rules_version, 1 | 2)
             || !(2..=4).contains(&terms.modules.len())
             || terms
                 .modules

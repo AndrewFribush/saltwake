@@ -26,3 +26,21 @@ test('explicit no-reward editions publish; invalid terms and incomplete bundles 
  await assert.rejects(()=>f.outsider.callFunction({contractId:f.contractId,methodName:'execute',args:{op_id:'intruder',command:{actor:'buyer',action:{type:'debit',amount:'1'}}},gas:100_000_000_000_000n}));
  }finally{await f.sandbox.tearDown();}
 });
+
+test('v2 accepts bounded seeded rules with unchanged module IDs and exact funding; unknown versions reject',{timeout:120000},async()=>{
+ const f=await fixture();try{
+  const t={...terms(Date.now()),rules_version:2};
+  const before=await f.view('snapshot');
+  for(const [id,patch] of [['version',{rules_version:3}],['module',{modules:['seeded','gauntlet']}],['short',{modules:['cellar']}],['long',{modules:Array(5).fill('cellar')}],['socket',{sockets:[{...t.sockets[0],slot:4}]}]] as const){
+   const r=await f.apply('v2-invalid-'+id,{actor:'maker',action:{type:'publish',terms:{...t,...patch},fee:'3',funding:['maker-sword-0','maker-tonic-0','maker-tonic-1']}});
+   assert.equal(r.status,'Rejected',id);assert.deepEqual(await f.view('snapshot'),before);
+  }
+  const published=await f.apply('v2-publish',{actor:'maker',action:{type:'publish',terms:t,fee:'3',funding:['maker-sword-0','maker-tonic-0','maker-tonic-1']}});
+  assert.equal(published.status,'Applied');
+  const snapshot=await f.view('snapshot');assert.equal(snapshot.editions[0].terms.rules_version,2);assert.equal(snapshot.bank,'11');
+  const admitted=await f.apply('v2-admit',{actor:'buyer',action:{type:'admit',edition_id:published.result,expected_version:'1',expected_fee:'3',loadout_ids:['buyer-club'],seed:'18446744073709551615'}});
+  assert.equal(admitted.status,'Applied');assert.equal(admitted.run.seed,'18446744073709551615');
+  assert.deepEqual(admitted.run.assignments.map((a:any)=>a.item_id).sort(),['maker-sword-0','maker-tonic-0','maker-tonic-1']);
+  assert.deepEqual(admitted.run.loadout_ids,['buyer-club']);
+ }finally{await f.sandbox.tearDown();}
+});

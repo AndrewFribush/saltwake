@@ -8,7 +8,10 @@ test('HTTP maker funding -> paid play -> consumed tonic -> extracted sword, sess
  try{
  const created=await request('session',{});cookie=created.r.headers.get('set-cookie')!.split(';')[0];
  const forged=await fetch(base+'/api/profile',{method:'POST',headers:{Host:'127.0.0.1:18931',Origin:'https://evil.example','Content-Type':'application/json',Cookie:cookie},body:JSON.stringify({profile:'maker'})});assert.equal(forged.status,403);
- await request('profile',{profile:'maker'});let result=await request('command',{id:'pub',actor:'buyer',action:{type:'publish',terms:terms(Number(await f.view('clock_ms'))),fee:'2',funding:['maker-sword-0','maker-tonic-0','maker-tonic-1']}});assert.equal(result.value.status,'Applied',JSON.stringify(result.value));
+ await request('profile',{profile:'maker'});
+ const stale=await request('command',{id:'wrong-profile',expectedProfile:'buyer',action:{type:'bank_buy',item_ids:[],expected_unit_prices:[]}});assert.equal(stale.r.status,400);assert.match(stale.value.error,/Profile changed/);assert.equal(db.operation('maker-wrong-profile'),undefined);
+ const staleCraft=await request('craft/begin',{id:'wrong-profile',expectedProfile:'buyer',inputIds:[]});assert.equal(staleCraft.r.status,400);assert.match(staleCraft.value.error,/Profile changed/);
+ let result=await request('command',{id:'pub',actor:'buyer',action:{type:'publish',terms:terms(Number(await f.view('clock_ms'))),fee:'2',funding:['maker-sword-0','maker-tonic-0','maker-tonic-1']}});assert.equal(result.value.status,'Applied',JSON.stringify(result.value));
  const edition=(await f.view('snapshot')).editions[0];assert.equal(edition.maker,'maker');await request('profile',{profile:'buyer'});
  result=await request('command',{id:'entry',action:{type:'admit',edition_id:edition.id,expected_version:'1',expected_fee:'2',loadout_ids:['buyer-club'],seed:'client-seed-ignored'}});assert.equal(result.value.status,'Applied',JSON.stringify(result.value));
  const run=(await f.view('snapshot')).runs[0];const id=run.id;const stranger=await request('session',{},'');const other=stranger.r.headers.get('set-cookie')!.split(';')[0];assert.equal((await request('runs/'+id,undefined,other)).r.status,400);

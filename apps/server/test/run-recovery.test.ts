@@ -21,3 +21,74 @@ test('actions commit once, survive restart, reject stale sequence and expire onc
  }finally{f.close();}});
 test('terminal view redacts receipt seed/assignments and expiry retries replay consistently',()=>{const f=setup();try{const runs=new Runs(f.db,f.box,()=>1000000);runs.materialize('admit',f.snapshot);const first=runs.action('run-1','buyer','expired',0,{type:'wait'});assert.deepEqual(runs.action('run-1','buyer','expired',0,{type:'wait'}),first);const op=f.db.operation('terminal-run-1')!;op.status='Rejected';op.receipt={status:'Rejected',op_id:op.id,payload_hash:op.hash,result:'PrematureExpiry',run:er};f.db.putOperation(op);runs.retryExpiry(999998);assert.equal(f.db.operations().length,2);runs.retryExpiry(1000000);runs.retryExpiry(1000000);assert.equal(f.db.operations().length,3);assert.equal(f.db.get<any>('run','run-1').settlement,'expiry-retry-run-1');const view=JSON.stringify(runs.view('run-1','buyer'));assert.ok(!view.includes('seed'));assert.ok(!view.includes('assignments'));}finally{f.close();}});
 test('consumed potion and exact retry response survive process restart',()=>{const f=setup();try{const runs=new Runs(f.db,f.box,()=>1000);runs.materialize('admit',f.snapshot);const row=f.db.get<any>('run','run-1');row.state.player.x=1;row.state.player.y=3;row.state.player.hp=7;row.state.enemies=[];f.db.put('run',row.id,row);const first=runs.action('run-1','buyer','drink',0,{type:'use',itemId:'tonic'});assert.equal(first.state.items.tonic.location.kind,'consumed');assert.equal(first.state.player.hp,11);f.db.close();const db=new Store(join(f.dir,'db'));try{const restarted=new Runs(db,new Outbox(db,{} as any),()=>1000);assert.deepEqual(restarted.action('run-1','buyer','drink',0,{type:'use',itemId:'tonic'}),first);assert.equal(restarted.view('run-1','buyer').state.player.hp,11);}finally{db.close();}}finally{f.close();}});
+
+test('v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart',()=>{
+ const f=setup();try{
+  f.snapshot.editions[0].terms={...f.snapshot.editions[0].terms,rules_version:2};
+  const runs=new Runs(f.db,f.box,()=>1000),row=runs.materialize('admit',f.snapshot);
+  assert.equal(row.state.roguelike,true);
+  assert.deepEqual(Object.keys(row.state.items).sort(),['club','hidden','sword','tonic']);
+  assert.equal(row.state.layout!.length,2);
+  assert.ok(row.state.layout!.every(r=>r.tiles.length===9&&r.tiles.every(line=>line.length===13)));
+  const first=runs.view(row.id,'buyer');
+  assert.deepEqual(first.exit,{x:11,y:7});assert.equal(first.canExtract,false);assert.equal(first.hasNextRoom,true);
+  assert.ok(first.state.room.some(line=>line.includes('?')));
+  assert.deepEqual(Object.keys(first.state.items),['club']);assert.deepEqual(first.state.reservedItemIds,[]);
+  assert.deepEqual(first.state.enemies,[]);assert.deepEqual(first.state.traps,[]);
+  assert.equal(first.state.layout,undefined);assert.equal(first.state.expeditionSeed,undefined);
+  assert.ok(!JSON.stringify(first).includes('hidden'));
+  const persisted=structuredClone(row);
+  assert.deepEqual(runs.materialize('admit',{...f.snapshot,items:[]}),persisted);
+  f.db.close();const db=new Store(join(f.dir,'db'));try{
+   const restarted=new Runs(db,new Outbox(db,{} as any),()=>1000);
+   assert.deepEqual(restarted.get(row.id,'buyer'),persisted);assert.deepEqual(restarted.view(row.id,'buyer'),first);
+   const moved=restarted.action(row.id,'buyer','step-v2',0,{type:'move',x:2,y:1});
+   assert.deepEqual(restarted.action(row.id,'buyer','step-v2',0,{type:'move',x:2,y:1}),moved);
+  }finally{db.close();}
+ }finally{f.close();}
+});
+
+test('v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns',()=>{
+ const f=setup();try{
+  f.snapshot.editions[0].terms={...f.snapshot.editions[0].terms,rules_version:2};
+  const runs=new Runs(f.db,f.box,()=>1000),row=runs.materialize('admit',f.snapshot);
+  const sword=row.state.items.sword.location;assert.equal(sword.kind,'floor');if(sword.kind!=='floor')throw Error('Expected floor');
+  row.state.player.x=sword.x;row.state.player.y=sword.y;
+  // Show exactly one current-floor good; distant/future assigned IDs stay private.
+  row.state.items.tonic.location={kind:'floor',room:0,x:1,y:1};
+  row.state.enemies=[{id:'visible',x:sword.x,y:sword.y,hp:4,intent:{x:1,y:1},lane:[{x:sword.x,y:sword.y},{x:1,y:1}]}];
+  row.state.log=['tonic-b strikes sword for 4.','Entered cellar.'];
+  f.db.put('run',row.id,row);
+  const visible=runs.view(row.id,'buyer');assert.ok(visible.state.items.sword);assert.ok(!visible.state.items.hidden);assert.ok(!visible.state.items.tonic);
+  assert.deepEqual(visible.state.reservedItemIds,['sword']);assert.equal(visible.state.enemies[0].lane!.length,1);assert.deepEqual(visible.state.enemies[0].intent,{x:sword.x,y:sword.y});assert.deepEqual(visible.state.log,['Entered cellar.']);
+  row.state.enemies=[];Object.assign(row.state.player,row.state.layout![0].exit);f.db.put('run',row.id,row);
+  assert.equal(runs.view(row.id,'buyer').canExtract,true);
+  const goods=structuredClone(row.state.items);
+  runs.action(row.id,'buyer','boon-v2',0,{type:'boon',choice:'edge'});
+  assert.deepEqual(runs.get(row.id,'buyer').state.items,goods);
+  const next=runs.action(row.id,'buyer','next-v2',1,{type:'continue'});
+  assert.equal(next.state.roomIndex,1);assert.equal(next.hasNextRoom,false);assert.equal(next.canExtract,false);
+  assert.ok(!next.state.items.hidden);assert.deepEqual(runs.get(row.id,'buyer').state.items,goods);
+  runs.finish(runs.get(row.id,'buyer'),'expired');
+  const op=f.db.operation('terminal-run-1')!;op.status='Applied';f.db.putOperation(op);
+  assert.ok(!JSON.stringify(runs.view(row.id,'buyer')).includes('hidden'));
+  const report=runs.view(row.id,'buyer').settlement;assert.ok((report?.withheldCounts?.dungeon_returned??0)>0);
+  assert.equal(runs.view(row.id,'buyer').canExtract,false);
+ }finally{f.close();}
+});
+
+test('v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent',()=>{
+ const f=setup();try{
+  f.snapshot.editions[0].terms={...f.snapshot.editions[0].terms,rules_version:2,sockets:[],no_reward:true,modules:['cellar','gauntlet','cellar']};
+  const op=f.db.operation('admit')!;
+  if(op.receipt?.status!=='Applied'||!op.receipt.run)throw Error('Missing receipt');
+  op.receipt.run={...op.receipt.run,loadout_ids:[],assignments:[]};f.db.putOperation(op);
+  const runs=new Runs(f.db,f.box,()=>1000),row=runs.materialize('admit',f.snapshot);
+  assert.deepEqual(row.state.items,{});assert.deepEqual(row.state.originalTownIds,[]);assert.deepEqual(row.state.reservedItemIds,[]);
+  assert.equal(row.state.layout!.length,3);assert.ok(row.state.layout!.every(r=>r.enemies.length===0&&r.traps.length===0));
+  Object.assign(row.state.player,row.state.layout![0].exit);f.db.put('run',row.id,row);
+  runs.action(row.id,'buyer','empty-boon',0,{type:'boon',choice:'rest'});
+  runs.action(row.id,'buyer','empty-next',1,{type:'continue'});
+  assert.deepEqual(runs.get(row.id,'buyer').state.items,{});
+ }finally{f.close();}
+});

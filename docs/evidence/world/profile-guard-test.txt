@@ -1,0 +1,20 @@
+TAP version 13
+# (node:46099) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# HTTP action response ms {"samples":19,"min":1.2301669999997102,"median":2.2987089999996897,"max":3.21612499999992}
+# HTTP played extraction: turns 20 ; buyer credits 8; maker credits 91; sword owned; used tonic consumed; unvisited tonic returned
+# Subtest: HTTP maker funding -> paid play -> consumed tonic -> extracted sword, session isolation and CSRF
+ok 1 - HTTP maker funding -> paid play -> consumed tonic -> extracted sword, session isolation and CSRF
+  ---
+  duration_ms: 6716.539917
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6930.412792

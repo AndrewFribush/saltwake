@@ -6,8 +6,8 @@
   "contract": "dungeon-economy-demo-20261110.testnet",
   "accountOwnershipVerified": false,
   "artifact": "contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm",
-  "sha256": "019eb91875afe66a836de440f7f7c7c4cce7e36db49875c770ff7a6edd583079",
-  "artifactBytes": 862787,
+  "sha256": "20d13efdfeee9299f50cfa20a60768037e903453a109974c971f0d08e81ede27",
+  "artifactBytes": 862790,
   "bounds": {
     "transactionAttempts": 20,
     "totalGasTgas": 2200,

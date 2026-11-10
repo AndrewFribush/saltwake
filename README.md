@@ -1,25 +1,15 @@
 # Dungeon economy — local prototype
 
-A roguelike practice mode and a custodial dungeon/shop/crafting economy on an isolated local NEAR sandbox. No public deployment or real-money game is configured.
+A walkable town, seeded paid dungeons and a custodial shop/crafting economy on an isolated local NEAR sandbox. No public deployment or real-money game is configured.
 
-## Play
+## Play Saltwake
 
-Requires Node **22.23.1** / npm **10.9.8**. The economy additionally needs the pinned Rust **1.93.0** toolchain and `wasm32-unknown-unknown` target. Node's built-in SQLite currently prints an experimental warning.
-
-```sh
-npm ci
-npm run dev -- --port 18930 --strictPort
-```
-
-Open http://127.0.0.1:18930. Practice has seeded connected maps, limited visibility, waking enemies, varying treasure, armor/tonic starting kits, and a one-use health/damage shrine. This is a gameplay repair iteration; player feedback has **not** accepted it as a finished roguelike.
-
-Arrow keys/WASD or adjacent tile clicks move; bumping an enemy attacks. G guards; space waits. Read marked attack lanes and spike states. Stand on loot to take, equip or drink it. Clear enemies and reach E to extract or continue. Death loses town gear; unconsumed dungeon finds return to their pool. Practice outcomes are simulated.
-
-## Local economic demo
+Requires Node **22.23.1** / npm **10.9.8**, pinned Rust **1.93.0** and the `wasm32-unknown-unknown` target. Node's built-in SQLite prints an experimental warning.
 
 Build once, then keep these three terminals running:
 
 ```sh
+npm ci
 npm run build:contract
 npm run sandbox
 ```
@@ -32,16 +22,21 @@ npm run server
 npm run dev -- --port 18930 --strictPort
 ```
 
-Choose **Local economy demo**. API listens only on 127.0.0.1:18931. The sandbox process creates an ephemeral chain and a git-ignored `.state/sandbox.json` with its local-only signing key. Never publish that file. Server restart uses the existing chain and SQLite epoch; restarting the sandbox intentionally creates a fresh economy and preserves prior SQLite epoch directories. Stop the sandbox cleanly with Ctrl-C before starting a new one. An existing configuration is refused, not silently overwritten.
+Open http://127.0.0.1:18930. **The game opens in Saltwake**, a walkable harbor town. Click a building to walk there, or use arrows/WASD and Enter at a door. Escape leaves a building. On a small screen, building interactions fill the screen.
 
-- Start as buyer; the labeled demo switcher can claim maker, other players, or zero-capital workers. Another active session cannot claim your currently held profile. These are custody leases, **not wallet authentication**; server restart invalidates sessions.
-- Maker: select one sword and two tonics, enter a title/fee, and publish the fixed two-room edition. Select more complete bundles to fund concurrent attempts. Publication/placements cost 11 test credits.
-- Buyer: select town loadout, inspect the fee/risk, enter, play, and wait for confirmed settlement. Refresh/reconnect resumes saved play. Used goods stay consumed; death sends town gear to bank; surviving dungeon goods return to their pool.
-- Shop: select owned stock to list; another profile can buy exact items. Bank sales/buybacks have finite stock and cash. Shop-bought potions can be taken into a run and used.
-- Craft: select two herbs and two flasks. Three timed inputs determine normal/fine output; the server measures timing. Bank recovery jobs provide inputs and pay wage 2 to eligible low-holdings workers, at most three jobs per profile and within a six-credit labor budget.
-- Makers can refresh stock, change future admission fees, and finalize closure after cutoff and resolution of active runs. Leftovers go to bank. Public stock values are catalog reference values, not cash appraisal or guaranteed profit.
+- **Quayside market:** buy finite stock, sell finds, or stock your own stall. Select goods from your satchel to sell; select a trader's goods to buy.
+- **The Copper Kettle:** select two herbs and two flasks, then time three inputs to craft tonics. Low-asset characters can take bank-supplied recovery work. Supplies, wages and orders are bounded.
+- **Delvers' guild:** fund a new expedition from owned treasure, set its fee, refresh stock and inspect receipts. The current charter uses two seeded floors; the full layout editor is not built.
+- **The old catacombs:** pack selected equipment, inspect the fee and funded treasure, and pay for an attempt. New editions use server-seeded chambers/corridors and fog. Only actual funded items can be found. Older version-1 editions retain their fixed layout.
+- **The Salt Lantern:** stored belongings, settled-run journal and free practice. Practice creates no economic rewards.
 
-The economic demo currently uses the fixed cellar/gauntlet layouts. The new seeded roguelike practice is not yet the maker's paid dungeon generator. Four-module editor/preview and a complete game feel pass remain open.
+Fresh worlds include a proprietor-funded expedition with two reward bundles and two finite tonic listings. These consume existing seeded inventory and the proprietor's placement fee; they do not add assets. Use `npm run sandbox -- --empty` for the old unconfigured seed. Starting stock is demo supply, not organic market activity.
+
+In a dungeon, arrows/WASD or adjacent tile clicks move; bumping an enemy attacks. G guards; space waits. Read attack lanes and spike states. Stand on loot to take, equip or drink it. Clear threats and reach the stairs to extract or continue. A first-floor shrine offers healing or a health-for-damage tradeoff. On death, town gear goes to the bank and unconsumed dungeon finds return to their pool. Your run persists across reloads. Results wait for confirmed settlement before goods become spendable.
+
+**Session** lets you change between operator-controlled characters: the delver, proprietor, mercenary and low-capital artisans. These are custody leases, not wallet authentication. Another active browser session cannot take your held profile. The API listens only on 127.0.0.1:18931. The sandbox writes its local-only signing key into ignored `.state/sandbox.json`; never publish it. Server restart preserves chain/SQLite but invalidates session cookies. Sandbox restart creates a fresh economy and preserves prior epoch databases. Stop it cleanly before starting another.
+
+This is a local gameplay slice, not a finished ARPG, multiplayer town or simulation of shipping/armies. Human gameplay acceptance remains open. See [world gameplay evidence](docs/world-gameplay-verification.md).
 
 ## Verify
 

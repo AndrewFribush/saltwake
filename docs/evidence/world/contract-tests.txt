@@ -1,0 +1,207 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test --test-concurrency=2 tests/contract/*.test.ts
+
+TAP version 13
+# Subtest: one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+ok 1 - one complete bundle: racing admissions yield one charged run, exact loadout and deadline
+  ---
+  duration_ms: 3209.167833
+  type: 'test'
+  ...
+# Subtest: three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+ok 2 - three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject
+  ---
+  duration_ms: 7280.390625
+  type: 'test'
+  ...
+# Subtest: zero-reward edition still caps at four and honors opening window
+ok 3 - zero-reward edition still caps at four and honors opening window
+  ---
+  duration_ms: 5727.361959
+  type: 'test'
+  ...
+# Subtest: bank trades exact finite inventory at reference/half-reference prices, never unlimited cash
+ok 4 - bank trades exact finite inventory at reference/half-reference prices, never unlimited cash
+  ---
+  duration_ms: 9448.4255
+  type: 'test'
+  ...
+# Subtest: forfeited gear is finite resellable bank stock; racing buyers cannot share an instance
+ok 5 - forfeited gear is finite resellable bank stock; racing buyers cannot share an instance
+  ---
+  duration_ms: 3698.945042
+  type: 'test'
+  ...
+# Subtest: receipt exhaustion cannot strand paid runs or prevent later closure
+ok 6 - receipt exhaustion cannot strand paid runs or prevent later closure
+  ---
+  duration_ms: 151226.541042
+  type: 'test'
+  ...
+# Subtest: cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once
+ok 7 - cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once
+  ---
+  duration_ms: 7387.325959
+  type: 'test'
+  ...
+# Subtest: seeded mixed outcomes conserve all credits and funded items through closure
+ok 8 - seeded mixed outcomes conserve all credits and funded items through closure
+  ---
+  duration_ms: 25431.52175
+  type: 'test'
+  ...
+# Subtest: recipe locks exactly two herbs/two flasks, excludes listed inputs, and issues two outputs once
+ok 9 - recipe locks exactly two herbs/two flasks, excludes listed inputs, and issues two outputs once
+  ---
+  duration_ms: 19399.152083
+  type: 'test'
+  ...
+# Subtest: deadline is stored; late completion forces normal tier and timeout cannot mint twice
+ok 10 - deadline is stored; late completion forces normal tier and timeout cannot mint twice
+  ---
+  duration_ms: 22600.139834
+  type: 'test'
+  ...
+# Subtest: receipt exhaustion preserves terminal capacity for a locked crafting batch
+ok 11 - receipt exhaustion preserves terminal capacity for a locked crafting batch
+  ---
+  duration_ms: 166952.687166
+  type: 'test'
+  ...
+# Subtest: funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+ok 12 - funded publication locks exact stock, charges pinned cost once; bad funding has no effects
+  ---
+  duration_ms: 4188.5515
+  type: 'test'
+  ...
+# Subtest: explicit no-reward editions publish; invalid terms and incomplete bundles reject
+ok 13 - explicit no-reward editions publish; invalid terms and incomplete bundles reject
+  ---
+  duration_ms: 6564.345916
+  type: 'test'
+  ...
+# Subtest: v2 accepts bounded seeded rules with unchanged module IDs and exact funding; unknown versions reject
+ok 14 - v2 accepts bounded seeded rules with unchanged module IDs and exact funding; unknown versions reject
+  ---
+  duration_ms: 5179.943417
+  type: 'test'
+  ...
+# Subtest: SetFee invalidates quotes without changing escrow; retries, ownership, limits and cutoff enforced
+ok 15 - SetFee invalidates quotes without changing escrow; retries, ownership, limits and cutoff enforced
+  ---
+  duration_ms: 18554.248
+  type: 'test'
+  ...
+# Subtest: Rust protocol exposes exact catalog, costs and canonical command hash
+ok 16 - Rust protocol exposes exact catalog, costs and canonical command hash
+  ---
+  duration_ms: 1883.040792
+  type: 'test'
+  ...
+# Subtest: unseeded order has no spendable budget
+ok 17 - unseeded order has no spendable budget
+  ---
+  duration_ms: 2191.226292
+  type: 'test'
+  ...
+# Subtest: seeded NPC demand pays at most 20 credits for four fine tonics, with atomic validation and replay
+ok 18 - seeded NPC demand pays at most 20 credits for four fine tonics, with atomic validation and replay
+  ---
+  duration_ms: 13839.365083
+  type: 'test'
+  ...
+# Subtest: random pools reserve without replacement, replay deterministically, return on death and exclude extracted/consumed goods
+ok 19 - random pools reserve without replacement, replay deterministically, return on death and exclude extracted/consumed goods
+  ---
+  duration_ms: 6777.412916
+  type: 'test'
+  ...
+# Subtest: random table validation and fixed/random funding isolation reject atomically
+ok 20 - random table validation and fixed/random funding isolation reject atomically
+  ---
+  duration_ms: 6277.983291
+  type: 'test'
+  ...
+# Subtest: recovery reserves finite bank materials and wages, pays once, and keeps output at bank; epoch cap and budget never reset
+ok 21 - recovery reserves finite bank materials and wages, pays once, and keeps output at bank; epoch cap and budget never reset
+  ---
+  duration_ms: 12479.353375
+  type: 'test'
+  ...
+# Subtest: competing jobs cannot reserve the same bank materials; timeout still pays the reserved wage once
+ok 22 - competing jobs cannot reserve the same bank materials; timeout still pays the reserved wage once
+  ---
+  duration_ms: 13104.941917
+  type: 'test'
+  ...
+# Subtest: holdings include listed assets, town loadouts, crafting inputs, and pending maker fees
+ok 23 - holdings include listed assets, town loadouts, crafting inputs, and pending maker fees
+  ---
+  duration_ms: 11758.199916
+  type: 'test'
+  ...
+# Subtest: refresh deposits exact owned stock without reallocating runs or charging again; partial pools cannot admit
+ok 24 - refresh deposits exact owned stock without reallocating runs or charging again; partial pools cannot admit
+  ---
+  duration_ms: 18920.183708
+  type: 'test'
+  ...
+# Subtest: extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+ok 25 - extraction partitions exact items; fees settle once; malformed claims cannot mutate economics
+  ---
+  duration_ms: 7328.276917
+  type: 'test'
+  ...
+# Subtest: death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+ok 26 - death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards
+  ---
+  duration_ms: 7303.49025
+  type: 'test'
+  ...
+# Sandbox cleanup: forced exit after five-second grace.
+# Subtest: extracted finds brought into a later run become town risk; expiry forfeits that loadout
+ok 27 - extracted finds brought into a later run become town risk; expiry forfeits that loadout
+  ---
+  duration_ms: 45484.906542
+  type: 'test'
+  ...
+# Subtest: listing locks exact IDs, validates quotes atomically, and cancellation returns only unsold stock
+ok 28 - listing locks exact IDs, validates quotes atomically, and cancellation returns only unsold stock
+  ---
+  duration_ms: 11493.414584
+  type: 'test'
+  ...
+# Subtest: last-item concurrent buys yield one charged sale; listed gear cannot enter a loadout
+ok 29 - last-item concurrent buys yield one charged sale; listed gear cannot enter a loadout
+  ---
+  duration_ms: 6145.948208
+  type: 'test'
+  ...
+# Subtest: WASM initializes once and preserves rejected receipts for retired debit command
+ok 30 - WASM initializes once and preserves rejected receipts for retired debit command
+  ---
+  duration_ms: 2667.796125
+  type: 'test'
+  ...
+# Subtest: starter town spends existing maker stock and funds two playable openings and finite shops
+ok 31 - starter town spends existing maker stock and funds two playable openings and finite shops
+  ---
+  duration_ms: 5528.168959
+  type: 'test'
+  ...
+# Subtest: edition reference values reconcile stock, reservations, extract, consume, refresh, void and closure exactly once
+ok 32 - edition reference values reconcile stock, reservations, extract, consume, refresh, void and closure exactly once
+  ---
+  duration_ms: 27253.73575
+  type: 'test'
+  ...
+1..32
+# tests 32
+# suites 0
+# pass 32
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 331492.796292

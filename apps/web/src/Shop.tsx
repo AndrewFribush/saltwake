@@ -1,8 +1,10 @@
 import React, {useRef, useState} from 'react';
+import {ItemIcon} from './ItemIcon';
 import {catalog} from '../../../packages/shared/src/catalog';
 import type {BankPrice, Command, Item, Listing, NpcOrder} from '../../../packages/shared/src/types';
 
 export type ShopProps = {
+  onBusyChange?: (busy:boolean)=>void;
   world: any;
   busy: boolean;
   selected: string[];
@@ -11,7 +13,7 @@ export type ShopProps = {
 };
 
 /** All trades use exact item IDs and quoted prices through the parent's command wrapper. */
-export function Shop({world, busy, selected, command, refresh}: ShopProps) {
+export function Shop({world, busy, selected, command, refresh,onBusyChange}: ShopProps) {
   const [price, setPrice] = useState('5');
   const [picks, setPicks] = useState<Record<string, boolean>>({});
   const [working, setWorking] = useState(false);
@@ -44,7 +46,7 @@ export function Shop({world, busy, selected, command, refresh}: ShopProps) {
   const execute = async (action?: Command['action']) => {
     if (busy || inflight.current || (action && unresolved)) return;
     inflight.current = true;
-    setWorking(true);
+    setWorking(true);onBusyChange?.(true);
     setNotice('');
     try {
       if (action) await command(action);
@@ -53,12 +55,12 @@ export function Shop({world, busy, selected, command, refresh}: ShopProps) {
       setNotice(error instanceof Error ? error.message : String(error));
     } finally {
       inflight.current = false;
-      setWorking(false);
+      setWorking(false);onBusyChange?.(false);
     }
   };
 
   return <section aria-label="Town shop">
-    <h2>Town shop</h2>
+    <h2>The merchants’ stalls</h2>
     <p>Balance: {world.credits} credits. Trades use the exact selected item IDs and displayed prices.
       Stock and quotes can change; the contract checks availability before completing a trade.</p>
     <button type="button" disabled={busy || working} onClick={() => void execute()}>Refresh shop</button>
@@ -79,7 +81,7 @@ export function Shop({world, busy, selected, command, refresh}: ShopProps) {
       onClick={() => void execute({type: 'bank_sell', item_ids: ids, expected_unit_prices: owned.map(item => buyback(item!))})}>Sell selected to bank for {sellTotal.toString()} credits</button>
     <p>Bank buyback budget: {world.bank} credits. Buyback pays half the catalog value per item.</p>
 
-    <h3>Player listings</h3>
+    <h3>Goods from local traders</h3>
     {!listings.some(listing => listing.status === 'active') && <p>No active listings.</p>}
     {listings.filter(listing => listing.status === 'active').map(listing => {
       const available = listing.remaining_ids.filter(id => listedItems.some(item => item.id === id &&
@@ -90,11 +92,11 @@ export function Shop({world, busy, selected, command, refresh}: ShopProps) {
       return <article key={listing.id}>
         <h4>{listing.id} · Seller {listing.seller}{mine ? ' (you)' : ''}</h4>
         <p>{listing.unit_price} credits per item · {available.length} remaining</p>
-        {available.map(id => {
+        <div className="stock-rack">{available.map(id => {
           const item = listedItems.find(item => item.id === id)!;
           return <label className="item" key={id}><input type="checkbox" checked={picked(id)} disabled={disabled || mine}
-            onChange={event => toggle(id, event.target.checked)} />{catalog[item.item_type].name} · {id}</label>;
-        })}
+            onChange={event => toggle(id, event.target.checked)} /><ItemIcon type={item.item_type}/><span>{catalog[item.item_type].name}<small>{id}</small></span></label>;
+        })}</div>
         {mine ? <button type="button" disabled={disabled}
           onClick={() => void execute({type: 'cancel_listing', listing_id: listing.id})}>Cancel listing · return unsold items</button>
           : <button type="button" disabled={disabled || !chosen.length || chosen.length > 128 || total > BigInt(world.credits)}
@@ -102,13 +104,13 @@ export function Shop({world, busy, selected, command, refresh}: ShopProps) {
       </article>;
     })}
 
-    <h3>Bank · Finite stock</h3>
+    <h3>The bank’s supply counter</h3>
     <p>Sale prices are catalog values; buyback quotes are shown alongside them.</p>
     {!bankItems.length && <p>The bank has no stock.</p>}
-    {bankItems.map(item => <label className="item" key={item.id}><input type="checkbox" checked={picked(item.id)}
+    <div className="stock-rack">{bankItems.map(item => <label className="item" key={item.id}><input type="checkbox" checked={picked(item.id)}
       disabled={disabled || !quoteMatches(item, true)} onChange={event => toggle(item.id, event.target.checked)} />
-      {catalog[item.item_type].name} · {item.id} · Buy {sale(item)} / sell {buyback(item)} credits
-      {!quoteMatches(item, true) && ' · Quote mismatch: refresh required'}</label>)}
+      <ItemIcon type={item.item_type}/><span>{catalog[item.item_type].name}<small>{item.id}</small>Buy {sale(item)} / sell {buyback(item)} coins</span>
+      {!quoteMatches(item, true) && ' · Quote mismatch: refresh required'}</label>)}</div>
     <button type="button" disabled={disabled || !bankSelection.length || bankSelection.length > 128 ||
       !bankSelection.every(item => quoteMatches(item, true)) || bankTotal > BigInt(world.credits)}
       onClick={() => void execute({type: 'bank_buy', item_ids: bankSelection.map(item => item.id), expected_unit_prices: bankSelection.map(sale)})}>Buy {bankSelection.length} bank items for {bankTotal.toString()} credits</button>

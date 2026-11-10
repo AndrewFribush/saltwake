@@ -1,0 +1,12 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+TERMINAL_TRANSITION The town takes you back.
+
+Your belongings have been accounted for. Visit the market to sell your finds, or the kettle to rebuild.
+
+Return to Saltwake
+Tell the gatewarden about this run
+ASIDE_DIR=/Users/andrewfribush/.aside/u/0/sessions/2026-11-10_iUdr4N35KcnQilrL
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK
+[ok | 27517ms]

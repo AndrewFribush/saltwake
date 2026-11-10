@@ -3,6 +3,7 @@ import type {Command, EditionTerms, Item} from '../../../packages/shared/src/typ
 import {catalog} from '../../../packages/shared/src/catalog';
 
 export type MakerProps = {
+  onBusyChange?: (busy:boolean)=>void;
   world: any;
   busy: boolean;
   selected: string[];
@@ -15,7 +16,7 @@ type EditionView = {
 };
 
 /** Parent supplies the authenticated command wrapper and current world snapshot. */
-export function Maker({world, busy, selected, command, refresh}: MakerProps) {
+export function Maker({world, busy, selected, command, refresh,onBusyChange}: MakerProps) {
   const [fees, setFees] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState('');
   const [working, setWorking] = useState(false);
@@ -32,7 +33,7 @@ export function Maker({world, busy, selected, command, refresh}: MakerProps) {
   const execute = async (action?: Command['action']) => {
     if (busy || inflight.current || (action && unresolved)) return;
     inflight.current = true;
-    setWorking(true);
+    setWorking(true);onBusyChange?.(true);
     setNotice('');
     try {
       if (action) await command(action);
@@ -41,7 +42,7 @@ export function Maker({world, busy, selected, command, refresh}: MakerProps) {
       setNotice(error instanceof Error ? error.message : String(error));
     } finally {
       inflight.current = false;
-      setWorking(false);
+      setWorking(false);onBusyChange?.(false);
     }
   };
 

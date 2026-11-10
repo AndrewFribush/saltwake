@@ -1,0 +1,54 @@
+TAP version 13
+# (node:42888) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: only applied admissions materialize; hidden seed/rewards absent from run view
+ok 1 - only applied admissions materialize; hidden seed/rewards absent from run view
+  ---
+  duration_ms: 5.754792
+  type: 'test'
+  ...
+# Subtest: actions commit once, survive restart, reject stale sequence and expire once
+ok 2 - actions commit once, survive restart, reject stale sequence and expire once
+  ---
+  duration_ms: 6.216625
+  type: 'test'
+  ...
+# Subtest: terminal view redacts receipt seed/assignments and expiry retries replay consistently
+ok 3 - terminal view redacts receipt seed/assignments and expiry retries replay consistently
+  ---
+  duration_ms: 3.499125
+  type: 'test'
+  ...
+# Subtest: consumed potion and exact retry response survive process restart
+ok 4 - consumed potion and exact retry response survive process restart
+  ---
+  duration_ms: 3.102791
+  type: 'test'
+  ...
+# Subtest: v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart
+ok 5 - v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart
+  ---
+  duration_ms: 4.735
+  type: 'test'
+  ...
+# Subtest: v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns
+ok 6 - v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns
+  ---
+  duration_ms: 4.048708
+  type: 'test'
+  ...
+# Subtest: v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent
+ok 7 - v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent
+  ---
+  duration_ms: 3.024209
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 221.291792
