@@ -14,7 +14,7 @@ export function TownPatterns({cell}:{cell:number}){
   {tile('sw-grass-a','--tx-grass-a')}{tile('sw-grass-b','--tx-grass-b')}
   {tile('sw-road-a','--tx-road-a')}{tile('sw-road-b','--tx-road-b')}
   <pattern id="sw-water" width={cell} height={cell} patternUnits="userSpaceOnUse"><image href={href('--tx-water')} width={cell} height={cell} preserveAspectRatio="none" style={{imageRendering:'pixelated'}}/>{!still&&<animateTransform attributeName="patternTransform" type="translate" from="0 0" to={`${cell} 0`} dur="7s" repeatCount="indefinite"/>}</pattern>{tile('sw-wall','--tx-wall')}
-  {tile('sw-shingle','--tx-shingle')}{tile('sw-timber','--tx-timber')}{tile('sw-slate','--tx-slate')}
+  {tile('sw-shingle','--tx-shingle')}{tile('sw-cork','--tx-cork')}{tile('sw-timber','--tx-timber')}{tile('sw-slate','--tx-slate')}
   {['794635','426366','756044','363a4f'].map(c=><pattern key={c} id={`sw-roof-${c}`} width={cell} height={cell} patternUnits="userSpaceOnUse"><rect width={cell} height={cell} fill={`#${c}`}/><image href={href('--tx-shingle')} width={cell} height={cell} preserveAspectRatio="none" style={{imageRendering:'pixelated'}}/></pattern>)}
  </defs>;
 }

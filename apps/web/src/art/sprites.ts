@@ -114,7 +114,32 @@ const notice=[
 const display=[
  '..kkkkkkkkkkkk..','..kuuuuuuuuuuk..','..kucccucccuuk..','..kuyyuurruuuk..','..kkkkkkkkkkkk..','..kuuuuuuuuuuk..','..kuggukmmkuuk..','..kuggukmmkuuk..',
  '..kkkkkkkkkkkk..','..kbbbbbbbbbbk..','..kbddddddddbk..','..kbbbbbbbbbbk..','..kBBBBBBBBBBk..','..kbk......kbk..','..kkk......kkk..','................'];
-export const spriteMaps={heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
+// Progression devices: lever (switch), gate (door), plus pressure plate, key, locked door and drop hatch for upcoming components.
+const leverOff=[
+ '................','................','................','.......kk.......','......kwwk......','......kwwk......','.......kk.......','......kgk.......',
+ '.....kgk........','....kgk.........','...kgk..........','..kkkkkkkkkk....','..kGGGGGGGGk....','..kGnnnnnnGk....','..kkkkkkkkkk....','................'];
+const leverOn=[
+ '................','................','................','.......kk.......','......kEEk......','......kEEk......','.......kk.......','.......kgk......',
+ '........kgk.....','.........kgk....','..........kgk...','....kkkkkkkkkk..','....kGGGGGGGGk..','....kGeeeeeeGk..','....kkkkkkkkkk..','................'];
+const gateClosed=[
+ 'kkkkkkkkkkkkkkkk','kGGGGGGGGGGGGGGk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kGGGGGGGGGGGGGGk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk',
+ 'kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kGGGGGGGGGGGGGGk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kkkkkkkkkkkkkkkk'];
+const gateOpen=[
+ 'kkkkkkkkkkkkkkkk','kGGGGGGGGGGGGGGk','kgkgkgkgkgkgkgkk','k..............k','k..............k','k..............k','k..............k','k..............k',
+ 'k..............k','k..............k','k..............k','k..............k','k..............k','k..............k','k..............k','kk............kk'];
+const plate=[
+ '................','................','................','................','................','................','................','................',
+ '..kkkkkkkkkkkk..','..kGGGGGGGGGGk..','..kGggggggggGk..','..kGggggggggGk..','..kGggggggggGk..','..kGGGGGGGGGGk..','..kkkkkkkkkkkk..','................'];
+const key=[
+ '................','................','................','................','....kkkk........','...kyyyyk.......','..kyykkyyk......','..kyk..kykkkkkk.',
+ '..kyk..kyyyyyyyk','..kyykkyykkykyk.','...kyyyyk..k.k..','....kkkk........','................','................','................','................'];
+const lockedDoor=[
+ '..kkkkkkkkkkkk..','.kbbbbbbbbbbbbk.','.kbBbbbBbbbBbbk.','.kggggggggggggk.','.kbBbbbBbbbBbbk.','.kbBbbbkkkbBbbk.','.kbBbbkyyykBbbk.','.kbBbbkykykBbbk.',
+ '.kbBbbkyyykBbbk.','.kbBbbbkkkbBbbk.','.kggggggggggggk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','kkkkkkkkkkkkkkkk','WWWWWWWWWWWWWWWW'];
+const hatch=[
+ '................','................','..XXXXXXXXXXXX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..','..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..',
+ '..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..','..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XXXXXXXXXXXX..','.......Ek.......','......EEEk......'];
+export const spriteMaps={leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
 /** Shopkeeper: the hero drawing with a blue coat and grey hair. */

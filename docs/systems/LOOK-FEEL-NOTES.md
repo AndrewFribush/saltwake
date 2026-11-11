@@ -84,4 +84,10 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Component edits: `at={position}` / `at={player}` on the existing avatar lines in Town.tsx and TownPresence.tsx.
 - Checks: typecheck, game 178, web 30, server 162, build pass.
 
-Next step: town-spaces player buildings (shops, dungeon entrances, banners, notice board art, plot outlines); creator-kit and private-offer UI; progression-component sprites when their ids land.
+### 11. Player buildings, devices, creator kit and private offers
+- Player-built shops drop the borrowed big-house windows (door, roof and owner banner read cleanly); dungeon entrances get slate walls and a glowing hall mark; the town notice board is cork. Player-building signs are smaller and violet; your own sign has a gold outline. One-line Town.tsx change: a class on the building group (`player-bldg` / `dungeon-bldg`).
+- Devices: switches are levers (lit when the channel is on), doors are portcullis gates (open/closed) instead of emoji badges (one line in Run.tsx). Sprites are ready for pressure plate, key, locked door and drop hatch once those components land on main (none in packages/shared yet).
+- Creator kit / trade (CSS): Library panel and blueprint text box, guide page headings, private offers framed with an "Offered to you" ribbon, stack rows and offer panels share the skin.
+- Checks: typecheck, game 178, web 30, server 162, build pass.
+
+Next step: map the progression components (plates, levers, gates, locked doors/keys, one-way drops) onto the ready sprites when dungeon-depth lands them; re-check the playtest creator-kit screens once the published-copy Library and rehearsal end panel are on main.

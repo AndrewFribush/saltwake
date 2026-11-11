@@ -39,6 +39,7 @@ function scene():RunState{
   {id:'p1',kind:'pit',x:8,y:7},{id:'f1',kind:'fountain',heal:4,charges:2,x:11,y:4},
   {id:'a1',kind:'altar',boon:'might',cost:3,x:1,y:1},{id:'s1',kind:'cache',supply:'bomb',count:2,x:9,y:5},
  ] as any;
+ s.devices=[{id:'d1',kind:'switch',mode:'toggle',channel:'a',x:9,y:3},{id:'d2',kind:'door',open_when:true,channel:'a',x:10,y:7},{id:'d3',kind:'door',open_when:false,channel:'a',x:7,y:6}] as any;s.signals={};
  s.traps=[{id:'t1',x:7,y:3,armed:true},{id:'t2',x:5,y:3,armed:false}] as any;
  const loot=Object.values(s.items).find(i=>i.location.kind==='floor');
  if(loot)loot.location={kind:'floor',room:0,x:2,y:4} as any;

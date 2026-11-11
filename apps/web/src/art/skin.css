@@ -320,3 +320,30 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .actor-body.hop{animation:sw-hop .2s ease-out}
 @keyframes sw-hop{40%{transform:translateY(-10%) scale(1.04,.96)}}
 @media(prefers-reduced-motion:reduce){.character-sprite.walking .frame-a,.character-sprite.walking .frame-b,.hero-actor.walking .frame-a,.hero-actor.walking .frame-b,.actor-body.hop{animation:none}}
+
+/* ---------- Player buildings (town-spaces) ---------- */
+/* Small player-built houses: drop the borrowed big-house windows so the door, roof and owner banner read cleanly. */
+.harbor-map .player-bldg rect[fill="#e1b55a"],.harbor-map .player-bldg rect[fill="#e1b55a"]+path{display:none}
+.harbor-map .player-bldg>rect[fill="#14291f"]{opacity:.35}
+.harbor-map .owner-banner path:last-child{filter:drop-shadow(0 1px 0 #000a)}
+.harbor-map .dungeon-bldg>rect:nth-of-type(2){fill:url(#sw-slate)}
+.harbor-map .dungeon-hall-mark{filter:drop-shadow(0 0 4px #9a8fd0aa)}
+.harbor-map .notice-board rect{fill:url(#sw-cork)}
+.saltwake .place-sign.player-building{padding:4px 8px;font-size:clamp(9px,1vw,13px)!important;background:linear-gradient(#4a3a5a,#2e2438);box-shadow:inset 0 1px 0 #ffffff22,0 0 0 1px #b8a0e088,0 3px 0 #000a}
+.saltwake .place-sign.player-building span{font-size:.8em}
+.saltwake .place-sign.mine{box-shadow:inset 0 1px 0 #ffffff22,0 0 0 2px #f3d98a,0 3px 0 #000a}
+
+/* ---------- Creator kit and private trade (playtest lane) ---------- */
+.saltwake .studio-library{border-radius:4px;box-shadow:var(--sw-frame);background:linear-gradient(#1b2e2c,#122023);padding:10px}
+.saltwake .studio-library h3{font-family:var(--sw-head);color:#f3d98a}
+.saltwake .studio-library textarea{width:100%;background:#0b1517;color:var(--sw-paper);border:1px solid #070d0c;box-shadow:inset 0 2px 3px #0008,0 0 0 1px #9c8a5a44;border-radius:3px;font:12px/1.4 ui-monospace,Menlo,monospace}
+.saltwake .floor-builder .page-content h3,.saltwake .builder-inspector .page-content h3{font-family:var(--sw-head);color:#f3d98a;margin:2px 0 4px}
+.saltwake .studio-rehearsal .run-summary{margin-top:8px}
+.saltwake .player-trade-head h3,.saltwake .player-trade-head strong{font-family:var(--sw-head);color:#f3d98a}
+.saltwake .stack-rows li{border-radius:3px;box-shadow:inset 0 0 0 1px #d9b86626;background:#0f1c1f}
+.saltwake .trade-private{position:relative;border-radius:4px;box-shadow:inset 0 0 0 1px #f3d98a88,0 0 12px #e8c56a33;background:linear-gradient(#2a2a1c,#1a1c14);padding:6px 8px}
+.saltwake .trade-private::before{content:'Offered to you';position:absolute;top:-8px;right:8px;padding:1px 8px;font:700 10px/1.4 system-ui;letter-spacing:.06em;text-transform:uppercase;color:#2a1d0c;background:linear-gradient(#ecd07f,#c49c48);border-radius:2px;box-shadow:0 1px 0 #000a}
+.saltwake .trade-offer,.saltwake .trade-mine{border-radius:4px;box-shadow:inset 0 0 0 1px #d9b86630;padding:6px 8px}
+.saltwake .trade-notice{border-left:3px solid var(--sw-brass);padding-left:8px}
+.device-art{z-index:2}
+.device-art.switch{inset:6%}
