@@ -115,4 +115,6 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Ambient light follows the local clock (`html[data-daypart]`, preview with `?daypart=evening|night`): morning haze, warm evening tint with glowing windows, a cool night tint; rooms get lamplight from above and a soft vignette, stronger after dark. The dungeon is untouched so telegraphs stay exact.
 - Checks: typecheck, game 181, web 31, server 163, build pass.
 
-Next step: check ledgers against a demo town with settled runs; polish as lanes land UI.
+Checked on the demo town: notice-board outcome chips render on the pinned notes (`after-board-outcome-chips.jpg`).
+
+Next step: polish as lanes land UI; maker steward ledger with a busier demo edition.
