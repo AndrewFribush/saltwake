@@ -62,7 +62,8 @@ export async function seedDemoTown(api:Api,log:(s:string)=>void=()=>{}){
  const barrow=await build('p4','shop-barrow','Scavenger’s barrow',place('w',14,10),room(r=>r,1,'Found it below, priced to move.'),true);
  await cmd('p4','stock-club',{type:'stock_shop',shop_id:barrow,item_ids:['p4-club'],unit_price:'3'});
  // A couple of settled runs so the notice board shows real records: visitors pay, go in bare-handed, then give up.
- for(const [profile,edition] of [['buyer',warrenId],['p5',tideId]] as const){
+ // A veteran character only: the delver (default) and the newcomer keep a fresh start.
+ for(const [profile,edition] of [['p2',warrenId],['p2',tideId]] as const){
   const e=(await world(profile)).editions.find((x:any)=>x.id===edition);
   await cmd(profile,`admit-${edition}`,{type:'admit',edition_id:edition,expected_version:e.version,expected_fee:e.fee,loadout_ids:[],seed:'0'});
   const run=(await world(profile)).runs.find((r:any)=>!r.terminal);if(!run)throw Error('Demo admission produced no run');
