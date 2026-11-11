@@ -264,7 +264,7 @@ Evidence: `docs/evidence/playtest/r12-offer-card.png`, `r12-run-ledger.png`, `r1
 
 Not fixed, for other lanes: the run's "You made it out." card is partly covered by the ledger card (look-feel). The Large preset is labelled "3 floors" but the showcase seed makes 4 (dungeon-depth). "The smugglers' hollow" plays under its legacy room title "The candle cellars" (old v1 edition).
 
-Checks: typecheck, game 197, web 31, server 173 and build are green. On contract (no contract changes this round), closure and craft pass when run alone. economy-stress's "S17 support exhaustion" still hit an RPC TimeoutError on a solo rerun at load average ~20-30, with the other lanes testing; the other stress tests passed alone.
+Checks: typecheck, game 195, web 31, server 173 and build are green; after merging build/dungeon-loop (v14 tide clocks) typecheck, game 197, web 32, server 179 and build are green, and the showcase rules-version test passes on v14. On contract (no contract changes this round), closure and craft pass when run alone. economy-stress's "S17 support exhaustion" still hit an RPC TimeoutError on a solo rerun at load average ~20-30, with the other lanes testing; the other stress tests passed alone.
 
 Wallet mode was not played this round. The wallet sandbox, API and Vite started and the dev-signer sign-in page loaded, then the session wrapped up.
 

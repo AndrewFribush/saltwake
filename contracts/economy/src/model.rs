@@ -82,6 +82,8 @@ pub enum Enemy {
     Bomber,
     Brute,
     Nest,
+    // Rules v14 addition, appended for the same reason.
+    Patrol,
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]

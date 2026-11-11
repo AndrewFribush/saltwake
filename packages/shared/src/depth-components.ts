@@ -3,8 +3,10 @@
 // Older rule versions never interpret any of this; their editions keep their behavior.
 import {wellFormedId} from './mechanisms';
 export const depthRulesVersion=12;
-export type EnemyKind='pursuer'|'charger'|'archer'|'bomber'|'brute'|'nest';
-export const depthEnemyKinds=['archer','bomber','brute','nest'] as const;
+export type EnemyKind='pursuer'|'charger'|'archer'|'bomber'|'brute'|'nest'|'patrol';
+export const depthEnemyKinds=['archer','bomber','brute','nest','patrol'] as const;
+/** Enemy kinds that need a later rules version than v12. */
+export const enemySince:Partial<Record<EnemyKind,number>>={patrol:14};
 export const enemyKinds=['pursuer','charger',...depthEnemyKinds] as const;
 /** Placement coins and defaults per enemy. Nest damage is the damage of the rats it hatches. */
 export const enemyCatalog:Record<EnemyKind,{name:string;hp:number;damage:number;alert:number;cost:number;summary:string}>={
@@ -13,6 +15,7 @@ export const enemyCatalog:Record<EnemyKind,{name:string;hp:number;damage:number;
  archer:{name:'Crossbow sentry',hp:3,damage:2,alert:5,cost:3,summary:'Keeps its distance. When you share a row or column within 6 tiles it aims, shows the bolt line, and fires next turn at the first creature in it. Reloads one turn.'},
  bomber:{name:'Powder crab',hp:2,damage:4,alert:5,cost:2,summary:'Scuttles toward you. Once adjacent it lights its fuse and bursts next turn, hitting every creature in the 3×3 around it. Kill it before it lights, or step clear.'},
  brute:{name:'Drowned brute',hp:10,damage:5,alert:4,cost:4,summary:'Slow: acts every other turn. Winds up a sweeping smash over the tile in front of it and both flanking tiles. Too heavy to shove.'},
+ patrol:{name:'Harbour watch',hp:5,damage:3,alert:5,cost:2,summary:'Rules v14. Walks a fixed beat back and forth along the longest straight line through where you place it, whether or not it has seen you. Its next three steps are marked. It strikes whoever stands on the tile it steps into; otherwise it ignores you. Shove it aside and it carries on from there.'},
  nest:{name:'Rat nest',hp:6,damage:1,alert:5,cost:4,summary:'Stationary. Once awake, hatches a rat every 4 turns on a marked tile (at most 3 alive, 6 total). Rats have 2 health.'},
 };
 export const ratHp=2,nestPeriod=4,nestAlive=3,nestTotal=6,archerRange=6;
@@ -35,6 +38,8 @@ export type Feature={id:string;x:number;y:number}&(
  |{kind:'cache';supply:SupplyKind;count:number}
  // Rules v13 progression components.
  |{kind:'key';color:string}
+ // Rules v14 timing component.
+ |{kind:'clock';channel:string;period:number;on:number;offset:number}
  |{kind:'lock';color:string}
  |{kind:'plate';channel:string}
 );
@@ -42,7 +47,9 @@ export type FeatureKind=Feature['kind'];
 type Range={min:number;max:number;default:number;label:string};
 /** A named-string field (key colour or signal channel): letter first, then letters, digits, _ or -, at most 32. */
 export type NameField={name:true;default:string;label:string};
-export const progressionRulesVersion=13;
+export const progressionRulesVersion=13,timingRulesVersion=14;
+/** A clock's channel is on for `on` turns of every `period`, shifted by `offset` (turn 0 is arrival on the floor). */
+export const clockOn=(f:{period:number;on:number;offset:number},turn:number)=>((turn+f.offset)%f.period+f.period)%f.period<f.on;
 export const featureCatalog:Record<FeatureKind,{name:string;cost:number;onWall?:boolean;since?:number;summary:string;fields:Record<string,Range|NameField|readonly string[]>}>={
  barrel:{name:'Powder keg',cost:1,summary:'Blocks the tile. Hit it, or catch it in a blast or fire, and it lights: next turn it bursts in a 3×3 square, damaging every creature, lighting nearby kegs and oil and breaking cracked walls.',fields:{damage:{min:1,max:12,default:5,label:'Blast damage'}}},
  crack:{name:'Cracked wall',cost:1,onWall:true,summary:'Placed on a wall. Blocks movement and sight until broken: each bump deals 1, any blast breaks it. Hide side rooms or shortcuts behind it.',fields:{hp:{min:1,max:5,default:3,label:'Bumps to break'}}},
@@ -53,6 +60,7 @@ export const featureCatalog:Record<FeatureKind,{name:string;cost:number;onWall?:
  cache:{name:'Supply cache',cost:2,summary:'Step on it to collect dungeon supplies. Supplies are used up in this run and never leave the dungeon.',fields:{supply:['bomb','dart','flash'],count:{min:1,max:3,default:2,label:'Supplies'}}},
  key:{name:'Key',cost:1,since:13,summary:'Step on it to pick up a key of its colour. Keys are kept across floors for this run and open one lock of the same colour.',fields:{color:{name:true,default:'brass',label:'Colour'}}},
  lock:{name:'Locked door',cost:1,since:13,summary:'Blocks movement and sight. Bump it holding a key of its colour to unlock it for good (the key is used up). Every lock needs a key of its colour somewhere in the dungeon.',fields:{color:{name:true,default:'brass',label:'Colour'}}},
+ clock:{name:'Tide clock',cost:1,since:14,summary:'A timer: its channel is on for some turns of every cycle and off for the rest, starting when you arrive. Wire it to gates (timed doors) or an exit condition with the same channel name. Players see how many turns are left before it flips.',fields:{channel:{name:true,default:'clock',label:'Channel'},period:{min:2,max:12,default:4,label:'Cycle (turns)'},on:{min:1,max:11,default:2,label:'On for (turns)'},offset:{min:0,max:11,default:0,label:'Start offset'}}},
  plate:{name:'Pressure plate',cost:1,since:13,summary:'Turns its channel on while any creature stands on it, off when it leaves. Wire it to gates (doors) or an exit condition with the same channel name; lure an enemy onto it to hold a gate open.',fields:{channel:{name:true,default:'plate',label:'Channel'}}},
 };
 export const featureKinds=Object.keys(featureCatalog) as FeatureKind[];
@@ -87,6 +95,7 @@ export function validateFeatures(value:unknown,tiles:readonly string[],occupied:
    const boundary=f.x===0||f.y===0||f.x===width-1||f.y===height-1;
    if(tiles[f.y][f.x]!=='#'||boundary||![[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>tiles[f.y+dy]?.[f.x+dx]==='.'))errors.push(`${spec.name} at ${key} must sit on an inner wall beside floor.`);
   }else if(tiles[f.y][f.x]!=='.')errors.push(`${spec.name} at ${key} must be on floor.`);
+  if(f.kind==='clock'&&!(f.on<f.period&&f.offset<f.period))errors.push(`${spec.name} at ${key}: on-turns and offset must be shorter than the cycle.`);
  }
  return errors;
 }
@@ -116,9 +125,11 @@ export function validateProgressionNetwork(floors:readonly {features?:readonly F
  const all=floors.flatMap(f=>f.features??[]),keys=new Set(all.flatMap(f=>f.kind==='key'?[f.color]:[]));
  return [...new Set(all.flatMap(f=>f.kind==='lock'&&!keys.has(f.color)?[f.color]:[]))].map(c=>`Locked door colour ${c} needs a key of that colour somewhere in the dungeon.`);
 }
-export const plateChannels=(floors:readonly {features?:readonly Feature[]}[])=>new Set(floors.flatMap(f=>(f.features??[]).flatMap(x=>x.kind==='plate'?[x.channel]:[])));
-/** Lowest rules version that can express a design: 11 plain, 12 depth, 13 progression. */
-export function requiredRulesVersion(floors:readonly {features?:readonly Feature[];tide?:unknown}[],enemies:readonly string[]):11|12|13{
+/** Channels driven by features (plates, and from v14 clocks); they count as switches for wiring checks. */
+export const plateChannels=(floors:readonly {features?:readonly Feature[]}[])=>new Set(floors.flatMap(f=>(f.features??[]).flatMap(x=>x.kind==='plate'||x.kind==='clock'?[x.channel]:[])));
+/** Lowest rules version that can express a design: 11 plain, 12 depth, 13 progression, 14 timing. */
+export function requiredRulesVersion(floors:readonly {features?:readonly Feature[];tide?:unknown}[],enemies:readonly string[]):11|12|13|14{
+ if(floors.some(f=>(f.features??[]).some(x=>(featureCatalog[x.kind]?.since??12)>=14))||enemies.some(e=>(enemySince[e as EnemyKind]??0)>=14))return 14;
  if(floors.some(f=>(f.features??[]).some(x=>(featureCatalog[x.kind]?.since??12)>=13)))return 13;
  return usesDepth(floors,enemies)?12:11;
 }

@@ -1,7 +1,7 @@
 // Rules v12 run mechanics: kegs, fire, cracked walls, chasms, springs, altars, supplies,
 // the tide and the four depth enemies. Deterministic: rehearsal and paid play share it.
 import {armorReduction} from '../../shared/src/equipment';
-import {bombDamage,dartDamage,flashRadius,flashTurns,maxSupplies,nestAlive,nestPeriod,nestTotal,ratHp,supplyCatalog,type SupplyKind} from '../../shared/src/depth-components';
+import {clockOn,bombDamage,dartDamage,flashRadius,flashTurns,maxSupplies,nestAlive,nestPeriod,nestTotal,ratHp,supplyCatalog,type SupplyKind} from '../../shared/src/depth-components';
 import {visibleTiles} from './roguelike';
 import {distance,walkable,seeThrough,featureAt,type RunState,type Enemy,type Point,type FeatureState} from './state';
 export type Ctx={s:RunState;guard:boolean;late:boolean;exploded:Set<string>;hitPlayer:(damage:number,source:string)=>void};
@@ -57,6 +57,7 @@ export function depthHazards(ctx:Ctx,traps:()=>void){
   f.burning!--;if(!f.burning){f.spent=true;delete f.burning;}
  }
  if(s.tide&&s.player.hp>0){s.tideTurns=(s.tideTurns??0)+1;if(s.tideTurns>s.tide.turns){s.player.hp=Math.max(0,s.player.hp-s.tide.damage);s.log.push(`The tide hits for ${s.tide.damage}.`);if(s.player.hp===0)s.killedBy??='the rising tide';}else if(s.tideTurns===s.tide.turns)s.log.push('The tide is at the door: next turn it floods this floor.');else if(s.tide.turns-s.tideTurns===10||s.tide.turns-s.tideTurns===5)s.log.push(`The water is rising: ${s.tide.turns-s.tideTurns} turns until this floor floods.`);}
+ s.floorTurn=(s.floorTurn??0)+1;
  updatePlates(s);
  for(const nest of s.enemies.filter(e=>e.kind==='nest'&&e.hp>0)){
   if(s.roguelike&&!nest.alerted)continue;
@@ -100,6 +101,8 @@ export function useSupply(ctx:Ctx,kind:SupplyKind,target:Point|undefined):boolea
 }
 /** Plates hold their channel on while any creature stands on them. */
 export function updatePlates(s:RunState){
+ const t=s.floorTurn??0;
+ for(const f of s.features??[])if(f.kind==='clock'){const on=clockOn(f,t);s.signals??={};if(!!s.signals[f.channel]!==on)s.log.push(`Clock ${f.channel}: ${on?'on':'off'}.`);s.signals[f.channel]=on;}
  for(const f of s.features??[])if(f.kind==='plate'&&!f.spent){const on=(s.player.x===f.x&&s.player.y===f.y)||s.enemies.some(e=>e.hp>0&&e.x===f.x&&e.y===f.y);s.signals??={};if(!!s.signals[f.channel]!==on)s.log.push(`Pressure plate ${f.channel}: ${on?'on':'off'}.`);s.signals[f.channel]=on;}
 }
 export function collectCache(s:RunState){
@@ -139,6 +142,13 @@ export function shoveTarget(s:RunState,e:Enemy):{to:Point;fall:boolean}|null{
 export function planDepthEnemy(s:RunState,e:Enemy,distances:Map<string,number>):boolean{
  const key=(p:Point)=>`${p.x},${p.y}`;e.aim=false;
  if(e.stunned){e.intent={x:e.x,y:e.y};e.lane=[];return true;}
+ if(e.kind==='patrol'){
+  // Fixed beat: one step along its axis, turning back at walls, kegs, closed gates and other enemies.
+  const blocked=(p:Point)=>!walkable(s,p)||s.enemies.some(o=>o.id!==e.id&&o.hp>0&&same(o,p));let d=e.dir??{x:1,y:0};
+  if(blocked({x:e.x+d.x,y:e.y+d.y})){d={x:-d.x,y:-d.y};}e.dir=d;const next={x:e.x+d.x,y:e.y+d.y};
+  if(blocked(next)){e.intent={x:e.x,y:e.y};e.lane=[];return true;}
+  e.intent=next;e.lane=[];let p=next;for(let i=0;i<3&&!blocked(p);i++){e.lane.push(p);p={x:p.x+d.x,y:p.y+d.y};}return true;
+ }
  if(e.kind==='nest'){e.intent={x:e.x,y:e.y};e.hatch=(e.timer??nestPeriod)<=1?hatchTile(s,e):undefined;return true;}
  if(e.kind==='bomber'){if(e.primed||chebyshev(e,s.player)<=1){e.primed=true;e.intent={x:e.x,y:e.y};e.lane=square(e).filter(p=>s.room[p.y]?.[p.x]==='.');return true;}return false;}
  if(e.kind==='brute'){
@@ -170,6 +180,11 @@ export function actDepthEnemy(ctx:Ctx,e:Enemy):boolean{
  const s=ctx.s;
  if(e.stunned){e.stunned--;return true;}
  if(e.kind==='nest')return true;
+ if(e.kind==='patrol'){
+  if(same(e.intent,s.player)){ctx.hitPlayer(e.damage??3,who(e));return true;}
+  if(walkable(s,e.intent)&&!s.enemies.some(o=>o.id!==e.id&&o.hp>0&&same(o,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
+  return true;
+ }
  if(e.kind==='bomber'&&e.primed){explodeBomber(ctx,e);return true;}
  if(e.kind==='archer'&&e.aim&&e.lane?.length){s.log.push(`${who(e)} fires.`);strikeLine(ctx,e.lane,e.damage??3,who(e));e.aim=false;e.recovering=true;return true;}
  if(e.kind==='brute'){

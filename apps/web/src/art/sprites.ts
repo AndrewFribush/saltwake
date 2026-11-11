@@ -163,7 +163,10 @@ const lamp=[
 const anchor=[
  '................','.......kk.......','......kgGk......','......kggk......','.......kk.......','....kkkggkkk....','....kgggggggk...','.......gg.......',
  '.......gg.......','..kk...gg...kk..','..kgk..gg..kgk..','...kgk.gg.kgk...','....kggggggk....','.....kkkkkk.....','................','................'];
-export const spriteMaps={crates,table,plant,lamp,anchor,skull,escape,crest,leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
+const hourglass=[
+ '................','...kkkkkkkkkk...','...kbbbbbbbbk...','....kuuuuuuk....','....kuyyyyuk....','.....kuyyuk.....','......kyyk......','.......kk.......',
+ '......kuyk......','.....kuuyuk.....','....kuuyyuuk....','....kuyyyyuk....','...kbbbbbbbbk...','...kkkkkkkkkk...','................','................'];
+export const spriteMaps={hourglass,crates,table,plant,lamp,anchor,skull,escape,crest,leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
 /** Shopkeeper: the hero drawing with a blue coat and grey hair. */

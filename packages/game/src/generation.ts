@@ -1,4 +1,5 @@
 import {signalValue} from '../../shared/src/mechanisms';
+import {clockOn} from '../../shared/src/depth-components';
 import rooms from '../../../content/rooms.json';
 import {createRun,walkable,type RunState,type Enemy} from './state';
 import {addItem} from './inventory';
@@ -19,6 +20,7 @@ export function enterRoom(s:RunState,index:number):boolean{
  if(r.exitRule!==undefined)s.exitRule=structuredClone(r.exitRule);else delete s.exitRule;
  if(r.devices!==undefined)s.devices=structuredClone(r.devices);else delete s.devices;
  if(features!==undefined){s.depth=true;s.features=features;delete s.blasts;if(r.tide){s.tide={...r.tide};s.tideTurns=remembered?.tideTurns??0;}else{delete s.tide;delete s.tideTurns;}}else{delete s.features;delete s.tide;delete s.tideTurns;}
+ s.floorTurn=0;for(const f of features??[])if(f.kind==='clock'){s.signals??={};s.signals[f.channel]=clockOn(f,0);}
  s.roomIndex=index;s.room=tiles;s.player.x=arrival.x;s.player.y=arrival.y;s.enemies=enemies;s.traps=traps;
  if(graph){s.roomMemory??={};s.connections=structuredClone(r.links!);}else delete s.connections;
  revealIntents(s);s.log.push(`Entered ${r.title}.`);return true;

@@ -5,6 +5,7 @@ import {townSize,townStart,type PlaceId,type TownPoint} from '../../../packages/
 import {districts,districtPlaces,districtPath,districtStep,neighbor,type DistrictId} from '../../../packages/game/src/town-districts';
 import './tiles.css';
 import {townTerrain} from './town-terrain';
+import {useSafety} from './chat-safety';
 import {TownPatterns} from './art/Places';
 import {districtArrival,doorstepLine,ownerHue,suggestPlot} from '../../../packages/game/src/town-discovery';
 import {markDone} from './FirstSteps';
@@ -26,7 +27,7 @@ export function Town({onEnter,disabled=false,openings,stock,children,shops=[],on
  const [boardOpen,setBoardOpen]=useState(false);
  const me=trade?.world?.profile as string|undefined;const [tourSeen,setTourSeen]=useState(()=>{try{return !!me&&localStorage.getItem(`saltwake.done.${me}.plot-tour`)==='1';}catch{return false;}});
  const plotTour=!!onBuild&&!!me&&!tourSeen&&!shops.some(s=>s.owner===me)?suggestPlot(district,shops,position):undefined;const [waypoint,setWaypoint]=useState<BoardEntry>();
- const [facing,setFacing]=useState<Facing>('down');const room=useRoomPresence();const presence=useTownPresence(disabled?room.here:{district,x:position.x,y:position.y,facing});
+ const [facing,setFacing]=useState<Facing>('down');const blockedIds=useSafety().blocked;const room=useRoomPresence();const presence=useTownPresence(disabled?room.here:{district,x:position.x,y:position.y,facing});
  useEffect(()=>{if(disabled&&room.here)setRoomCrowd({others:presence.others,chat:presence.chat,say:presence.say,you:presence.you});},[disabled,room.here,presence.others,presence.chat,presence.you]);const [tradeWith,setTradeWith]=useState<string>();const partner=presence.others.find(o=>o.id===tradeWith);
  const field=useRef<HTMLDivElement>(null);const near=places.find(b=>Math.abs(b.door.x-position.x)+Math.abs(b.door.y-position.y)<=1);
  useEffect(()=>{if(!disabled)field.current?.focus({preventScroll:true});},[disabled]);
@@ -44,7 +45,7 @@ export function Town({onEnter,disabled=false,openings,stock,children,shops=[],on
   }}>
    <svg className="harbor-map" viewBox={`0 0 ${townSize.width*cell} ${townSize.height*cell}`} role="img" aria-label={`Saltwake: ${districtInfo.name}. Walk to an open edge to visit the next district.`} onClick={e=>{
     if(disabled)return;const r=e.currentTarget.getBoundingClientRect();const p={x:Math.floor((e.clientX-r.left)/r.width*townSize.width),y:Math.floor((e.clientY-r.top)/r.height*townSize.height)};
-    const other=trade&&presence.others.find(o=>o.x===p.x&&o.y===p.y);if(other){setTradeWith(other.id);return;}
+    const other=trade&&presence.others.find(o=>o.x===p.x&&o.y===p.y&&!blockedIds.includes(o.id));if(other){setTradeWith(other.id);return;}
     const building=places.find(b=>p.x>=b.x&&p.x<b.x+b.width&&p.y>=b.y&&p.y<b.y+b.height);if(building){travel(building.id);return;}
     if(p.x===position.x&&p.y===position.y&&(p.x===0||p.x===23||p.y===0||p.y===15)){towardEdge(p,p.x===0?-1:p.x===23?1:0,p.x===0||p.x===23?0:p.y===0?-1:1);}else setRoute(districtPath(district,position,p,shops));field.current?.focus({preventScroll:true});
    }}>

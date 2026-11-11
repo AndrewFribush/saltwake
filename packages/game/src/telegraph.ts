@@ -3,6 +3,7 @@ import {encounterRules} from './component-catalog';import {depthThreatTiles} fro
 /** Describes only the supplied visible enemy and its already committed intent. */
 export function enemyTelegraph(s:RunState,e:Enemy):string{
  if(e.recovering)return 'Recovering: no action this turn.';
+ if(e.kind==='patrol')return e.lane?.length?`On its beat: steps along the ${e.lane.length} marked tiles; ${e.damage??enemyCatalog.patrol.damage} damage to whoever is on its next step.`:'On its beat: boxed in, holding position.';
  if(s.roguelike&&e.alerted===false&&distance(e,s.player)>(e.alertRadius??5))return 'Unaware: approaching may wake it.';
  if(e.stunned)return `Stunned: no action for ${e.stunned} turn${e.stunned>1?'s':''}.`;
  if(e.kind==='nest')return e.hatch?`Hatching: a rat appears at ${e.hatch.x}, ${e.hatch.y} next turn.`:`Nest: hatches a rat every ${nestPeriod} turns once awake (${e.spawned??0}/6 hatched).`;
@@ -19,7 +20,7 @@ export function enemyTelegraph(s:RunState,e:Enemy):string{
 /** Public warning geometry only: no enemy IDs, offscreen coordinates or loot. */
 export function visibleThreatTiles(s:RunState){
  const visible=visibleTiles(s),tiles=new Map<string,{x:number;y:number}>();
- for(const e of s.enemies){if(e.recovering||s.roguelike&&e.alerted===false&&distance(e,s.player)>(e.alertRadius??5))continue;const intent=e.lane?.length?e.lane:distance(e,e.intent)===1?[e.intent]:[];
+ for(const e of s.enemies){if(e.recovering||e.kind!=='patrol'&&s.roguelike&&e.alerted===false&&distance(e,s.player)>(e.alertRadius??5))continue;const intent=e.lane?.length?e.lane:distance(e,e.intent)===1?[e.intent]:[];
   for(const p of intent)if(visible.has(`${p.x},${p.y}`))tiles.set(`${p.x},${p.y}`,{x:p.x,y:p.y});
  }
  for(const p of depthThreatTiles(s))if(visible.has(`${p.x},${p.y}`))tiles.set(`${p.x},${p.y}`,{x:p.x,y:p.y});

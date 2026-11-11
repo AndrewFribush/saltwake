@@ -10,6 +10,11 @@ import {validateFloorGraph,validateCustomFloor,floorFormat,type CustomFloor} fro
 import {enemyCatalog,enemyKinds,validateDepthNetwork,validateProgressionNetwork,plateChannels,type EnemyKind} from '../../shared/src/depth-components';
 import type {Socket} from '../../shared/src/types';
 import type {RoomLayout} from './state';
+/** A harbour watch walks the longer straight open run through its post (horizontal on ties), starting east or south. */
+export function patrolAxis(floor:{tiles:readonly string[]},p:{x:number;y:number}){
+ const run=(dx:number,dy:number)=>{let n=0;for(const s of [1,-1]){let x=p.x+s*dx,y=p.y+s*dy;while(floor.tiles[y]?.[x]==='.'){n++;x+=s*dx;y+=s*dy;}}return n;};
+ return run(0,1)>run(1,0)?{x:0,y:1}:{x:1,y:0};
+}
 /** Shared by creator rehearsal and authoritative play. Contains no item creation. */
 export function authoredLayout(floors:readonly CustomFloor[],sockets:readonly Socket[]):RoomLayout[]{
  const budgetErrors=authoringBudgetErrors(floors);if(budgetErrors.length)throw Error(budgetErrors.join('; '));
@@ -23,7 +28,7 @@ export function authoredLayout(floors:readonly CustomFloor[],sockets:readonly So
  }
  for(const [room,floor] of floors.entries())for(const t of floor.tuning??[]){const socket=sockets.find(s=>s.room===room&&s.slot===t.slot);if(!socket)throw Error('Tuning requires a declared encounter.');const errors=tuningCompatibility(t,socket.enemy,socket.trap);if(errors.length)throw Error(errors.join('; '));}
  return floors.map((floor,room)=>({... (floor.exit_rule!==undefined?{exitRule:structuredClone(floor.exit_rule)}:{}),... (floor.devices!==undefined?{devices:structuredClone(floor.devices)}:{}),...(floor.features!==undefined?{features:structuredClone(floor.features)}:{}),...(floor.tide!==undefined?{tide:{...floor.tide}}:{}),id:`custom-${room}`,title:`Floor ${room+1}`,tiles:[...floor.tiles],spawn:{...floor.spawn},exit:{...floor.exit},...(floor.links?{links:structuredClone(floor.links)}:{}),
-  enemies:sockets.filter(s=>s.room===room&&s.enemy!=='none').map(s=>{const p=floor.sockets[s.slot],t=floor.tuning?.find(t=>t.slot===s.slot);return {...p,...(t?.damage!==undefined?{damage:t.damage}:{}),...(t?.alert!==undefined?{alertRadius:t.alert}:{}),id:s.id,kind:s.enemy as EnemyKind,hp:t?.hp??(s.enemy==='pursuer'||s.enemy==='charger'?encounterRules[s.enemy].hp:enemyCatalog[s.enemy as EnemyKind].hp),...(s.enemy!=='pursuer'&&s.enemy!=='charger'&&t?.alert===undefined?{alertRadius:enemyCatalog[s.enemy as EnemyKind].alert}:{}),...(s.enemy!=='pursuer'&&s.enemy!=='charger'&&t?.damage===undefined?{damage:enemyCatalog[s.enemy as EnemyKind].damage}:{}),intent:{...p},alerted:false};}),
+  enemies:sockets.filter(s=>s.room===room&&s.enemy!=='none').map(s=>{const p=floor.sockets[s.slot],t=floor.tuning?.find(t=>t.slot===s.slot);return {...p,...(t?.damage!==undefined?{damage:t.damage}:{}),...(t?.alert!==undefined?{alertRadius:t.alert}:{}),id:s.id,kind:s.enemy as EnemyKind,hp:t?.hp??(s.enemy==='pursuer'||s.enemy==='charger'?encounterRules[s.enemy].hp:enemyCatalog[s.enemy as EnemyKind].hp),...(s.enemy!=='pursuer'&&s.enemy!=='charger'&&t?.alert===undefined?{alertRadius:enemyCatalog[s.enemy as EnemyKind].alert}:{}),...(s.enemy!=='pursuer'&&s.enemy!=='charger'&&t?.damage===undefined?{damage:enemyCatalog[s.enemy as EnemyKind].damage}:{}),intent:{...p},alerted:false,...(s.enemy==='patrol'?{dir:patrolAxis(floor,p)}:{})};}),
   traps:sockets.filter(s=>s.room===room&&s.trap).map(s=>{const t=floor.tuning?.find(t=>t.slot===s.slot),period=t?.trap_period??2,activeTurns=t?.trap_active??1,phase=t?.trap_offset??0;return {...floor.sockets[s.slot],id:s.id+'-trap',armed:phase<activeTurns,...(t?{period,activeTurns,phase,damage:t.trap_damage??3}:{})};}),
  }));
 }

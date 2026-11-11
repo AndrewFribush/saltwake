@@ -193,5 +193,32 @@ large  reckless died 100% out   0% stalled   0% · loot out 0.00 + drunk 0.13 of
 ```
 Small is unchanged and survivable for careful play (2% cautious deaths). Medium: careful 7%, greedy 28%, reckless 82%. Large: careful 13%, greedy 55%, reckless 100%. Arenas are the riskiest choice: greedy bots that drop in die there about 40-60% of the time.
 
-**Next step:** builder Puzzle & passages panel (plates, keys, locks, switches, gates and passages in one place, sealed-arena helper, wiring list) wired into FloorBuilder; then goal 4 vocabulary (timed doors, patrols) behind a new rules version.
+## Puzzle & passages panel (builder)
 
+- Coordinator request from creator sessions: plates and keys were under Features, doors and switches under Devices. New builder tab **Puzzle** (More tools → Puzzle) holds plates, switches/levers, gates, keys, locks and passages in one place: pick a piece, click a free floor tile; click a placed piece to edit its channel, mode, colour, destination or clear-room flag, or remove it. Data and rules versions unchanged (plates/keys/locks are still v13 features, switches/gates devices, passages floor links). Rules in `packages/game/src/puzzle-editing.ts`, UI in `apps/web/src/PuzzlePanel.tsx`; FloorBuilder changes are additive (tab, click branch, panel mount, cross-links from Features and Devices).
+- The panel lists **wiring on this floor** per channel (plates and switches → gates and exit conditions) with plain warnings: nothing drives the channel, nothing listens to it, or a plate overrides switches on the same channel. Passages: "Use connected rooms" keeps the floor order as stairs beside each exit; each passage says whether it is one-way. **Make this floor a sealed arena** removes passages back to the floors that lead in and sets the exit to open only once every enemy is down; floors with no way out are flagged.
+- Play: a passage's tile description now says "one way, no return" when the destination has no passage back.
+- Browser (local, port 18963): opened the drafting table, New draft, More tools → Puzzle; placed a plate, a gate, a key and a lever on another channel; the wiring list read "gate: plate 4,1 → gate 8,1 (opens when on)" and "side: toggle switch 1,2 → nothing here ⚠ Nothing listens to this channel"; the Passage piece offered "Use connected rooms". (Screenshots could not be saved: Aside refuses paths outside its session folder and the folder is removed when the script ends.)
+
+## Rules v14: tide clocks (timed gates)
+
+- New component **Tide clock** (feature `clock`, rules v14, 1 coin): its channel is on for `on` turns of every `period` (2-12), shifted by `offset`, counted from arrival on the floor. It drives any gate (a timed door) or exit condition on that channel, and counts as a switch in wiring checks. Players see on the tile how many turns are left before it flips ("Tide clock · channel tick on, flips in 2 turns (2 on / 3 off)"). A clock rewrites its channel every turn, like a plate.
+- Shared rules: `clocks` floor format (`custom14:`), `requiredRulesVersion` → 14 only when a clock is used, so v12/v13 designs publish exactly as before. Validation: on and offset shorter than the cycle; v13 floors reject clocks. Play: `floorTurn` counter (reset on arrival); solver state includes it, so the route solver waits for an open window. Builder: Features lists it (generic fields), Puzzle panel has a Tide clock piece with cycle/on/offset editing, and the wiring list names clocks.
+- Contract: `Feature::Clock` with range checks, accepted only at v14, wired as a switch, cost 1; every v13 path also accepts v14 (`custom14:` prefix, module size, lock/key pairing, device wiring). Contract test: v13 rejects clocks; bad cycle/offset/channel/extra field and an unwired gate are rejected; a valid v14 clock edition charges base 2 + brute 4 + clock 1; a v13 edition still publishes. **Needs a testnet contract redeploy** before v14 editions can be published there.
+- Generator: Large drafts (floor 3) sometimes get a **timed vault**: the hidden room's gate is wired to a clock (open 2 turns in 6, random offset). Get in during the window and time the way out. 5 of 60 Large drafts. Bots treat a timed gate as passable and wait at it; greedy bots entered 1 of 5.
+- Browser: Puzzle → Tide clock on channel `tick`, then a Gate: the wiring list reads "tick: clock 4,1 → gate 8,1 (opens when on)"; the clock's fields are editable and say it needs rules v14.
+
+Harness, Large, 60 seeds (Small/Medium unchanged from the table above):
+```
+large  cautious died  13% out  80% stalled   7% · loot out 0.68 + drunk 0.13 of 9.3 funded · turns 75 · floor 1.0 · tide 0 · arena 0/28 (died 0) · timed 0/5 · lure 0/16 · causes Spikes 4, sentry 2, pursuer 2
+large  greedy   died  53% out  40% stalled   7% · loot out 0.42 + drunk 1.87 of 9.3 funded · turns 131 · floor 2.1 · tide 6 · arena 7/28 (died 2) · timed 1/5 · lure 1/16 · causes pursuer 10, the rising tide 6, powder crab (blast) 4, Spikes 4
+large  reckless died  98% out   0% stalled   2% · loot out 0.00 + drunk 0.13 of 9.3 funded · turns 44 · floor 2.1 · tide 1 · arena 10/28 (died 9) · timed 0/5 · lure 0/16 · causes charger 14, sentry 11, pursuer 10, powder crab (blast) 10
+```
+
+## Rules v14: harbour watch (patrolling enemy)
+
+- New enemy kind `patrol` ("Harbour watch", 5 health, 3 damage, 2 coins, rules v14; v14 extended since it is not deployed anywhere public). It walks a fixed beat back and forth along the longer straight open run through where it is placed, whether or not it has seen you; turns back at walls, kegs, closed gates and other enemies. Its next three steps are marked (lane), so the danger is telegraphed; it strikes only whoever is on the tile it steps into and otherwise ignores you. Shoved aside, it carries on from there. Decision: time your crossing, or shove it off line.
+- Shared: EnemyKind/Socket type, `enemySince` (patrol → 14) feeding `requiredRulesVersion`, protocol enemy index 7 (matches the contract enum, appended so stored Borsh indices are unchanged). Play: plan/act in depth.ts, exempt from alert gating, telegraph text. Builder: appears in the Encounters enemy list automatically (from the catalog). Contract: `Enemy::Patrol` appended, rejected before v14, cost 2. Tests: game (beat, reversal, marked steps, strike only on its next tile, solver finds a route past it) and contract (v13 rejects, v14 charges base 2 + 2).
+- Not yet: the generator does not place harbour watches; no dedicated sprite (uses the generic enemy art); harness bots already treat its marked lane as danger.
+
+**Next step:** generator theme with harbour watches guarding corridors (Large, v14) plus harness numbers; a look-feel sprite for the watch and the tide clock; testnet redeploy for v14 (coordinator).
