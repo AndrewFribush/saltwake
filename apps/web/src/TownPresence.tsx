@@ -73,11 +73,13 @@ export function PresenceAvatars({players,cell}:{players:PresencePlayer[];cell:nu
 
 /** Small district chat overlay. Typing here never moves the character; Escape returns to the map, Enter on the map opens chat. */
 export function TownChat({presence,districtName,field,disabled,onPlayer}:{presence:ReturnType<typeof useTownPresence>;districtName:string;field:React.RefObject<HTMLDivElement|null>;disabled:boolean;onPlayer?:(id:string)=>void}){
- const [draft,setDraft]=useState('');const [error,setError]=useState('');const [open,setOpen]=useState(()=>typeof matchMedia!=='function'||matchMedia('(min-width: 700px)').matches);const input=useRef<HTMLInputElement>(null);const log=useRef<HTMLOListElement>(null);
+ const [draft,setDraft]=useState('');const [error,setError]=useState('');const [manual,setOpen]=useState<boolean|null>(null);const wide=typeof matchMedia!=='function'||matchMedia('(min-width: 700px)').matches;const input=useRef<HTMLInputElement>(null);const log=useRef<HTMLOListElement>(null);
  useEffect(()=>{const el=field.current;if(!el)return;const onKey=(e:KeyboardEvent)=>{if(e.key==='Enter'&&e.target===el&&!disabled){e.preventDefault();setOpen(true);setTimeout(()=>input.current?.focus(),0);}};el.addEventListener('keydown',onKey);return()=>el.removeEventListener('keydown',onKey);},[field,disabled]);
- useEffect(()=>{log.current?.scrollTo({top:log.current.scrollHeight});},[presence.chat.length,open]);
+ useEffect(()=>{log.current?.scrollTo({top:log.current.scrollHeight});},[presence.chat.length,manual]);
  const send=async()=>{const text=draft.trim();if(!text)return;try{await presence.say(text);setDraft('');setError('');}catch(e){setError((e as Error).message);}};
  const count=presence.others.length;
+ // Collapsed while you are alone and nothing has been said; opens by itself when someone arrives or speaks.
+ const open=manual??(wide&&(count>0||presence.chat.length>0));
  return <div className={`town-chat ${open?'open':''}`} onClick={e=>e.stopPropagation()}>
   <button className="town-chat-head" onClick={()=>setOpen(!open)} aria-expanded={open} title={presence.others.map(p=>playerLabel(p.id)).join(', ')||undefined}>
    <span className={`presence-dot ${presence.online?'on':''}`} aria-hidden="true"/>{presence.online?(count?`${count} other${count===1?'':'s'} in ${districtName}`:`Alone in ${districtName}`):'Reconnecting…'}

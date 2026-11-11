@@ -12,7 +12,7 @@ export const roomExit={x:5,y:8};
 export function roomFixtures(place:PlaceId,layout?:InteriorLayout):RoomFixture[]{
  if(layout)return layout.fixtures;
  const service:Record<PlaceId,[string,string]>={inn:['Mara · storage & journal','☷'],market:['Merchant · buy & sell','⚖'],workshop:['Ivo · working kettle','♨'],guild:['Steward · dungeon charters','⚑'],gate:['Gatewarden · expeditions','⚔']};
- const [name,glyph]=service[place];return [{id:'service',name,glyph,x:5,y:2},{id:'wallet',name:'Account book · purse & receipts',glyph:'◉',x:8,y:5},{id:'decor-a',name:place==='inn'?'Guest bed':'Stock shelves',glyph:place==='inn'?'▰':'▤',x:2,y:2},{id:'decor-b',name:place==='workshop'?'Ingredient barrels':'Supply chest',glyph:'▣',x:2,y:5}];
+ const [name,glyph]=service[place];return [{id:'service',name,glyph,x:5,y:2},{id:'wallet',name:'Account book · purse & receipts',glyph:'◉',x:8,y:5},place==='guild'?{id:'builder',name:'Drafting table · build a dungeon',glyph:'✎',x:2,y:2}:{id:'decor-a',name:place==='inn'?'Guest bed':'Stock shelves',glyph:place==='inn'?'▰':'▤',x:2,y:2},{id:'decor-b',name:place==='workshop'?'Ingredient barrels':'Supply chest',glyph:'▣',x:2,y:5}];
 }
 export function defaultInterior(place:PlaceId):InteriorLayout{
  return {tiles:Array.from({length:9},(_,y)=>Array.from({length:11},(_,x)=>x===roomExit.x&&y===roomExit.y||x>0&&x<10&&y>0&&y<8?'.':'#').join('')),entry:{...roomEntry},exit:{...roomExit},fixtures:roomFixtures(place)};
@@ -39,9 +39,10 @@ export function validateInterior(value:unknown):string[]{
  if(v.kind!==undefined&&v.kind!=='shop'&&v.kind!=='dungeon')return fail('Unknown building use.');
  const dungeon=v.kind==='dungeon';
  if(dungeon!==(v.edition!==undefined)||v.edition!==undefined&&(typeof v.edition!=='string'||!v.edition||v.edition.length>64))return fail(dungeon?'Choose which of your published dungeons this entrance opens.':'Only a dungeon entrance links to an edition.');
- if(!Array.isArray(v.fixtures)||v.fixtures.length>24||v.fixtures.some(f=>!f||!point(f)||typeof f.id!=='string'||!(/^(service|wallet|decor-[\w-]{1,40})$/).test(f.id)&&!(dungeon&&f.id==='portal')||typeof f.name!=='string'||f.name.length>80||typeof f.glyph!=='string'||f.glyph.length>4||f.text!==undefined&&(typeof f.text!=='string'||f.text.length>MAX_FIXTURE_TEXT)))return fail(`Room furnishings are invalid (maximum 24; notices up to ${MAX_FIXTURE_TEXT} characters).`);
+ if(!Array.isArray(v.fixtures)||v.fixtures.length>24||v.fixtures.some(f=>!f||!point(f)||typeof f.id!=='string'||!(/^(service|wallet|builder|decor-[\w-]{1,40})$/).test(f.id)&&!(dungeon&&f.id==='portal')||typeof f.name!=='string'||f.name.length>80||typeof f.glyph!=='string'||f.glyph.length>4||f.text!==undefined&&(typeof f.text!=='string'||f.text.length>MAX_FIXTURE_TEXT)))return fail(`Room furnishings are invalid (maximum 24; notices up to ${MAX_FIXTURE_TEXT} characters).`);
  if(v.fixtures.filter(f=>f.id==='service').length!==1||v.fixtures.filter(f=>f.id==='wallet').length!==1)return fail('Keep one service station and one account book.');
  if(dungeon&&v.fixtures.filter(f=>f.id==='portal').length!==1)return fail('A dungeon entrance needs one stairway down.');
+ if(v.fixtures.filter(f=>f.id==='builder').length>1)return fail('Keep at most one drafting table.');
  if(new Set(v.fixtures.map(f=>f.id)).size!==v.fixtures.length||new Set(v.fixtures.map(f=>`${f.x},${f.y}`)).size!==v.fixtures.length)return fail('Furnishings cannot overlap.');
  for(let y=0;y<9;y++)for(let x=0;x<11;x++)if((x===0||x===10||y===0||y===8)&&!(x===v.exit.x&&y===v.exit.y)&&v.tiles[y][x]!== '#')return fail('Keep the outside walls closed except for the door.');
  if(v.fixtures.some(f=>v.tiles[f.y][f.x]!=='.'||f.x===v.exit.x&&f.y===v.exit.y||f.x===v.entry.x&&f.y===v.entry.y))return fail('Furnishings need their own floor tile, clear of the arrival and door.');

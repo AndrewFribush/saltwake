@@ -10,6 +10,7 @@
  * The key stays in this Node process; the browser only receives signatures and tx hashes.
  * Testnet RPC only, zero-deposit calls to the one configured contract only. */
 import type {Plugin} from 'vite';
+import {isExactBuyIn} from '../../packages/shared/src/buy-in';
 import {existsSync,readFileSync} from 'node:fs';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 type Key={accountId:string;privateKey:string};
@@ -25,9 +26,13 @@ export function testSignerPlugin():Plugin|null{
  const contractId=process.env.SALTWAKE_TEST_SIGNER_CONTRACT??file.contractId;
  if(!keyPaths.length||!contractId)return null;
  const rpcUrl:string=process.env.SALTWAKE_TEST_SIGNER_RPC??file.rpcUrl??'https://test.rpc.fastnear.com';
- if(!['https://test.rpc.fastnear.com','https://rpc.testnet.near.org'].includes(rpcUrl))throw Error('Test signer RPC must be a public testnet RPC');
+ // local:true (written by scripts/wallet-sandbox.ts) signs only against a loopback sandbox RPC, never testnet.
+ const local=file.local===true&&!process.env.SALTWAKE_TEST_SIGNER;
+ if(local){const u=new URL(rpcUrl);if(u.hostname!=='127.0.0.1'&&u.hostname!=='localhost')throw Error('Local test signer requires a loopback sandbox RPC');}
+ else if(!['https://test.rpc.fastnear.com','https://rpc.testnet.near.org'].includes(rpcUrl))throw Error('Test signer RPC must be a public testnet RPC');
+ const network=local?'localnet':'testnet';
  const keys=keyPaths.map(p=>JSON.parse(readFileSync(p,'utf8')) as Key);
- if(keys.some(k=>!k.accountId.endsWith('.testnet'))||!contractId.endsWith('.testnet'))throw Error('Test signer is testnet-only');
+ if(!local&&(keys.some(k=>!k.accountId.endsWith('.testnet'))||!contractId.endsWith('.testnet')))throw Error('Test signer is testnet-only');
  const body=async(req:IncomingMessage)=>{let s='';for await(const c of req)s+=c;if(s.length>65536)throw Error('too large');return JSON.parse(s);};
  return {name:'saltwake-test-signer',apply:'serve',configureServer(server){
   server.middlewares.use('/__test-signer',async(req:IncomingMessage,res:ServerResponse)=>{
@@ -37,7 +42,7 @@ export function testSignerPlugin():Plugin|null{
     if(!key)return reply(400,{error:'unknown test signer account'});
     const {Account,JsonRpcProvider,KeyPair,KeyPairSigner,actions}=await import('near-api-js');
     const provider=new JsonRpcProvider({url:rpcUrl});
-    if(req.method==='GET'&&req.url==='/account')return reply(200,{accountId:key.accountId,network:'testnet',contractId,accounts:keys.map(k=>k.accountId)});
+    if(req.method==='GET'&&req.url==='/account')return reply(200,{accountId:key.accountId,network,contractId,accounts:keys.map(k=>k.accountId)});
     if(req.method!=='POST'||req.headers.origin!==`http://${req.headers.host}`)return reply(403,{error:'same-origin POST required'});
     const input=await body(req);
     if(req.url==='/sign-message'){
@@ -46,9 +51,11 @@ export function testSignerPlugin():Plugin|null{
      return reply(200,{accountId:key.accountId,publicKey:proof.publicKey.toString(),signature:Buffer.from(proof.signature).toString('base64')});
     }
     if(req.url==='/send'){
-     if(input.receiverId!==contractId||input.deposit!=='0'||!['register_player','execute_player'].includes(input.methodName))return reply(400,{error:'only zero-deposit game calls are signed'});
+     // Zero-deposit game calls only, except the NEAR buy-in with its exact quoted deposit.
+     const buyIn=input.methodName==='buy_coins'&&isExactBuyIn(input,contractId);
+     if(input.receiverId!==contractId||!buyIn&&(input.deposit!=='0'||!['register_player','execute_player'].includes(input.methodName)))return reply(400,{error:'only zero-deposit game calls (or an exact buy-in) are signed'});
      // Public RPC rate limits: retrying is safe because game calls are idempotent per request id.
-     let out:any;for(let attempt=0;;attempt++){try{out=await new Account(key.accountId,provider,key.privateKey as any).signAndSendTransaction({receiverId:contractId,actions:[actions.functionCall(input.methodName,input.args,BigInt(input.gas),0n)],waitUntil:'FINAL'});break;}catch(e){if(attempt>=5||!/429|Rate limit/i.test(String((e as Error).message)))throw e;await new Promise(r=>setTimeout(r,500*2**attempt));}}
+     let out:any;for(let attempt=0;;attempt++){try{out=await new Account(key.accountId,provider,key.privateKey as any).signAndSendTransaction({receiverId:contractId,actions:[actions.functionCall(input.methodName,input.args,BigInt(input.gas),buyIn?BigInt(input.deposit):0n)],waitUntil:'FINAL'});break;}catch(e){if(attempt>=5||!/429|Rate limit/i.test(String((e as Error).message)))throw e;await new Promise(r=>setTimeout(r,500*2**attempt));}}
      console.log('[test-signer]',input.methodName,input.args?.action?.type??'',out.transaction.hash);
      return reply(200,{hash:out.transaction.hash});
     }

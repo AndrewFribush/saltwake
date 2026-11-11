@@ -1,16 +1,19 @@
 import type {Command} from '../../../packages/shared/src/types';
 import {commandGas} from '../../../packages/shared/src/command-limits';
 
+import {buyInTransaction,isExactBuyIn,type BuyInTransaction} from '../../../packages/shared/src/buy-in';
 export type WalletIdentity={accountId:string;network:string;revision:number};
 export type WalletProof={accountId:string;publicKey:string;signature:string};
 export type WalletTransaction={receiverId:string;methodName:'register_player'|'execute_player';args:Record<string,unknown>;gas:string;deposit:'0'};
+/** Anything an adapter may be asked to sign: zero-deposit game calls, or the exact NEAR buy-in. */
+export type WalletCall=WalletTransaction|BuyInTransaction;
 /** Implement with a real wallet SDK. revision must advance on every account/network
  * change or disconnect, including switching away and back during a prompt.
  * The adapter must enforce the supplied account/network before opening approval. */
 export interface InjectedWalletAdapter{
  identity():WalletIdentity|null;
  signMessage(input:{accountId:string;network:string;message:string;recipient:string;nonce:Uint8Array}):Promise<WalletProof|null>;
- approveTransaction(input:{accountId:string;network:string;transaction:WalletTransaction}):Promise<
+ approveTransaction(input:{accountId:string;network:string;transaction:WalletCall}):Promise<
   {status:'submitted';accountId:string;network:string;transactionHash?:string}|{status:'cancelled'|'rejected'}>;
 }
 export type WalletSession={accountId:string;profileId:string;publicKey:string;expiresAtMs:number};
@@ -113,7 +116,7 @@ export class WalletTransport{
   const expected:WalletTransaction={receiverId:this.config.contractId,methodName,args,gas,deposit:'0'};
   if(canonical(value)!==canonical(expected))throw Error('Unsafe wallet transaction descriptor');return structuredClone(expected);
  }
- private async approve(mark:ReturnType<WalletTransport['capture']>,transaction:WalletTransaction){
+ private async approve(mark:ReturnType<WalletTransport['capture']>,transaction:WalletCall){
   this.check(mark);const result=await this.wait(mark,this.adapter.approveTransaction({accountId:mark.accountId,network:mark.network,transaction}));
   if(result.status!=='submitted')throw Error('Wallet transaction '+result.status);
   if(result.accountId!==mark.accountId||result.network!==mark.network)throw Error('Wallet approval binding mismatch');
@@ -138,6 +141,13 @@ export class WalletTransport{
   const expected:Command['action']=recovery?{type:'begin_recovery',...common,bank_input_ids:inputs}:{type:'begin_craft',...common,input_ids:inputs};
   this.descriptor(response.transaction,'execute_player',{request_id:requestId,action:expected},commandGas(expected).toString());
   this.check(mark);return this.executeCommand(requestId,expected);
+ });}
+ /** NEAR buy-in: the only call that attaches a deposit. The exact amount (coins × published price) is built
+  * here and re-checked by the adapter before the wallet shows it; the contract rejects any other amount. */
+ async buyCoins(requestId:string,coins:number){return this.exclusive(async()=>{
+  const mark=this.capture();if(!this.session)throw Error('Wallet login required');
+  const tx=buyInTransaction(this.config.contractId,requestId,coins);if(!isExactBuyIn(tx,this.config.contractId))throw Error('Unsafe buy-in transaction');
+  await this.refresh(mark);await this.approve(mark,tx);return this.refresh(mark);
  });}
  async execute(requestId:string,action:Command['action']):Promise<CommandResult>{return this.exclusive(()=>this.executeCommand(requestId,action));}
  private async executeCommand(requestId:string,action:Command['action']):Promise<CommandResult>{

@@ -91,12 +91,13 @@ function WalletAccount({config,adapter,identity:mark,connectControls,onDisconnec
 export function createWalletGameConnection({config,session,guard,guardedRequest,transport,sessionControls}:{
  config:WalletGameConfig;session:WalletSession;guard:()=>void;
  guardedRequest:(path:string,body?:unknown)=>Promise<any>;
- transport:Pick<WalletTransport,'execute'|'beginCraft'>;sessionControls:React.ReactNode;
+ transport:Pick<WalletTransport,'execute'|'beginCraft'>&Partial<Pick<WalletTransport,'buyCoins'>>;sessionControls:React.ReactNode;
 }):WalletDemoConnection{
  return {
   profile:session.profileId,storageScope:JSON.stringify([config.origin,config.network,config.contractId,session.accountId]),
   request:guardedRequest,operationId:id=>walletOperationId(session.accountId,id),
   execute:async(id,action)=>{guard();const result=await transport!.execute(id,action);guard();return result;},
+  buyCoins:async(id,coins)=>{guard();if(!transport!.buyCoins)throw Error("Buy-in unavailable");await transport!.buyCoins(id,coins);guard();},
   craft:async(path,body)=>{
    guard();
    if(path!=='begin')return guardedRequest('craft/'+path,body);
