@@ -24,3 +24,28 @@ test('dungeon entrances render as their own kind of building in the shared town'
  const shops=[{id:'shop-0',owner:'maker',title:'Hall',district:'e',x:4,y:10,interior:JSON.stringify(hall),version:'1',open:true,listing_ids:[]}];
  const place=districtPlaces('e',shops).find(p=>p.shopId==='shop-0')!;assert.equal(place.purpose,'Dungeon entrance');assert.equal(place.edition,'edition-0');
 });
+import {districtArrival,doorstepLine,ownerHue} from '../src/town-discovery';
+test('walking into a district names the player buildings standing there',()=>{
+ const hall=withBuildingUse(defaultInterior('market'),'dungeon','edition-0');
+ const shops=[{id:'shop-0',owner:'maker',title:'Hollow gate',district:'e',x:4,y:10,interior:JSON.stringify(hall),version:'1',open:true,listing_ids:[]},{id:'shop-1',owner:'p2',title:'Tonic stall',district:'e',x:16,y:10,interior:JSON.stringify(defaultInterior('market')),version:'1',open:false,listing_ids:[]}];
+ const line=districtArrival('e',shops,o=>o.toUpperCase());
+ assert.match(line,/Market Ward/);assert.match(line,/Hollow gate \(MAKER, dungeon entrance\)/);assert.match(line,/Tonic stall \(P2, closed shop\)/);
+ assert.match(districtArrival('n',shops),/Nobody has built here yet/);
+ const place=districtPlaces('e',shops).find(p=>p.shopId==='shop-0')!;assert.equal(doorstepLine(place),'Hollow gate: dungeon entrance built by maker. Walk in to visit.');
+ assert.equal(doorstepLine(districtPlaces('e',[]).find(p=>!p.shopId)!),undefined);
+ assert.equal(ownerHue('maker'),ownerHue('maker'));
+});
+import {displayId,isDisplay,displayAssignments} from '../src/town-spaces';
+test('display shelves are valid decor and spread real stock over the shelves',()=>{
+ const id=displayId();assert.match(id,/^decor-display-[0-9a-f]{8}$/);assert.ok(id.length-'decor-'.length<=40);assert.ok(isDisplay({id})&&!isDisplay({id:'decor-a'}));
+ const room=defaultInterior('market');room.fixtures.push({id,name:'Display shelf',glyph:'▥',x:6,y:4});assert.deepEqual(validateInterior(room),[]);
+ const a=displayAssignments([{id:'s1'},{id:'s2'}],['x','y','z']);assert.deepEqual([...a.entries()],[['s1',['x','z']],['s2',['y']]]);
+ assert.equal(displayAssignments([],['x']).size,0);
+});
+import {footprintBlocked,suggestPlot} from '../src/town-discovery';
+test('the claim-a-plot hint points at land the contract would accept',()=>{
+ const p=suggestPlot('center',[],{x:12,y:9})!;assert.ok(p);assert.equal(footprintBlocked('center',[],p.x,p.y),false);
+ assert.ok(footprintBlocked('center',[],5,2),'starter inn');assert.ok(footprintBlocked('center',[],11,8),'spawn road');assert.ok(footprintBlocked('e',[],3,5),'west of x=4');
+ const taken=[{id:'shop-0',owner:'m',title:'t',district:'center',x:p.x,y:p.y,interior:'{}',version:'1',open:true,listing_ids:[]}];
+ const q=suggestPlot('center',taken,{x:12,y:9})!;assert.notDeepEqual(q,p);assert.equal(footprintBlocked('center',taken,q.x,q.y),false);
+});

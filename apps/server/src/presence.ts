@@ -5,7 +5,11 @@ import {townSize} from '../../../packages/game/src/town';
 /** Town presence: who is walking where, plus district chat. Purely social and in-memory.
  * It never reads or writes the economy, the contract or the outbox, and positions grant no authority. */
 export type Facing='up'|'down'|'left'|'right';
-export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing};
+/** `room` is a player building id (contract shop record). Players in a room only see and chat with that room. */
+export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string};
+const roomPattern=/^shop-\d{1,4}$/;
+/** The space a player occupies: a player building's room, else their district, else nowhere (indoors in an NPC house or a run). */
+export const spaceOf=(p:PresencePlayer):string|null=>p.district?(p.room??p.district):null;
 export type ChatMessage={id:string;from:string;text:string;at:number};
 export type PresenceStream={send:(event:string,data:unknown)=>void;end:()=>void};
 export type PresenceOptions={now?:()=>number;staleMs?:number;moveMinMs?:number;chatMax?:number;chatBurst?:number;chatWindowMs?:number;historySize?:number;historyMs?:number;maxPlayers?:number;maxStreamsPerPlayer?:number;pingMs?:number};
@@ -32,7 +36,7 @@ export function normalizeChat(text:unknown,max:number):string{
 
 export class TownPresence{
  readonly #players=new Map<string,Entry>();
- readonly #history=new Map<DistrictId,ChatMessage[]>();
+ readonly #history=new Map<string,ChatMessage[]>();
  readonly #now:()=>number;readonly #o:Required<Omit<PresenceOptions,'now'>>;
  #seq=0;#sweeper?:ReturnType<typeof setInterval>;
  constructor(options:PresenceOptions={}){
@@ -52,7 +56,7 @@ export class TownPresence{
   if(entry.streams.size>=this.#o.maxStreamsPerPlayer){const oldest=entry.streams.values().next().value!;entry.streams.delete(oldest);oldest.end();}
   entry.streams.add(stream);entry.seenAt=this.#now();
   stream.send('hello',{you:id});
-  if(entry.player.district)stream.send('snapshot',this.#snapshot(entry.player.district,id));
+  const space=spaceOf(entry.player);if(space)stream.send('snapshot',this.#snapshot(space,id));
   return()=>{const current=this.#players.get(id);if(current!==entry||!entry.streams.delete(stream))return;if(!entry.streams.size)this.#remove(id);};
  }
 
@@ -64,19 +68,21 @@ export class TownPresence{
   const {x,y,facing}=b;
   if(!Number.isInteger(x)||!Number.isInteger(y)||(x as number)<0||(y as number)<0||(x as number)>=townSize.width||(y as number)>=townSize.height)throw new PresenceError('Position outside the town',400);
   if(typeof facing!=='string'||!facings.has(facing))throw new PresenceError('Unknown facing',400);
+  const room=b.room===undefined||b.room===null?undefined:typeof b.room==='string'&&roomPattern.test(b.room)&&district?b.room:null;
+  if(room===null)throw new PresenceError('Unknown room',400);
   const now=this.#now();if(now-entry.movedAt<this.#o.moveMinMs)return false;
   entry.movedAt=now;entry.seenAt=now;
-  const before=entry.player.district;const player:PresencePlayer={id,district,x:x as number,y:y as number,facing:facing as Facing};entry.player=player;
-  if(before&&before!==district)this.#broadcast(before,'leave',{id},id);
-  if(district){
-   this.#broadcast(district,before===district?'move':'join',{player},id);
-   if(before!==district)for(const s of entry.streams)s.send('snapshot',this.#snapshot(district,id));
+  const before=spaceOf(entry.player);const player:PresencePlayer={id,district,x:x as number,y:y as number,facing:facing as Facing,...(room?{room}:{})};entry.player=player;const after=spaceOf(player);
+  if(before&&before!==after)this.#broadcast(before,'leave',{id},id);
+  if(after){
+   this.#broadcast(after,before===after?'move':'join',{player},id);
+   if(before!==after)for(const s of entry.streams)s.send('snapshot',this.#snapshot(after,id));
   }
   return true;
  }
 
  chat(id:string,text:unknown):ChatMessage{
-  const entry=this.#require(id);const district=entry.player.district;
+  const entry=this.#require(id);const district=spaceOf(entry.player);
   if(!district)throw new PresenceError('Step outside to talk in town',409);
   const clean=normalizeChat(text,this.#o.chatMax);const now=this.#now();
   entry.chats=entry.chats.filter(t=>now-t<this.#o.chatWindowMs);
@@ -131,12 +137,13 @@ export class TownPresence{
  }
 
  #require(id:string){const entry=this.#players.get(id);if(!entry)throw new PresenceError('Open the town stream first',409);return entry;}
- #remove(id:string){const entry=this.#players.get(id);if(!entry)return;this.#players.delete(id);if(entry.player.district)this.#broadcast(entry.player.district,'leave',{id},id);}
- #snapshot(district:DistrictId,self:string){
-  return {district,players:[...this.#players.values()].filter(e=>e.player.district===district&&e.player.id!==self).map(e=>({...e.player})),chat:this.#history.get(district)??[]};
+ #remove(id:string){const entry=this.#players.get(id);if(!entry)return;this.#players.delete(id);const space=spaceOf(entry.player);if(space)this.#broadcast(space,'leave',{id},id);}
+ #snapshot(space:string,self:string){
+  const room=roomPattern.test(space)?space:undefined;const district=room?[...this.#players.values()].find(e=>e.player.id===self)?.player.district??null:space;
+  return {district,...(room?{room}:{}),players:[...this.#players.values()].filter(e=>spaceOf(e.player)===space&&e.player.id!==self).map(e=>({...e.player})),chat:this.#history.get(space)??[]};
  }
- #broadcast(district:DistrictId,event:string,data:unknown,except?:string){
-  for(const entry of this.#players.values())if(entry.player.district===district&&entry.player.id!==except)for(const s of entry.streams)s.send(event,data);
+ #broadcast(space:string,event:string,data:unknown,except?:string){
+  for(const entry of this.#players.values())if(spaceOf(entry.player)===space&&entry.player.id!==except)for(const s of entry.streams)s.send(event,data);
  }
 }
 

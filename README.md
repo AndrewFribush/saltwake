@@ -32,7 +32,9 @@ Open http://127.0.0.1:18930. **The game opens in Saltwake**, a walkable harbor t
 
 Saltwake has nine connected districts. Walk or click toward an open map edge to cross into the neighboring district; the direction signs walk you there too. Cross back to return. The harbor’s west crossing follows the middle road over the water; the outer town walls are closed. Neighboring buildings access the same existing town services and stocks.
 
-Inside any house, choose **Edit interior** to move walls, furniture, the service counter, account book, arrival and south-wall door. Preview it, then **Save and enter room**. Rooms are saved per house in this browser across demo characters; they do not change ownership or item balances. Dungeon drafts are saved separately per character. Invalid/unreachable layouts cannot be installed or published.
+**Player buildings.** Choose **Build here** in any district to place a 3×2 building: a shop (stock and price your goods) or a dungeon entrance whose stairway opens one of your own published, still-open dungeons. Furnish its 11×9 interior (counters, furniture, readable notices, the stairway), then build it on chain. Buildings and their rooms are contract state, so every player sees the same building and room, and visitors inside the same building see each other and can talk. Owners can refurnish, move, relink, open/close and demolish (after withdrawing stock). Land rules `land-v1`: 32 buildings in town, 3 plots per player, no land price yet. Inventory → Buildings lists your plots.
+
+Inside a starter house, **Sketch interior (only you)** rearranges that room in this browser only; it changes no ownership or balances and other players never see it. Dungeon drafts are saved separately per character. Invalid/unreachable layouts cannot be installed or published.
 
 Fresh worlds include a proprietor-funded expedition with two reward bundles and two finite tonic listings. These consume existing seeded inventory and the proprietor's placement fee; they do not add assets. Use `npm run sandbox -- --empty` for the old unconfigured seed. Starting stock is demo supply, not organic market activity.
 
