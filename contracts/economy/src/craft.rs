@@ -54,7 +54,7 @@ impl Economy {
         if self.batches.contains_key(&id) {
             return Err("BatchExists".into());
         }
-        if self.batches.len() >= 64 {
+        if self.batches.len() >= crate::cap(64) {
             return Err("BatchCapacity".into());
         }
         if commitment.len() != 64 || !commitment.bytes().all(|b| b.is_ascii_hexdigit()) {
@@ -71,7 +71,9 @@ impl Economy {
         {
             return Err("ProfileAlreadyCrafting".into());
         }
-        if ids.len() != 4 || ids.iter().collect::<BTreeSet<_>>().len() != 4 {
+        // A full batch is 2 herbs + 2 flasks -> 2 tonics; a small batch (not for recovery work) is 1 + 1 -> 1.
+        let small = !recovery && ids.len() == 2;
+        if !(ids.len() == 4 || small) || ids.iter().collect::<BTreeSet<_>>().len() != ids.len() {
             return Err("InvalidRecipe".into());
         }
         if recovery {
@@ -117,7 +119,7 @@ impl Economy {
                 },
             };
         }
-        if herbs != 2 || flasks != 2 {
+        if herbs * 2 != ids.len() || flasks * 2 != ids.len() {
             return Err("InvalidRecipe".into());
         }
         let wage = if recovery {
@@ -188,7 +190,7 @@ impl Economy {
             };
         }
         let mut outputs = vec![];
-        for n in 0..2 {
+        for n in 0..batch.input_ids.len() / 2 {
             let output = format!("crafted-{id}-{n}");
             if self.items.contains_key(&output) {
                 return Err("ItemIdConflict".into());

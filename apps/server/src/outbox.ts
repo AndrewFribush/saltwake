@@ -9,7 +9,7 @@ export class Outbox {
  private playerTasks=new Map<string,Promise<StoredOperation>>();
  private receiptFlights=new Map<string,Promise<OperationStatus|null>>();
  private observationFlights=new Map<string,Promise<void>>();
- constructor(readonly db:Store,readonly chain:Chain,private observer?:{before(op:StoredOperation,signal?:AbortSignal):Promise<void>;after(op:StoredOperation,signal?:AbortSignal):Promise<void>},private options:{receiptTimeoutMs?:number;observationTimeoutMs?:number}={}){if(options.receiptTimeoutMs!==undefined&&(!Number.isSafeInteger(options.receiptTimeoutMs)||options.receiptTimeoutMs<10||options.receiptTimeoutMs>30000))throw Error('Invalid receipt timeout');if(options.observationTimeoutMs!==undefined&&(!Number.isSafeInteger(options.observationTimeoutMs)||options.observationTimeoutMs<10||options.observationTimeoutMs>30000))throw Error('Invalid observation timeout');}
+ constructor(readonly db:Store,readonly chain:Chain,private observer?:{before(op:StoredOperation,signal?:AbortSignal):Promise<void>;after(op:StoredOperation,signal?:AbortSignal):Promise<void>},private options:{receiptTimeoutMs?:number;observationTimeoutMs?:number;capacity?:number}={}){if(options.receiptTimeoutMs!==undefined&&(!Number.isSafeInteger(options.receiptTimeoutMs)||options.receiptTimeoutMs<10||options.receiptTimeoutMs>30000))throw Error('Invalid receipt timeout');if(options.observationTimeoutMs!==undefined&&(!Number.isSafeInteger(options.observationTimeoutMs)||options.observationTimeoutMs<10||options.observationTimeoutMs>30000))throw Error('Invalid observation timeout');}
  private async observe(phase:"before"|"after",row:StoredOperation){
   if(!this.observer)return;const key=phase+':'+row.id;if(this.observationFlights.has(key))return;
   const controller=new AbortController();let timer:ReturnType<typeof setTimeout>|undefined;
@@ -33,14 +33,15 @@ export class Outbox {
   const sizeError=commandSizeError(id,command);if(sizeError)throw Error(sizeError);
   const hash=commandHash(command);const prior=this.db.operation(id);
   if(prior){if(prior.authority!==authority)throw Error('Operation authority conflict');if(prior.hash!==hash)throw Error('Operation payload conflict');return prior;}
-  if(this.db.operations().length+1+this.reserved(command)>256){
+  const cap=this.options.capacity??256;// Must match the contract's receipt capacity (256 unless a simulation seed raised it).
+  if(this.db.operations().length+1+this.reserved(command)>cap){
    // Final-chain discovery can reveal obligations after ordinary slots filled.
    // A bounded emergency lane accepts only the owner-bound oracle result for a
    // persisted confirmed batch; never additional player spending.
    const a=command.action;
    const saved=a.type==='finish_craft'||a.type==='finish_recovery'?this.db.get<{profile:string;confirmed:boolean;recovery:boolean;finished:boolean}>('craft',a.batch_id):undefined;
    const emergency=!authority&&saved?.confirmed&&!saved.finished&&saved.profile===command.actor&&saved.recovery===(a.type==='finish_recovery');
-   if(!emergency||this.db.operations().length>=512)throw Error('Outbox capacity reached; terminal headroom reserved');
+   if(!emergency||this.db.operations().length>=cap*2)throw Error('Outbox capacity reached; terminal headroom reserved');
   }
   const row:StoredOperation={...(authority?{authority}:{}),id,command:structuredClone(command),hash,status:'Pending'};this.db.putOperation(row);return row;
  }

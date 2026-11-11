@@ -138,4 +138,51 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Fixed: the gatehouse walls were flat dark (an `!important` rule in tiles.css); they show the brick texture again.
 - Checks: typecheck, game 183, web 31, server 168, build pass.
 
-Next step: builder power tools (region select/copy/paste/rotate, stamps, multi-floor overview) when they land.
+### 19. Optional procedural sound; builder power tools
+- `art/Sound.ts`: every sound is synthesised with the Web Audio API (oscillators, filtered noise, envelopes). No audio files, assets or services. Off by default; a speaker toggle and volume slider sit in the top bar (inserted next to Help by a DOM observer, remembered in `localStorage['saltwake.sound']`). The audio context only starts after the player turns sound on (browser gesture rules).
+- Sounds: soft footsteps (town avatar, room hero, dungeon hero moving), coin clink on spend and a reversed clink on earn, a pick-up blip when the satchel grows, kettle bubbles while a brewing scene or practice track is on screen, door creak on entering a room or a gate opening, a slam for gates shutting, hit and hurt thumps, enemy death, blast boom, tide rumble three turns before flooding and while flooding, a rising chord when dungeon doors open, and a quiet harbour bed (slowly breathing filtered noise for waves, synthesised gull chirps every 6-15 s) that ducks outside the town. Under reduced motion the ambient bed stays off and only event sounds play.
+- Hooks: art components emit `saltwake:sfx` events (RunFx, EntryCeremony, RoomHero, Juice); footsteps and the kettle come from DOM observation. No component edits.
+- Builder power tools (playtest lane): Area & stamps panel framed with a serif legend, chosen stamp pressed brass, stamp and floor previews in the wall/floor palette; floor overview cards with hover lift, gold current, green drop target; selection tint, blinking keyboard cursor, red hatch for cut-off floor.
+- Checks: typecheck, game 187, web 31, server 168, build pass. Sound verified to start without errors; audio itself needs a listener with speakers.
+
+### 20. Economy pieces and an accessibility pass
+- Commissions (town lane): posting form framed on the cork board with a serif legend; open commissions are pinned notes with a coin mark. Ledger "Restock needed" prompts are red stamps with a flag; the market's "bank is out of …" guidance is an amber notice.
+- Colour-blind safe telegraphs: each threat kind now has its own hatch direction and a corner glyph as well as its colour: generic danger diagonal + "!", crossbow bolt horizontal lines + "➶", blast cross-hatch + "✸", brute sweep vertical lines + "↻"; the way-out tile gets "⇲" next to its green pulse (`gallery-colourblind-telegraphs.jpg`).
+- Contrast (WCAG ratio, computed): parchment ink 10.0, muted ink 4.86, green ink 5.86, red ink 6.29, inked numbers 6.85; panel text 12.2, muted panel text 8.9, HUD small text 6.5, brass headings 11.2, primary button text 6.4, board buttons 9.3, signboard subtitles 9.0. All at or above 4.5:1.
+- Focus: a 3 px light ring on every focusable control (buttons, links, inputs, selects, summaries, focusable regions), forced above the button bevels; the volume slider and signboards included.
+- Phones: room fixture labels, hints, legends and ledger notes raised to readable sizes; slightly larger health pips and key chips.
+- Checks: typecheck, game 187, web 31, server 168, build pass.
+
+### 21. First-screens polish (part 1)
+- Connecting / server-offline screen: centred in the window; the title art no longer gets squashed by a percentage max-height (`first-offline.jpg`). Arrival screens with no actions show a small loading tide of dots.
+- Empty states are quiet notes with a small chest mark (parchment variant inside ledgers); status notices get an amber "!" badge; `role=alert` messages a red rule; busy regions dim slightly.
+- The plot-tour hint over the first town view is a pinned parchment note instead of a dark box (`first-town.jpg`). First shop checked (`first-shop.jpg`).
+- Checks: typecheck, game 187, web 31, server 168, build pass.
+
+### 22. First-screens polish (part 2)
+- First real dungeon run (paid entry on the local sandbox): the run aside no longer shows a "Nothing here yet." box when no enemy is in sight; the way-out line and turn text already say so (`first-run.jpg`). Builder first open was checked in earlier passes (coach, steps, area tools).
+- Checks: typecheck, web 31, build pass (game/server unchanged since part 1).
+
+### 23. Route checks, wiring, plate-to-gate wires, history charts
+- Builder Check step: "Routes to the stairs" and "Wiring" panels framed; each floor/channel line has a round status badge (✓ green, ✕ red, ? amber) so state does not depend on colour alone.
+- In play: a faint dashed brass wire runs (elbowed) from every seen lever or pressure plate to the gates on its channel; it turns solid and glows while the channel is on. Only things the player has seen are connected, so it reveals nothing new. Makes lure vaults and ambush rooms readable (`gallery-wires.jpg`). `WireLayer` in art/RunFx.tsx; no component edits.
+- Town history charts (landed with this merge): parchment figure cards; series in dark inks with distinct dash patterns as well as colours.
+- Checks: typecheck, game 188, web 31, server 168, build pass.
+
+### 24. Lure vault and ambush in real play
+- Gallery modes `?vault=lure` and `?vault=ambush` rehearse a real generated Large draft (seeds 1 and 2, floor 2) with the delver placed beside the trigger. Stepping onto the lure plate opens the vault gate; the wire turns solid and the gate dusts open (`lure-vault-plate-held.jpg`). The ambush trip switch and its gate connect the same way.
+- Tuned: wires are 3 px with a dark underlay so they read on light and dark floor; dashed while off, solid and glowing while on.
+
+### 25. Cosmetic character looks
+- Eight hero palettes (cloak and hair swaps: Harbor gold, Tide blue, Kelp green, Coral red, Storm grey, Dusk violet, Rope brown, Salt white) in `art/Looks.ts`. A swatch button in the top bar opens a 4×2 picker of hero previews (Escape closes, keyboard focus moves into it). Stored per browser and per character (`localStorage['saltwake.look.<character>']`), applied to the town avatar, room hero and dungeon hero, including walk frames (`look-picker.jpg`, `look-coral.jpg`).
+- Shared with other players: the presence move message carries `look` (0-15). The server validates it as a small integer and relays it; it grants nothing and is not stored. Other players' avatars use their look; avatars without one keep the old per-id hue tint. Server change: 3 lines in apps/server/src/presence.ts plus a test (valid look relayed, out-of-range and non-integer rejected, omitted stays omitted).
+- Checks: typecheck, game 188, web 31, server 169, build pass.
+
+### 26. Two-player look check, decor furniture, offer card, drops
+- Two live sessions (127.0.0.1 and localhost cookie jars, `SALTWAKE_PROXY_ORIGIN=http://127.0.0.1:18990`): the delver picked Kelp green and the proprietor Dusk violet; each saw the other in their chosen colours, with name labels (`two-players-a.jpg`, `two-players-b.jpg`). Known limit: an avatar standing right under a building signboard is partly hidden by the sign (signs are HTML above the SVG map).
+- Decor furniture: six cosmetic pieces in the interior builder palette (stacked crates, table, potted plant, standing lamp, wall banner, old anchor), each with a pixel sprite; the builder's paint grid now shows furniture sprites instead of glyphs. Small edits in InteriorBuilder.tsx (tool list, furniture names, labels, sprite in the paint cell). Pieces use the existing `decor-*` fixture format, so saved layouts validate unchanged (`decor-builder.jpg`, `decor-room.jpg`).
+- Adventurer offer card (playtest): parchment card; danger tag has a shape as well as colour (○ calm, ◔ light, ◑ dangerous, ☠ deadly).
+- Passages: links deeper draw as a drop hatch with ↓, links back up as stairs with ↑ (one line in Run.tsx).
+- Checks: typecheck, game 193, web 31, server 169, build pass.
+
+Next step: keep styling new UI from other lanes.

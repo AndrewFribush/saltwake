@@ -186,3 +186,40 @@ Verified on a fresh generated preset: Check now reports the shortfall, one click
 - **Unreachable floor.** Selecting a 19×13 area needed panning, so I added Whole floor. Then closed stamps left sealed rooms, and the only clue was one "Show tile" at a time in Check. Cut-off floor is now hatched red in the Draw step, with a one-click "wall them off". Twin rooms now has doorways, and Arena ring is new.
 - Fill left a heavy blue selection over everything; it clears after a fill now, and the selection style is lighter.
 - On big floors the grid's last rows were squashed; rows are now even and the grid keeps the floor's aspect ratio.
+
+## Round 11: route check in the flow, and three unfamiliar-creator sessions
+
+**Route check in Check:** every floor is now checked automatically (moves, waits and shoves, with the chosen test kit) whenever you open 4 Check or 5 Open, and again after any edit. Each floor shows ✓ "reachable in N turns", ✗ "the stairs cannot be reached…" or ? "too big to prove, rehearse it", and you can click a floor to go there. Map issues or an impossible floor put ⚠ on the 4 Check button, and a proven-impossible floor blocks Pay in 5 Open with its explanation.
+
+**Session 1: puzzle vault (keys, lock, plate).** Where I hesitated:
+1. I drew a wall, then clicked a wall tile to put the locked door in it and got "Place this feature on a free floor tile." **Fixed:** a locked door clicked onto an interior wall now cuts a doorway with the lock in it.
+2. A pressure plate's "Channel" field said nothing about whether anything listens. Mine controlled nothing, and no check said so. **Fixed:** Check → Wiring lists every channel's inputs (plates, switches) and outputs (doors, stairs conditions), and flags "controls nothing yet. Add a door with this channel in Devices…".
+3. Plates and keys live in Features, but doors and switches are under Devices, where "Add device" is a dropdown. That's two places for one puzzle. (Not fixed; the reference cards now point to both.)
+
+With the key, door and plate wired, the route check said "reachable in 19 turns". A chasm in front of the only door made Open refuse to publish, with the reason.
+
+**Session 2: speed-run gauntlet with the tide.**
+4. I couldn't find the tide. It's only a checkbox at the bottom of More tools → Features. **Fixed in the reference:** the Rising tide card now says where it lives and what it controls.
+5. **Pressing Esc to stop stamping closed the whole builder.** **Fixed:** while selecting or stamping, Esc stops the tool ("Stopped. Esc again closes the builder.").
+
+Two long-corridor stamps, a charger and a sentry, with the tide set to 30 turns: rehearsal showed "Tide in 29" and a charger lane down the corridor.
+
+**Session 3: no-treasure haunted house.**
+6. The Treasure step still offered goods to assign and said "0 goods · No reward complete copies". **Fixed:** with no treasure spots it says there's nothing to fund, that delvers come for the challenge, and that you still keep the fee.
+
+## Round 12: newcomer adventurer, artisan outlets, showcase dungeon
+
+**Newcomer, start to second run (The newcomer, fresh demo town).**
+1. The newcomer started with "1 expedition completed" and one coin gone, because the demo seed spent their first run on a settled record. **Fixed:** the demo's two settled runs now use a veteran (the mercenary), so the delver and the newcomer start fresh.
+2. The gate offer said "open · 1 floor · 4 places open now · no treasure" and told you to go read two other tabs. Nothing said what was inside or what you were risking. **Fixed:** the Overview is now a card with a danger label (enemy and trap cost per floor, raised when the record shows most finished runs dying), the threats by name and count, the treasure by name with stock value and funded attempts, the record in words ("1 run: 0 escaped, 0 died, 1 gave up. Small sample."), and **You risk**: the fee plus your packed gear by name, which goes to the bank if you die.
+3. The run summary repeated "You made it out." under the identical result card, and never mentioned the fee. A run with no treasure still said "Dungeon makers buy finds like these". **Fixed:** it is now "Your ledger for <dungeon>". It lists the entry fee (kept by the maker), treasure, gear home, gear lost and items used up. After a death it explains that packed gear is the stake and that the bank resells it. If you went in bare-handed it says only the fee was lost.
+4. After the first run the goals list had no next step, and the bank counter sells only ingredients, so gear was hard to find. **Fixed:** a "Gear up for the next run" goal appears once you have delved. It names the player shops currently selling clubs, armour or tonics.
+5. **The gate showed only the three cheapest dungeons.** The matcher capped suggestions at 3, so a fourth dungeon at a higher fee never appeared, even with a pager. **Fixed:** the gate now passes a limit of 12 to `matchEditions`, which still defaults to 3.
+
+Second run: I packed the club, chose The drowned stair (Dangerous: 6 enemies and 2 traps over 2 floors) and escaped from floor 2 with 4 health. The ledger read "Entry paid: 3 coins · Treasure found: none · Your gear came home: 1 Club".
+
+**Artisan.** The goals panel and the kettle result card both said only "sell at the market". **Fixed:** both now list the best current outlets with prices. For example: "Tonics now fetch: 5 each: a player commission wants 2 (notice board, Commissions tab) · 3 each: the bank buys". The demo seed now posts one escrowed commission from the proprietor (2 tonics at 5) so artisans see player demand. The demo-town test counts escrow in coin conservation.
+
+**Showcase dungeon.** "The tide vaults" (demo supply) is the large three-floor preset (seed 11) thinned to the proprietor's budget: enemies come off the shallowest floor first, and 4 enemies and 3 traps remain. A fine tonic on floor 2 and a sword at the bottom are funded from goods the proprietor already holds. It is published by `scripts/demo-town.ts` through the normal publish command and housed in the east hall that used to point at the starter (the starter stays at the gate). It was generated, not hand-drawn in the builder. I copied it into the builder through the Library to check it. The route list shows all three floors reachable on the quick check, and the full check with enemies passed with the club kit (18, 22 and 18 turns). Wiring was fine. As the newcomer with a club I escaped from floor 3 with 1 health; the auto-walker set off a powder keg in a floor-2 corridor on the way.
+
+Evidence: `docs/evidence/playtest/r12-offer-card.png`, `r12-run-ledger.png`, `r12-showcase-offer.png`, `r12-showcase-routes.png`.

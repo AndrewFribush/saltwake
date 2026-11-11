@@ -148,7 +148,22 @@ const skull=[
 const escape=[
  '................','.......kk.......','......kllk......','.....kllllk.....','....kllllllk....','...kllllllllk...','..kkkkllllkkkk..','.....kllllk.....',
  '.....kllllk.....','.....kllllk.....','.....kllllk.....','.....kkkkkk.....','................','................','................','................'];
-export const spriteMaps={skull,escape,crest,leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
+const crates=[
+ '................','..kkkkkkk.......','..kdbbbdk.......','..kbkdkbk.......','..kbdkdbk.......','..kdbbbdk.......','..kkkkkkkkkkkk..','..kdbbbdkdbbbdk.',
+ '..kbkdkbkbkdkbk.','..kbdkdbkbdkdbk.','..kdbbbdkdbbbdk.','..kkkkkkkkkkkk..','................','................','................','................'];
+const table=[
+ '................','................','................','................','...........e....','..........kyk...','..kkkkkkkkkkkk..','.kddddddddddddk.',
+ '.kbbbbbbbbbbbbk.','.kkkkkkkkkkkkkk.','..kbk......kbk..','..kbk......kbk..','..kbk......kbk..','..kBk......kBk..','..kkk......kkk..','................'];
+const plant=[
+ '................','.......kk.......','...kk.kllk.kk...','..kllkkllkkllk..','..klllkllkllk...','...kkllllllkk...','..kllklllkllk...','...kkllMllkk....',
+ '......kMk.......','....kkkkkkk.....','....kOOOOOk.....','....koOOOok.....','.....kOOOk......','.....kkkkk......','................','................'];
+const lamp=[
+ '.......kk.......','......kEEk......','.....kEeeEk.....','.....keEEek.....','......kEEk......','.......kk.......','.......kk.......','.......kk.......',
+ '.......kk.......','.......kk.......','.......kk.......','.......kk.......','.......kk.......','.....kkkkkk.....','....kXXXXXXk....','....kkkkkkkk....'];
+const anchor=[
+ '................','.......kk.......','......kgGk......','......kggk......','.......kk.......','....kkkggkkk....','....kgggggggk...','.......gg.......',
+ '.......gg.......','..kk...gg...kk..','..kgk..gg..kgk..','...kgk.gg.kgk...','....kggggggk....','.....kkkkkk.....','................','................'];
+export const spriteMaps={crates,table,plant,lamp,anchor,skull,escape,crest,leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
 /** Shopkeeper: the hero drawing with a blue coat and grey hair. */

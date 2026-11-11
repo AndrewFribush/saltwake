@@ -1,5 +1,6 @@
 /** Town and interior art helpers: SVG patterns for the town map and furniture sprites for rooms. */
-import React from 'react';
+import React,{useEffect} from 'react';
+import {emit} from './Sound';
 import {Sprite,HeroSvg,useMoving,type Facing} from './Sprite';
 import {textureVars,keeperUrl,type SpriteName} from './sprites';
 
@@ -24,6 +25,7 @@ export function fixtureSprite(f:{id:string;name:string;glyph:string}):SpriteName
  const n=f.name.toLowerCase();
  if(f.id==='wallet'||n.includes('account book'))return 'book';
  if(f.id==='builder'||n.includes('drafting'))return 'drafting';if(n.includes('notice'))return 'notice';if(n.includes('display'))return 'display';if(n.includes('stair'))return 'stairs';
+ if(n.includes('crate'))return 'crates';if(n==='table'||n.includes(' table'))return 'table';if(n.includes('plant'))return 'plant';if(n.includes('lamp'))return 'lamp';if(n.includes('anchor'))return 'anchor';if(n.includes('banner'))return 'banner';
  if(n.includes('bed'))return 'bed';if(n.includes('shel'))return 'shelves';if(n.includes('barrel'))return 'barrels';if(n.includes('chest'))return 'chest';
  const byGlyph:Record<string,SpriteName>={'☷':'counter','⚖':'scales','♨':'kettle','⚑':'banner','⚔':'swords','▰':'bed','▤':'shelves','▣':'chest'};
  return byGlyph[f.glyph]??(f.id==='service'?'counter':null);
@@ -37,6 +39,7 @@ export function DoorArt(){return <Sprite name="door" className="fixture-sprite d
 /** The player inside a room, drawn over the tile grid so it glides between tiles. */
 export function RoomHero({x,y,facing,columns,rows}:{x:number;y:number;facing:Facing;columns:number;rows:number}){
  const walking=useMoving(x,y);
+ useEffect(()=>{emit('door');},[]);
  return <span aria-hidden="true" className="room-hero" style={{left:`${x/columns*100}%`,top:`${y/rows*100}%`,width:`${100/columns}%`,height:`${100/rows}%`}}><HeroSvg facing={facing} walking={walking}/></span>;
 }
 

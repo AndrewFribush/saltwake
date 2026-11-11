@@ -1,4 +1,5 @@
 mod buyin;
+mod commissions;
 mod craft;
 mod shops;
 mod editions;
@@ -51,6 +52,11 @@ fn hash<T: borsh::BorshSerialize>(value: &T) -> String {
         .map(|b| format!("{b:02x}"))
         .collect()
 }
+/// Prototype record caps (256 receipts; 64 runs, listings and craft batches over a world's life) are multiplied by a
+/// scale kept in its own storage key: 1 for every normal world, raised only by `init_simulation` for long bot runs.
+const CAP_SCALE_KEY: &[u8] = b"capacity_scale.v1";
+pub(crate) fn cap(base: usize) -> usize { base * env::storage_read(CAP_SCALE_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt capacity scale")) as usize).unwrap_or(1) }
+fn receipt_cap() -> usize { cap(256) }
 fn now_ms() -> u64 {
     env::block_timestamp() / 1_000_000
 }
@@ -182,6 +188,29 @@ impl Economy {
         }
         s
     }
+    /// Simulation seed (local sandboxes only, used by `npm run simulate -- --players N`): the extended demo plus
+    /// labelled extra profiles. Makers m-<n> (60 coins, 2 swords, 4 tonics), artisans a-<n> (10 coins, 2 herbs, 2 flasks),
+    /// delvers d-<n> (`delver_coins` coins and a club); the bank gets 6 herbs and 6 flasks per artisan. Explicit issuance at init.
+    #[init]
+    #[private]
+    pub fn init_simulation(makers: u8, artisans: u8, delvers: u8, delver_coins: U64) -> Self {
+        assert!(makers <= 16 && artisans <= 16 && delvers <= 32 && delver_coins.0 <= 1000, "Simulation seed too large");
+        let mut s = Self::init_demo_extended();
+        // Long simulations need more receipt slots than the 256-slot prototype cap.
+        env::storage_write(CAP_SCALE_KEY, &32u32.to_le_bytes());
+        let mut give = |s: &mut Self, owner: &str, ty: ItemType, prefix: &str, n: u32| {
+            for k in 0..n {
+                let id = format!("sim-{owner}-{prefix}-{k}");
+                let location = if owner == "bank" { Location::Bank } else { Location::Owned { profile: owner.into() } };
+                s.items.insert(id.clone(), Item { id, item_type: ty, location });
+            }
+        };
+        for m in 0..makers { let p = format!("m-{m}"); s.credits.insert(p.clone(), 60); give(&mut s, &p, ItemType::Sword, "sword", 2); give(&mut s, &p, ItemType::Tonic, "tonic", 4); }
+        for a in 0..artisans { let p = format!("a-{a}"); s.credits.insert(p.clone(), 10); give(&mut s, &p, ItemType::Herb, "herb", 2); give(&mut s, &p, ItemType::Flask, "flask", 2);
+            give(&mut s, "bank", ItemType::Herb, &format!("herb-{a}"), 6); give(&mut s, "bank", ItemType::Flask, &format!("flask-{a}"), 6); }
+        for d in 0..delvers { let p = format!("d-{d}"); s.credits.insert(p.clone(), delver_coins.0); give(&mut s, &p, ItemType::Club, "club", 1); }
+        s
+    }
     // Public testnet seed: the extended demo plus a larger newcomer labor pool.
     // Wallet players register with zero assets and earn their first coins
     // through bank recovery jobs, so the pool must outlast many players:
@@ -270,6 +299,7 @@ impl Economy {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            commissions: commissions::read().into_values().collect(),
             buy_ins: self.credits.keys().filter(|p| p.starts_with("wallet:")).filter_map(|p| buyin::read_buyer(p).map(|b| (p.clone(), b.coins_issued))).collect(),
             reservations: self.listings.values().filter(|l| l.status == "active").filter_map(|l| market::reserved_buyer(&l.id).map(|b| (l.id.clone(), b))).collect(),
             shops: self.shops.values().cloned().collect(),
@@ -307,6 +337,7 @@ impl Economy {
             .collect(),
         }
     }
+    pub fn receipt_capacity(&self) -> u32 { receipt_cap() as u32 }
     pub fn land_rules(&self) -> shops::LandRules {
         shops::land_rules()
     }
@@ -361,7 +392,7 @@ fn player_action_allowed(action: &Action) -> bool {
         | Action::FinalizeClose { .. } | Action::Refresh { .. } | Action::SetFee { .. }
         | Action::List { .. } | Action::CancelListing { .. } | Action::Buy { .. }
         | Action::BankBuy { .. } | Action::BankSell { .. } | Action::FillNpcOrder { .. }
-        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. } | Action::ListFor { .. } | Action::Retire { .. }
+        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. } | Action::ListFor { .. } | Action::Retire { .. } | Action::PostCommission { .. } | Action::FillCommission { .. } | Action::CancelCommission { .. }
         | Action::BeginCraft { .. } | Action::BeginRecovery { .. })
 }
 impl Economy {
@@ -384,7 +415,7 @@ impl Economy {
             assert_eq!(r.payload_hash, payload_hash, "Operation payload conflict");
             return r.clone();
         }
-        assert!(self.receipts.len() < 256, "Receipt capacity exhausted");
+        assert!(self.receipts.len() < receipt_cap(), "Receipt capacity exhausted");
         // Receipt identity is the submitted command. Derive execution randomness
         // only for a new player admission, never for replay or operator demos.
         if player {
@@ -413,7 +444,7 @@ impl Economy {
         let (status, result) = match outcome {
             Ok(result) => {
                 assert!(
-                    staged.receipts.len() + 1 + staged.reserved_capacity() <= 256,
+                    staged.receipts.len() + 1 + staged.reserved_capacity() <= receipt_cap(),
                     "ReceiptCapacityReserved"
                 );
                 *self = staged;
@@ -423,7 +454,7 @@ impl Economy {
             }
             Err(code) => {
                 assert!(
-                    self.receipts.len() + 1 + self.reserved_capacity() <= 256,
+                    self.receipts.len() + 1 + self.reserved_capacity() <= receipt_cap(),
                     "ReceiptCapacityReserved"
                 );
                 ("Rejected", code)
@@ -466,6 +497,9 @@ impl Economy {
             Action::RemoveShop {shop_id,expected_version} => self.remove_shop(c.actor,shop_id,expected_version),
             Action::ListFor {item_ids,unit_price,buyer} => self.list_for(c.actor,item_ids,unit_price,buyer),
             Action::Retire {edition_id} => self.retire(c.actor,edition_id),
+            Action::PostCommission {item_type,unit_price,quantity} => self.post_commission(c.actor,item_type,unit_price,quantity),
+            Action::FillCommission {commission_id,item_ids,expected_unit_price} => self.fill_commission(c.actor,commission_id,item_ids,expected_unit_price),
+            Action::CancelCommission {commission_id} => self.cancel_commission(c.actor,commission_id),
             Action::BeginCraft {
                 batch_id,
                 input_ids,

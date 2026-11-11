@@ -266,7 +266,7 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 
 /* ---------- Arrival / wallet onboarding: a title card ---------- */
 .saltwake .arrival{align-items:center;text-align:center;gap:6px}
-.saltwake .arrival::before{content:'';display:block;flex:0 1 auto;width:min(620px,94%);aspect-ratio:192/84;max-height:40%;background:var(--tx-title) center/contain no-repeat;image-rendering:pixelated;border-radius:4px;box-shadow:var(--sw-frame);margin:0 auto 14px}
+.saltwake .arrival::before{content:'';display:block;flex:0 0 auto;width:min(620px,94%,calc(40vh * 192 / 84));aspect-ratio:192/84;background:var(--tx-title) center/contain no-repeat;image-rendering:pixelated;border-radius:4px;box-shadow:var(--sw-frame);margin:0 auto 14px}
 .saltwake .arrival h1{font-family:var(--sw-head);font-size:clamp(34px,6vw,58px);letter-spacing:.06em;margin:0;color:#f3d98a;text-shadow:0 3px 0 #5a3a14,0 6px 14px #000c}
 .saltwake .arrival>p{max-width:560px;margin:4px auto}
 .saltwake .arrival .wallet-picker{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:min(420px,100%);margin:10px auto;padding:14px;border-radius:4px;box-shadow:var(--sw-frame);background:linear-gradient(#1b2e2c,#122023)}
@@ -551,3 +551,145 @@ html[data-first-visit] .saltwake .town-field .place-sign,html[data-first-visit] 
 .saltwake .expedition-offer button.primary::before{content:'';position:absolute;left:12px;top:50%;width:30px;height:30px;transform:translateY(-50%);background:var(--sp-stairs) center/contain no-repeat;image-rendering:pixelated;border-radius:2px;box-shadow:0 0 0 1px #2a1d0c}
 .saltwake .expedition-offer button.primary:hover:not(:disabled)::before{filter:brightness(1.2) drop-shadow(0 0 4px #fff6b0)}
 .saltwake .room-world.room-gate .room-board button.room-wall{background:var(--tx-wall) center/100% 100% no-repeat!important}
+
+/* ---------- Sound toggle in the top bar ---------- */
+.saltwake .sound-ctl{display:flex;align-items:center;gap:6px;margin-left:auto;margin-right:2px}
+.saltwake .sound-ctl+button,.saltwake .player-hud .sound-ctl~.session-controls{margin-left:0}
+.saltwake .sound-ctl .sound-toggle{min-width:40px;padding:6px 8px!important;font-size:16px!important;line-height:1}
+.saltwake .sound-ctl .sound-volume{width:84px;accent-color:#d9b866}
+@media(max-width:700px){.saltwake .sound-ctl .sound-volume{width:56px}.saltwake .sound-ctl .sound-toggle{min-width:32px;padding:4px 6px!important}}
+
+/* ---------- Builder power tools (playtest lane) ---------- */
+.saltwake .region-tools{border:0;border-radius:4px;box-shadow:inset 0 0 0 1px #d9b86640,0 0 0 1px #070d0e;background:linear-gradient(#1b2e2c,#132225);padding:6px 8px}
+.saltwake .region-tools legend{font-family:var(--sw-head);font-size:14px;color:#f3d98a;padding:0 4px;text-shadow:0 1px 0 #000}
+.saltwake .stamp-list>span.chosen>button:first-child{box-shadow:inset 0 2px 3px #0009,0 0 0 1px var(--sw-brass)!important;background:linear-gradient(#6d5a2c,#4b3d1d)!important;color:#fff1c8!important}
+.saltwake .stamp-preview{padding:2px;background:#070a09;border-radius:2px;box-shadow:inset 0 0 0 1px #0008}
+.saltwake .stamp-preview i.w{background:#3b4337}.saltwake .stamp-preview i.f{background:#8f8a74}
+.saltwake .floor-overview li{border:0;border-radius:4px;background:linear-gradient(#1c2f2b,#142325);box-shadow:inset 0 0 0 1px #d9b86630,0 2px 0 #0008;transition:transform .12s,box-shadow .12s}
+.saltwake .floor-overview li:hover{transform:translateY(-1px);box-shadow:inset 0 0 0 1px #d9b86688,0 3px 0 #0008}
+.saltwake .floor-overview li.current{box-shadow:inset 0 0 0 2px #f3d98a,0 0 12px #e8c56a44}
+.saltwake .floor-overview li.drop{border:0;box-shadow:inset 0 0 0 2px #8df0c5,0 0 14px #8df0c566}
+.saltwake .floor-overview li:active{cursor:grabbing}
+.saltwake .overview-info b{font-family:var(--sw-head);color:#f3d98a;font-size:14px}
+.saltwake .overview-map{background:#070a09!important;border-radius:2px;box-shadow:inset 0 0 0 1px #0008,0 0 0 1px #6f6446}
+.saltwake .mini-map{image-rendering:pixelated}
+.saltwake .mini-map i.w{background:#3b4337}.saltwake .mini-map i.f{background:#8a8572}
+.saltwake .mini-map i.s{background:#f3d98a}.saltwake .mini-map i.e{background:#8df0c5}.saltwake .mini-map i.k{background:#e2563c}.saltwake .mini-map i.l{background:#d9b45a}
+.saltwake .fb-cell.fb-selected{box-shadow:inset 0 0 0 2px #8fd3ff,inset 0 0 12px #6fb4e888!important;filter:none}
+.saltwake .fb-cell.fb-selected::after{content:'';position:absolute;inset:0;background:#6fb4e826;pointer-events:none;z-index:2}
+.saltwake .fb-cell.fb-cursor{box-shadow:inset 0 0 0 2px #fff6d8,inset 0 0 0 4px #2a1d0c!important;animation:sw-cursor 1s steps(2) infinite}
+@keyframes sw-cursor{50%{box-shadow:inset 0 0 0 2px #f3d98a,inset 0 0 0 4px #2a1d0c}}
+.saltwake .fb-cell.fb-unreachable::before{background:repeating-linear-gradient(135deg,#ff4a2a55 0 3px,transparent 3px 8px);box-shadow:inset 0 0 0 1px #ff7a4855}
+@media(prefers-reduced-motion:reduce){.saltwake .fb-cell.fb-cursor{animation:none}}
+
+/* ---------- Economy pieces (town lane): commissions, restock prompts, bank-out notice ---------- */
+.saltwake .commission-post{border:0;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:inset 0 0 0 1px #d9b86640,0 0 0 1px #070d0e,0 3px 0 #000a;padding:8px 10px;margin:10px 4px}
+.saltwake .commission-post legend{font-family:var(--sw-head);color:#f3d98a;font-size:15px;padding:0 4px;text-shadow:0 1px 0 #000}
+.saltwake .commission-post label{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--sw-paper)}
+.saltwake .commission-board .board-entry h4{text-transform:none;letter-spacing:0}
+.saltwake .commission-board .board-entry h4::before{content:'';display:inline-block;width:18px;height:18px;margin-right:6px;vertical-align:-3px;background:var(--tx-coin) center/contain no-repeat;image-rendering:pixelated}
+.saltwake .ledger-prompt{display:inline-block;margin:4px 0;padding:2px 8px;border:2px solid #b8281c;border-radius:2px;color:#8a2a18!important;font-weight:700;transform:rotate(-.6deg);background:#f4e4c4}
+.saltwake .ledger-prompt::before{content:'⚑ ';color:#b8281c}
+.saltwake .trade-guidance{border-left:3px solid #e8a23c;background:linear-gradient(90deg,#3a2a12,transparent);padding:4px 8px;border-radius:2px;color:#f6dca0}
+
+/* ---------- Readability and accessibility ---------- */
+/* Telegraphs never rely on colour alone: each threat kind has its own hatch direction and a corner glyph. */
+.threat-mark::after{content:'!';position:absolute;right:2px;top:1px;font:900 clamp(9px,1.3vw,14px)/1 system-ui;color:#fff;text-shadow:0 0 2px #000,0 1px 0 #000}
+.tile.warn-bolt>.threat-mark{background:repeating-linear-gradient(0deg,#ffd75e55 0 3px,transparent 3px 8px)}
+.tile.warn-bolt>.threat-mark::after{content:'➶'}
+.tile.warn-blast>.threat-mark{background:repeating-linear-gradient(45deg,#ff2e2e55 0 3px,transparent 3px 7px),repeating-linear-gradient(-45deg,#ff2e2e55 0 3px,transparent 3px 7px)}
+.tile.warn-blast>.threat-mark::after{content:'✸'}
+.tile.warn-smash>.threat-mark{background:repeating-linear-gradient(90deg,#ff9a3c55 0 3px,transparent 3px 8px)}
+.tile.warn-smash>.threat-mark::after{content:'↻'}
+.saltwake .expedition .board button.tile.exit-cue::after{content:'⇲';position:absolute;left:3px;top:1px;z-index:4;font:900 clamp(9px,1.3vw,14px)/1 system-ui;color:#c8f5e2;text-shadow:0 0 2px #000}
+/* Visible focus on every interactive element, including skinned buttons whose shadows would hide a ring. */
+.saltwake :is(button,a,input,select,textarea,summary,[tabindex]:not([tabindex="-1"])):focus-visible{outline:3px solid #ffe5a6!important;outline-offset:2px!important}
+.saltwake .place-sign:focus-visible{outline:3px solid #ffe5a6!important;outline-offset:2px}
+.saltwake .sound-ctl .sound-volume:focus-visible{outline:3px solid #ffe5a6;outline-offset:2px}
+/* Phones: keep small labels legible. */
+@media(max-width:700px){
+ .saltwake .room-tile small{font-size:9px}
+ .saltwake .hp-pips i{height:5px}
+ .saltwake :is(.studio-hint,.trade-note,.legend,.ledger-row small){font-size:12px}
+ .saltwake .key-chip{width:18px;height:18px}
+}
+
+/* ---------- First-impression polish: empty, loading and error states ---------- */
+/* Empty states read as a quiet note with a small mark, not a dashed hole. */
+.saltwake .empty-state{position:relative;border:0;border-radius:4px;background:#0f1c1f;box-shadow:inset 0 0 0 1px #d9b86626;padding:10px 12px 10px 40px;color:#c9c2a8;font-style:italic}
+.saltwake .empty-state::before{content:'';position:absolute;left:10px;top:50%;width:20px;height:20px;transform:translateY(-50%);background:var(--sp-cache) center/contain no-repeat;image-rendering:pixelated;opacity:.75}
+.saltwake :is(.revision-insight,.maker-headline,.business-ledger,.town-board,.run-summary) .empty-state{background:transparent;box-shadow:inset 0 0 0 1px #b89a5e88;color:#5a4a30}
+/* Status and error notices. */
+.saltwake .game-notice.has-notice{border:0;border-radius:4px;background:linear-gradient(90deg,#4a2a1a,#2a1d16);box-shadow:inset 3px 0 0 #e8a23c,inset 0 0 0 1px #e8a23c44;padding:6px 10px 6px 34px!important;position:relative}
+.saltwake .game-notice.has-notice::before{content:'!';position:absolute;left:9px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;background:#e8a23c;color:#2a1d0c;font:900 11px/16px system-ui;text-align:center}
+.saltwake .game-notice.has-notice p{color:#f6dca0}
+.saltwake [role=alert]{border-radius:4px;background:#3a1610;color:#ffd8cc;box-shadow:inset 3px 0 0 #e2563c,inset 0 0 0 1px #e2563c55;padding:6px 10px}
+.saltwake .trade-notice,.saltwake .saved-notice{border-radius:3px}
+/* Loading: arrival screens without actions show a gentle tide of dots. */
+.saltwake .arrival:not(:has(button)):not(:has(.wallet-picker))::after{content:'';display:block;width:54px;height:10px;margin:14px auto 0;background:radial-gradient(circle,#d9b866 0 3px,transparent 4px) 0 50%/18px 10px repeat-x;animation:sw-loading 1.2s steps(3) infinite;opacity:.85}
+@keyframes sw-loading{0%{clip-path:inset(0 66% 0 0)}33%{clip-path:inset(0 33% 0 0)}66%{clip-path:inset(0 0 0 0)}}
+/* Busy regions dim slightly instead of jumping. */
+.saltwake [aria-busy=true]{transition:opacity .2s;opacity:.85;cursor:progress}
+@media(prefers-reduced-motion:reduce){.saltwake .arrival::after{animation:none}}
+
+/* The standalone arrival (connecting / server offline) sits in the middle of the window. */
+main.saltwake>.arrival:first-child{min-height:calc(100dvh - 70px);display:flex;flex-direction:column;justify-content:center;padding:20px}
+main.saltwake>.arrival:first-child>p{color:#d8d0b8}
+main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
+/* First-visit plot tour: a parchment note pinned to the map instead of a dark box over signs. */
+.saltwake .plot-tour-hint{background:var(--tx-parchment) 0 0/32px 32px!important;color:#3a2a18!important;border:0!important;border-radius:2px;box-shadow:inset 0 0 0 1px #b89a5e,0 4px 10px #000a!important;z-index:5}
+.saltwake .plot-tour-hint :is(b,strong){color:#5a2a14}
+.saltwake .plot-tour-hint::before{content:'';position:absolute;top:-5px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff8a7a,#b8281c 60%,#5e120c)}
+/* In a run, an empty "visible enemies" pager is noise: the heading and turn text already say the coast is clear. */
+.saltwake .expedition>aside>.game-pages:has(>.empty-state:only-child),.saltwake .expedition>aside .empty-state{display:none}
+
+/* ---------- Plate/lever to gate wires (seen only), route checks, wiring list, Check badge ---------- */
+.wire-layer{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);z-index:2;pointer-events:none;overflow:visible}
+.wire path{fill:none;stroke:#e8c56a;stroke-dasharray:.24 .12;opacity:.9;vector-effect:non-scaling-stroke;stroke-width:3px}
+.wire path.wire-bg{stroke:#000;stroke-dasharray:none;opacity:.45;stroke-width:5px}
+.wire circle{fill:#d9b866;opacity:.7}
+.wire.on path:not(.wire-bg){stroke:#ffe9a0;opacity:.95;stroke-dasharray:none;filter:drop-shadow(0 0 2px #ffd75e)}
+.wire.on circle{fill:#ffe9a0}
+.saltwake .route-check{border:0;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:inset 0 0 0 1px #d9b86640,0 2px 0 #0008;padding:8px 10px}
+.saltwake .route-check>b,.saltwake .route-check .studio-row b{font-family:var(--sw-head);color:#f3d98a;font-size:14px}
+.saltwake .route-check li{padding:3px 0 3px 4px;border-bottom:1px dotted #ffffff14}
+.saltwake .route-check li::before{display:inline-grid;place-items:center;width:16px;height:16px;margin-right:6px;border-radius:50%;font:900 10px/1 system-ui;color:#10181a}
+.saltwake .route-check li.ok::before{content:'✓';background:#8fd37a;color:#10241a}
+.saltwake .route-check li.blocked::before{content:'✕';background:#e2563c;color:#fff}
+.saltwake .route-check li.unknown::before{content:'?';background:#e8c56a;color:#2a1d0c}
+.saltwake .route-check li.blocked{color:#ffc4b4}
+.saltwake .builder-steps button{position:relative}
+/* History charts on parchment */
+.saltwake .history-chart{background:var(--tx-parchment) 0 0/32px 32px;border-radius:2px;box-shadow:inset 0 0 0 1px #b89a5e,0 2px 0 #0008;padding:6px 8px}
+.saltwake .history-chart figcaption{font-family:var(--sw-head);color:#5a2a14;font-size:14px}
+.saltwake .history-chart .axis{stroke:#8a7a58}
+.saltwake .history-chart .tick{fill:#5a4a30}
+.saltwake .history-chart .s1{stroke:#a8701c;color:#a8701c}.saltwake .history-chart .s2{stroke:#2e5a8a;color:#2e5a8a}.saltwake .history-chart .s3{stroke:#a82838;color:#a82838}.saltwake .history-chart .s4{stroke:#2f6a24;color:#2f6a24}
+.saltwake .history-chart .s2{stroke-dasharray:5 3}.saltwake .history-chart .s3{stroke-dasharray:2 2}.saltwake .history-chart .s4{stroke-dasharray:8 2 2 2}
+.saltwake .chart-legend li{color:#3a2a18}
+
+/* ---------- Character look picker (cosmetic) ---------- */
+.saltwake .sound-ctl{position:relative}
+.saltwake .look-btn{width:38px;height:34px;padding:0!important;background:linear-gradient(135deg,var(--hair) 0 38%,var(--look) 38%)!important}
+.saltwake .look-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:50;display:grid;grid-template-columns:repeat(4,44px);gap:6px;padding:8px;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:var(--sw-frame)}
+.saltwake .look-pop[hidden]{display:none}
+.saltwake .look-swatch{width:44px;height:44px;padding:2px!important;background:var(--tx-floor-a) center/100% 100%!important;image-rendering:pixelated}
+.saltwake .look-swatch .px-sprite{width:100%;height:100%}
+.saltwake .look-swatch[aria-pressed=true]{box-shadow:0 0 0 2px #f3d98a,0 0 10px #e8c56a88!important}
+
+/* ---------- Passages: drops go down a hatch, others climb stairs ---------- */
+.stairs-art.passage.down::after{content:'↓'}
+.stairs-art.passage.up::after{content:'↑'}
+.stairs-art.passage.down{filter:drop-shadow(0 0 3px #ffe9a066)}
+
+/* ---------- Adventurer offer card (playtest lane) ---------- */
+.saltwake .offer-card{background:var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border-radius:2px;box-shadow:inset 0 0 0 1px #b89a5e,0 2px 0 #0008;padding:8px 10px;font-size:13px}
+.saltwake .offer-card dt{color:#6b3a14;font-family:var(--sw-head)}
+.saltwake .offer-card :is(dd,small,p){color:#3a2a18}
+.saltwake .danger{display:inline-flex;align-items:center;gap:4px;padding:1px 8px 1px 4px;border-radius:9px;box-shadow:inset 0 0 0 1px #0005}
+.saltwake .danger::before{display:inline-grid;place-items:center;width:14px;height:14px;border-radius:50%;background:#0003;font-size:10px}
+.saltwake .danger-calm::before{content:'○'}.saltwake .danger-light::before{content:'◔'}.saltwake .danger-dangerous::before{content:'◑'}.saltwake .danger-deadly::before{content:'☠'}
+.saltwake .danger-calm{background:#3f7a38;color:#fff}.saltwake .danger-light{background:#8a9a3a;color:#141a08}.saltwake .danger-dangerous{background:#c88a2a;color:#1a1004}.saltwake .danger-deadly{background:#a8281c;color:#fff}
+.saltwake .interior-paint-grid .paint-cell>.fixture-sprite{position:absolute;inset:8%;width:auto;height:auto}
+.saltwake .interior-paint-grid .paint-cell>.fixture-keeper{position:absolute;inset:-2% 14% 30%;width:auto;height:auto}
+.saltwake .interior-paint-grid .paint-cell>.fixture-sprite.with-keeper{inset:34% 4% 10%}

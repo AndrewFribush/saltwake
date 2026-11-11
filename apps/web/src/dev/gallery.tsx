@@ -14,6 +14,10 @@ import {Sprite} from '../art/Sprite';
 import {spriteMaps,type SpriteName} from '../art/sprites';
 import {depthPractice} from '../../../../packages/game/src/draft-generator';
 import {actWithMessages} from '../../../../packages/game/src/actions';
+import {generateDraft,generatorPresets} from '../../../../packages/game/src/draft-generator';
+import {startTrial} from '../../../../packages/game/src/creator-trial';
+import {explore} from '../../../../packages/game/src/roguelike';
+import {walkable} from '../../../../packages/game/src/state';
 import type {RunState} from '../../../../packages/game/src/state';
 
 function scene():RunState{
@@ -48,8 +52,17 @@ function scene():RunState{
  return s;
 }
 
+/** ?vault=lure|ambush: a real generated Large draft, rehearsed from the floor with that room, the delver placed beside its trigger. */
+function vaultScene(kind:string):RunState{
+ const [seed,floor]=kind==='ambush'?[2,1]:[1,1];const d=generateDraft(seed,generatorPresets.large.options);
+ const st=startTrial('g','g',{floors:d.floors,placements:d.placements},'armored','tonic',floor).state;
+ const f=d.floors[floor] as any;const t=kind==='ambush'?(f.devices??[]).find((x:any)=>x.kind==='switch'):(f.features??[]).find((x:any)=>x.kind==='plate');
+ if(t)for(const [dx,dy] of [[0,2],[2,0],[0,-2],[-2,0],[1,1],[-1,1],[0,1],[1,0]]){const p={x:t.x+dx,y:t.y+dy};if(walkable(st,p)&&!st.enemies.some(e=>e.x===p.x&&e.y===p.y)){st.player={...st.player,...p};break;}}
+ explore(st);return st;
+}
+const vault=new URLSearchParams(location.search).get('vault');
 function Gallery(){
- const [s,set]=useState<RunState>(scene);const [lastBlast,setBlast]=useState(false);
+ const [s,set]=useState<RunState>(()=>vault?vaultScene(vault):scene());const [lastBlast,setBlast]=useState(false);
  const send=(a:any)=>set(prev=>actWithMessages(prev,a,()=>{}));
  return <main className="saltwake" style={{height:'auto',minHeight:0,overflow:'visible'}}>
   <section className="gallery-sheet" style={{display:'flex',flexWrap:'wrap',gap:8,padding:8}}>

@@ -141,3 +141,14 @@ test('HTTP relay: two demo sessions see each other move and chat; session identi
   await a.close();
  }finally{await new Promise<void>(resolve=>app.server.close(()=>resolve()));}
 });
+
+test('a cosmetic look id is relayed when valid and rejected when not',()=>{
+ let now=1_000;const town=new TownPresence({now:()=>now});const a=fakeStream(),b=fakeStream();
+ town.connect('buyer',a.stream);town.connect('maker',b.stream);
+ now+=100;town.move('maker',at('center',13,8));
+ now+=100;town.move('buyer',{...at('center',12,8),look:3});
+ assert.equal(b.events('join').at(-1).player.look,3);
+ now+=100;assert.throws(()=>town.move('buyer',{...at('center',12,7),look:99}),status(400));
+ now+=100;assert.throws(()=>town.move('buyer',{...at('center',12,7),look:'gold'}),status(400));
+ now+=100;town.move('buyer',at('center',12,6));assert.equal(b.events('move').at(-1).player.look,undefined,'omitted look stays omitted');
+});

@@ -17,6 +17,8 @@ export function useRegionTools(o:Options){
  const [stamps,setStamps]=useState<Stamp[]>(()=>loadStamps(o.storageScope)),[stampName,setStampName]=useState('');
  useEffect(()=>{if(!o.active){setMode('off');setAnchor(null);}},[o.active]);
  useEffect(()=>{setRect(null);setAnchor(null);},[o.floorIndex]);
+ // While selecting or stamping, Esc cancels the tool instead of closing the whole builder.
+ useEffect(()=>{if(mode==='off'&&!rect)return;const onKey=(e:KeyboardEvent)=>{if(e.key!=='Escape')return;e.preventDefault();e.stopPropagation();setMode('off');setAnchor(null);setRect(null);o.setNotice('Stopped. Esc again closes the builder.');};window.addEventListener('keydown',onKey,true);return()=>window.removeEventListener('keydown',onKey,true);},[mode,rect]);
  const persist=(next:Stamp[])=>{setStamps(next);try{localStorage.setItem(stampKey(o.storageScope),JSON.stringify(next));}catch{o.setNotice('Could not save stamps in this browser.');}};
  const h=o.floor.tiles.length,w=o.floor.tiles[0]?.length??0;
  const cut=useMemo(()=>unreachableTiles(o.floor),[o.floor.tiles,o.floor.spawn.x,o.floor.spawn.y]);

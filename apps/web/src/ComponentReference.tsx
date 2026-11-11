@@ -24,6 +24,9 @@ const featureAdvice:Record<string,{decision:string;control:string}>={
  pit:{decision:'Shove enemies into it to remove them instantly; walk around it.',control:'Shape routes without blocking sight. Combine with shove-able enemies for clever kills.'},
  fountain:{decision:'Drink now or save the draughts for later floors; it remembers what is left.',control:'Health per draught and how many draughts. Place it before or after the hard fight.'},
  altar:{decision:'Pay health now for a lasting boon, or keep your health. It cannot kill you.',control:'Which boon and its health price. A tempting price before a hard room is a real choice.'},
+ key:{decision:'Detour to fetch the key, or skip what it unlocks.',control:'Its colour. Every locked door of that colour needs one key somewhere reachable; place the key to set the detour.'},
+ lock:{decision:'Is what lies behind worth going back for the key?',control:'Its colour. Click a wall tile in Features to cut a doorway with the lock in it, or put it on a floor tile in a corridor.'},
+ plate:{decision:'Stand on it (or shove an enemy onto it) to hold a gate open, then find a way through.',control:'Its channel name. Wire it to a door in More tools → Devices with the same channel, or make the stairs need it in Exits. Check → Wiring shows what each channel controls.'},
  cache:{decision:'Collect run-only supplies (bombs, darts, flashes) and decide when to spend them.',control:'Which supply and how many. Supplies never leave the dungeon or enter the economy.'},
 };
 
@@ -31,8 +34,8 @@ function cards():Record<string,Card[]>{
  const enemies=enemyKinds.map(k=>{const e=enemyCatalog[k],a=enemyAdvice[k];return {name:e.name,cost:`${e.cost} coins`,what:`${e.hp} health, ${e.damage} damage. ${e.summary}`,decision:a?.decision??'Read its telegraph and decide whether to fight, avoid or use the terrain.',control:a?.control??'Placement and Tuning.'};});
  const features=featureKinds.map(k=>{const f=featureCatalog[k],a=featureAdvice[k];const fields=Object.values(f.fields).map(v=>Array.isArray(v)?'a choice of '+v.join(' / '):(v as {label:string}).label.toLowerCase());return {name:f.name,cost:`${f.cost} coin${f.cost>1?'s':''}`,what:f.summary,decision:a?.decision??'Decide whether using it is worth the turn.',control:a?.control??(fields.length?`Set ${fields.join(', ')}.`:'Placement.')};});
  const traps:Card[]=[
-  {name:'Spike trap',cost:'1 coin',what:'Alternates armed and safe; armed spikes hurt any creature on the tile after enemies act.',decision:'Time your step for the safe phase, or lure enemies onto it when it arms.',control:'Tuning sets cycle length, armed duration, starting phase and damage. Combine with an enemy on the same encounter.'},
-  {name:'Rising tide',cost:'free',what:'After a set number of turns on a floor, the player takes damage every turn until leaving.',decision:'Grab what you can and leave, or gamble on one more room.',control:'Turns before it rises and damage per turn, per floor.'},
+  {name:'Spike trap',cost:'1 coin',what:'Alternates armed and safe; armed spikes hurt any creature on the tile after enemies act.',decision:'Time your step for the safe phase, or lure enemies onto it when it arms.',control:'Tick “Spike trap” on an encounter in 2 Encounters; Tuning sets cycle length, armed duration, starting phase and damage.'},
+  {name:'Rising tide',cost:'free',what:'After a set number of turns on a floor, the player takes damage every turn until leaving.',decision:'Grab what you can and leave, or gamble on one more room.',control:'Per floor, in More tools → Features: tick “Rising tide on this floor”, then set the turns before it floods and the damage per turn.'},
  ];
  const rewards:Card[]=[
   {name:'Fixed reward',cost:'1 coin + the good',what:'A real good you own, placed at an encounter. Delvers keep it only if they escape.',decision:'Is this reward worth the guard standing on it?',control:'Which good, and where. Fund copies in Treasure; each copy funds one attempt.'},

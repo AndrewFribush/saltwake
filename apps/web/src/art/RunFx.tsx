@@ -3,8 +3,10 @@
  * It reads RunState snapshots and never changes game state. */
 import React,{useEffect,useRef,useState} from 'react';
 import type {RunState,Enemy} from '../../../../packages/game/src/state';
-import {doorOpen} from '../../../../packages/shared/src/mechanisms';
+import {doorOpen,signalValue} from '../../../../packages/shared/src/mechanisms';
+import {emit} from './Sound';
 import {heroFrame,Sprite,useMoving,walkFrame,type Facing} from './Sprite';
+import {lookUrl,useMyLook} from './Looks';
 import {tintedSprite,type SpriteName} from './sprites';
 
 export const enemySprite=(e:Enemy):SpriteName=>e.minion?'rat':e.kind==='charger'?'boar':e.kind==='archer'?'sentry':e.kind==='bomber'?'crab':e.kind==='brute'?'brute':e.kind==='nest'?'nest':'rat';
@@ -53,6 +55,9 @@ export function useRunFx(s:RunState):RunFx{
   if(doorFx.length){setSlams(v=>[...v,...doorFx]);const ids=new Set(doorFx.map(a=>a.id));setTimeout(()=>setSlams(v=>v.filter(x=>!ids.has(x.id))),700);if(doorFx.some(d=>d.shut)&&!reduced())setShake(n=>n+1);}
   if(now.bag>p.bag)add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:'✦',tone:'loot'});
   if((s.blasts?.length??0)>2&&hurt<=0&&!reduced())setShake(n=>n+1);
+  if(enemyHit.size)emit('hit');if(dead.length)emit('death');if(hurt>0)emit('hurt');if((s.blasts?.length??0)>0)emit('blast');
+  if(doorFx.some(d=>d.shut))emit('slam');else if(doorFx.length)emit('door');
+  if(s.tide){const left=s.tide.turns-(s.tideTurns??0);if(left===3||left<=0)emit('tide');}
   setEvents({turn:now.turn,playerLunge,playerHit:hurt>0,enemyLunge,enemyHit,enemyMoved});
   if(add.length){setFloaters(f=>[...f.slice(-8),...add]);const ids=new Set(add.map(a=>a.id));setTimeout(()=>setFloaters(f=>f.filter(x=>!ids.has(x.id))),950);}
   if(dead.length){setGhosts(g=>[...g,...dead]);const ids=new Set(dead.map(a=>a.id));setTimeout(()=>setGhosts(g=>g.filter(x=>!ids.has(x.id))),650);}
@@ -71,9 +76,9 @@ function Pips({hp,max}:{hp:number;max:number}){
 export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:RunFx;visible:Set<string>;viewport:{x:number;y:number;columns:number;rows:number};danger:boolean;ended:boolean}){
  const enemies=s.enemies.filter(e=>e.hp>0&&visible.has(`${e.x},${e.y}`));
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
- const walking=useMoving(s.player.x,s.player.y);
+ const walking=useMoving(s.player.x,s.player.y);const look=useMyLook();
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
- return <><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
+ return <><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
   {(s.blasts??[]).filter(b=>b.x>=viewport.x&&b.y>=viewport.y).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
   {fx.ghosts.map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
   {enemies.map(e=>{const flip=fx.enemyFlip.get(e.id)??(e.x>s.player.x),max=fx.maxHp.get(e.id)??e.hp,lunge=fx.enemyLunge.get(e.id),hit=fx.enemyHit.has(e.id);
@@ -84,7 +89,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
     <Pips hp={e.hp} max={max}/>
    </span>;})}
   <span className={`actor hero-actor ${walking?'walking':''} ${s.status==='died'?'fallen':''} ${danger?'in-danger':''}`} style={at(s.player,viewport)}>
-   <span key={`p-${s.turn}`} className={`actor-body ${fx.playerLunge?'lunge':''} ${fx.playerHit?'hit':''}`} style={lungeStyle(fx.playerLunge)}><Sprite name={hero} flip={heroFlip} className="actor-sprite frame-a"/><Sprite name={walkFrame(hero)} flip={heroFlip} className="actor-sprite frame-b"/></span>
+   <span key={`p-${s.turn}`} className={`actor-body ${fx.playerLunge?'lunge':''} ${fx.playerHit?'hit':''}`} style={lungeStyle(fx.playerLunge)}><span aria-hidden="true" className="px-sprite actor-sprite frame-a" style={{backgroundImage:lookUrl(hero,heroFlip,look)}}/><span aria-hidden="true" className="px-sprite actor-sprite frame-b" style={{backgroundImage:lookUrl(walkFrame(hero),heroFlip,look)}}/></span>
    {danger&&!ended&&<span className="danger-badge">!</span>}
   </span>
   {!!s.keys?.length&&<span className="key-ring" title={`Keys: ${s.keys.join(', ')}`}>{s.keys.map((k,i)=><span key={i} className="px-sprite key-chip" style={{backgroundImage:tintedSprite('key',k)}}/>)}</span>}
@@ -96,10 +101,23 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
 /** Dungeon entry: great doors swing apart at the start of a run; later floors fade in with a floor banner. */
 export function EntryCeremony({roomIndex,turn,title}:{roomIndex:number;turn:number;title:string}){
  const [show,setShow]=useState(()=>turn===0||roomIndex>0);
- useEffect(()=>{if(reduced()){setShow(false);return;}const t=setTimeout(()=>setShow(false),roomIndex===0?1400:1000);return()=>clearTimeout(t);},[]);
+ useEffect(()=>{emit(roomIndex===0&&turn===0?'open':'door');if(reduced()){setShow(false);return;}const t=setTimeout(()=>setShow(false),roomIndex===0?1400:1000);return()=>clearTimeout(t);},[]);
  if(!show)return null;
  return <div className={`entry-ceremony ${roomIndex===0&&turn===0?'doors':'descend'}`} aria-hidden="true">
   {roomIndex===0&&turn===0&&<><span className="entry-door left"/><span className="entry-door right"/></>}
   <span className="entry-title">{roomIndex===0&&turn===0?title:`Floor ${roomIndex+1}`}</span>
  </div>;
+}
+
+/** Faint wire from each seen switch or pressure plate to the gates (and nothing else) on its channel. */
+export function WireLayer({s,viewport}:{s:RunState;viewport:{x:number;y:number;columns:number;rows:number}}){
+ const seen=(p:{x:number;y:number})=>!s.roguelike||!!s.explored?.includes(`${s.roomIndex}:${p.x},${p.y}`);
+ const inputs=[...(s.devices??[]).filter(d=>d.kind==='switch').map(d=>({x:d.x,y:d.y,channel:d.channel})),...(s.features??[]).filter(f=>f.kind==='plate'&&!f.spent).map(f=>({x:f.x,y:f.y,channel:(f as any).channel as string}))].filter(seen);
+ const gates=(s.devices??[]).filter(d=>d.kind==='door').filter(seen);
+ const lines=inputs.flatMap(a=>gates.filter(g=>g.channel===a.channel).map(g=>({a,g,on:signalValue(s.signals,a.channel),open:doorOpen(g,s.signals??{})})));
+ if(!lines.length)return null;
+ const cx=(x:number)=>x-viewport.x+.5,cy=(y:number)=>y-viewport.y+.5;
+ return <svg className="wire-layer" aria-hidden="true" viewBox={`0 0 ${viewport.columns} ${viewport.rows}`} preserveAspectRatio="none">
+  {lines.map((l,i)=><g key={i} className={`wire ${l.on?'on':''}`}><path className="wire-bg" d={`M${cx(l.a.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.g.y)}`}/><path d={`M${cx(l.a.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.g.y)}`}/><circle cx={cx(l.a.x)} cy={cy(l.a.y)} r=".09"/><circle cx={cx(l.g.x)} cy={cy(l.g.y)} r=".09"/></g>)}
+ </svg>;
 }
