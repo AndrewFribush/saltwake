@@ -159,4 +159,8 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - The plot-tour hint over the first town view is a pinned parchment note instead of a dark box (`first-town.jpg`). First shop checked (`first-shop.jpg`).
 - Checks: typecheck, game 187, web 31, server 168, build pass.
 
-Next step: first dungeon run and builder first open in the judge path; price history/charts, route/Wiring lists and ⚠ Check badge when they land.
+### 22. First-screens polish (part 2)
+- First real dungeon run (paid entry on the local sandbox): the run aside no longer shows a "Nothing here yet." box when no enemy is in sight; the way-out line and turn text already say so (`first-run.jpg`). Builder first open was checked in earlier passes (coach, steps, area tools).
+- Checks: typecheck, web 31, build pass (game/server unchanged since part 1).
+
+Next step: price history/charts, route/Wiring lists and ⚠ Check badge when they land.
