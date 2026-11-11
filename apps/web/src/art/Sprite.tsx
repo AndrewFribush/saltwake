@@ -3,6 +3,10 @@ import {spriteUrl,textureVars,type SpriteName} from './sprites';
 
 export type Facing='up'|'down'|'left'|'right';
 
+/** Ambient light follows the player's local clock: morning, day, evening, night (html[data-daypart]). */
+export function daypart(h=new Date().getHours()){return h>=6&&h<10?'morning':h>=10&&h<17?'day':h>=17&&h<21?'evening':'night';}
+if(typeof document!=='undefined'){const set=()=>{document.documentElement.dataset.daypart=new URLSearchParams(location.search).get('daypart')??daypart();};set();setInterval(set,5*60_000);}
+
 // Install texture variables once so every stylesheet can use var(--tx-*).
 if(typeof document!=='undefined'){const root=document.documentElement;for(const [k,v] of Object.entries(textureVars))root.style.setProperty(k,v);
  for(const n of ['rat','boar','sentry','crab','brute','nest','keg','crack','fountain','altar','cache','loot','stairs','spikesArmed','spikesSafe'] as SpriteName[])root.style.setProperty(`--sp-${n}`,spriteUrl(n));}

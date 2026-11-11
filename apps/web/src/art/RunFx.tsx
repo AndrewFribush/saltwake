@@ -3,6 +3,7 @@
  * It reads RunState snapshots and never changes game state. */
 import React,{useEffect,useRef,useState} from 'react';
 import type {RunState,Enemy} from '../../../../packages/game/src/state';
+import {doorOpen} from '../../../../packages/shared/src/mechanisms';
 import {heroFrame,Sprite,useMoving,walkFrame,type Facing} from './Sprite';
 import {tintedSprite,type SpriteName} from './sprites';
 
@@ -10,21 +11,22 @@ export const enemySprite=(e:Enemy):SpriteName=>e.minion?'rat':e.kind==='charger'
 
 type Pt={x:number;y:number};
 type Floater={id:number;x:number;y:number;text:string;tone:'hurt'|'heal'|'hit'|'loot'};
+type Slam={id:number;x:number;y:number;shut:boolean};
 type Ghost={id:number;x:number;y:number;sprite:SpriteName;flip:boolean;minion:boolean};
-type Snap={room:number;turn:number;hp:number;pos:Pt;enemies:Map<string,Enemy>;bag:number};
+type Snap={room:number;turn:number;hp:number;pos:Pt;enemies:Map<string,Enemy>;bag:number;doors:Map<string,boolean>};
 let seq=0;
 const bagCount=(s:RunState)=>Object.values(s.items).filter(i=>i.location.kind!=='floor').length+Object.values(s.supplies??{}).reduce((n,v)=>n+(v??0),0);
-const snap=(s:RunState):Snap=>({room:s.roomIndex,turn:s.turn,hp:s.player.hp,pos:{x:s.player.x,y:s.player.y},enemies:new Map(s.enemies.map(e=>[e.id,{...e}])),bag:bagCount(s)});
+const snap=(s:RunState):Snap=>({room:s.roomIndex,turn:s.turn,hp:s.player.hp,pos:{x:s.player.x,y:s.player.y},enemies:new Map(s.enemies.map(e=>[e.id,{...e}])),bag:bagCount(s),doors:new Map((s.devices??[]).filter(d=>d.kind==='door').map(d=>[d.id,doorOpen(d,s.signals??{})]))});
 const adj=(a:Pt,b:Pt)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))===1;
 const dirTo=(a:Pt,b:Pt):Facing=>{const dx=b.x-a.x,dy=b.y-a.y;return Math.abs(dx)>=Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');};
 const reduced=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export type RunFx={enemyMoved:Set<string>;floaters:Floater[];ghosts:Ghost[];shake:number;playerFacing:Facing;playerLunge:Pt|null;playerHit:boolean;enemyLunge:Map<string,Pt>;enemyHit:Set<string>;enemyFlip:Map<string,boolean>;maxHp:Map<string,number>};
+export type RunFx={slams:Slam[];enemyMoved:Set<string>;floaters:Floater[];ghosts:Ghost[];shake:number;playerFacing:Facing;playerLunge:Pt|null;playerHit:boolean;enemyLunge:Map<string,Pt>;enemyHit:Set<string>;enemyFlip:Map<string,boolean>;maxHp:Map<string,number>};
 
 /** Diff consecutive states into short-lived visual events. */
 export function useRunFx(s:RunState):RunFx{
  const prev=useRef<Snap|null>(null),facing=useRef<Facing>('down'),flips=useRef(new Map<string,boolean>()),maxHp=useRef(new Map<string,number>());
- const [floaters,setFloaters]=useState<Floater[]>([]),[ghosts,setGhosts]=useState<Ghost[]>([]),[shake,setShake]=useState(0);
+ const [slams,setSlams]=useState<Slam[]>([]),[floaters,setFloaters]=useState<Floater[]>([]),[ghosts,setGhosts]=useState<Ghost[]>([]),[shake,setShake]=useState(0);
  const [events,setEvents]=useState<{turn:number;playerLunge:Pt|null;playerHit:boolean;enemyLunge:Map<string,Pt>;enemyHit:Set<string>;enemyMoved:Set<string>}>({turn:-1,playerLunge:null,playerHit:false,enemyLunge:new Map(),enemyHit:new Set(),enemyMoved:new Set()});
  for(const e of s.enemies)if(!maxHp.current.has(e.id)||maxHp.current.get(e.id)!<e.hp)maxHp.current.set(e.id,e.hp);
  useEffect(()=>{
@@ -47,6 +49,8 @@ export function useRunFx(s:RunState):RunFx{
    for(const e of s.enemies){const old=p.enemies.get(e.id);if(old&&old.x===e.x&&old.y===e.y&&adj(e,now.pos)&&!e.stunned){enemyLunge.set(e.id,{x:now.pos.x-e.x,y:now.pos.y-e.y});break;}}
    if((hurt>=3||(s.blasts?.length??0)>0)&&!reduced())setShake(n=>n+1);}
   else if(hurt<0)add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:`+${-hurt}`,tone:'heal'});
+  const doorFx:Slam[]=[];for(const d of s.devices??[])if(d.kind==='door'&&p.doors.has(d.id)&&p.doors.get(d.id)!==now.doors.get(d.id))doorFx.push({id:++seq,x:d.x,y:d.y,shut:!now.doors.get(d.id)});
+  if(doorFx.length){setSlams(v=>[...v,...doorFx]);const ids=new Set(doorFx.map(a=>a.id));setTimeout(()=>setSlams(v=>v.filter(x=>!ids.has(x.id))),700);if(doorFx.some(d=>d.shut)&&!reduced())setShake(n=>n+1);}
   if(now.bag>p.bag)add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:'✦',tone:'loot'});
   if((s.blasts?.length??0)>2&&hurt<=0&&!reduced())setShake(n=>n+1);
   setEvents({turn:now.turn,playerLunge,playerHit:hurt>0,enemyLunge,enemyHit,enemyMoved});
@@ -54,7 +58,7 @@ export function useRunFx(s:RunState):RunFx{
   if(dead.length){setGhosts(g=>[...g,...dead]);const ids=new Set(dead.map(a=>a.id));setTimeout(()=>setGhosts(g=>g.filter(x=>!ids.has(x.id))),650);}
  },[s]);
  const fresh=events.turn===s.turn;
- return {enemyMoved:fresh?events.enemyMoved:new Set(),floaters,ghosts,shake,playerFacing:facing.current,playerLunge:fresh?events.playerLunge:null,playerHit:fresh&&events.playerHit,enemyLunge:fresh?events.enemyLunge:new Map(),enemyHit:fresh?events.enemyHit:new Set(),enemyFlip:flips.current,maxHp:maxHp.current};
+ return {slams,enemyMoved:fresh?events.enemyMoved:new Set(),floaters,ghosts,shake,playerFacing:facing.current,playerLunge:fresh?events.playerLunge:null,playerHit:fresh&&events.playerHit,enemyLunge:fresh?events.enemyLunge:new Map(),enemyHit:fresh?events.enemyHit:new Set(),enemyFlip:flips.current,maxHp:maxHp.current};
 }
 
 const at=(p:Pt,v:{x:number;y:number;columns:number;rows:number}):React.CSSProperties=>({left:`${(p.x-v.x)/v.columns*100}%`,top:`${(p.y-v.y)/v.rows*100}%`,width:`${100/v.columns}%`,height:`${100/v.rows}%`});
@@ -84,6 +88,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
    {danger&&!ended&&<span className="danger-badge">!</span>}
   </span>
   {!!s.keys?.length&&<span className="key-ring" title={`Keys: ${s.keys.join(', ')}`}>{s.keys.map((k,i)=><span key={i} className="px-sprite key-chip" style={{backgroundImage:tintedSprite('key',k)}}/>)}</span>}
+  {fx.slams.map(d=><span key={d.id} className={`fx-door ${d.shut?'shut':'open'}`} style={at(d,viewport)}><i/><i/><i/><i/><i/></span>)}
   {fx.floaters.map(f=><span key={f.id} className={`fx-float tone-${f.tone}`} style={at(f,viewport)}>{f.text}</span>)}
  </div></>;
 }

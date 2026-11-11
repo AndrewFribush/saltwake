@@ -103,4 +103,18 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Sweep: measured page height with town, wallet, inventory, help, session, room, service and run windows open at 390×844, 768×1024, 1280×720 and 1440×900. The phone run view overflowed by 84 px (practice buttons); window content now scrolls inside its own window (run aside/inventory, drawers, idle inspector, room service), and the phone purse drawer is capped to its window. No page scroll remains in any measured state. I could not reproduce the reported 865 px wallet case in demo mode; the HUD wrap and drawer cap address the likely causes.
 - Checks: typecheck, game 181, web 30, server 163, build pass.
 
-Next step: re-check wallet mode (testnet) layout when a wallet session is available; small polish as other lanes land UI.
+### 14. Wallet-mode recheck, way-out cue, gate slams
+- Rechecked in local wallet mode (`scripts/wallet-sandbox.ts`, server `--wallet-local`, dev test signer, player registered on the local sandbox only): at 390×844 the open wallet with the coin buy-in panel now scrolls inside its drawer; page height stays 844 (`phone-wallet-local-mode.jpg`).
+- Way-out cue: my tile skin had been hiding dungeon-depth's green pulse; exit-cue tiles now pulse green above the floor art and the stairs glow green; the way-out line gets an arrow and a green rule.
+- Gates (door devices) that change state get a dust burst; a slam (open to shut, as in the ambush stash) also flashes the gate and shakes the board once.
+- v13 fallback shapes from depth.css are hidden wherever my key/lock/plate sprites draw.
+- Checks: typecheck, game 181, web 31, server 163, build pass.
+
+### 15. Ledgers and ambient light
+- Maker results headline and the edition track record read as ruled parchment ledgers with inked numbers; notice-board "Latest" outcomes are icon chips (escaped ↑ green, died ✕ red, abandoned ↩ grey, expired ⌛ amber). One small edit in TownBoard.tsx (chips instead of a joined string).
+- Ambient light follows the local clock (`html[data-daypart]`, preview with `?daypart=evening|night`): morning haze, warm evening tint with glowing windows, a cool night tint; rooms get lamplight from above and a soft vignette, stronger after dark. The dungeon is untouched so telegraphs stay exact.
+- Checks: typecheck, game 181, web 31, server 163, build pass.
+
+Checked on the demo town: notice-board outcome chips render on the pinned notes (`after-board-outcome-chips.jpg`).
+
+Next step: polish as lanes land UI; maker steward ledger with a busier demo edition.
