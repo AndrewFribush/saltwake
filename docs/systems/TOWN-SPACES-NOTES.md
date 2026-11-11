@@ -70,6 +70,14 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - The notice board says, in the local demo, that the first buildings, stock and runs are demonstration supply. README updated.
 - Ran the real `npm run sandbox` end to end: board lists Rat warren / Hollow gate / The drowned stair with "Latest: abandoned", and the three shelf shops.
 
+## Round 6: wording fixes and private trades
+
+- Quayside sign counts only market stock (bank stock + listings not in a player shop). Treasure-free dungeons say "n places open now · no treasure" on the board and in the expedition offer; the catacombs sign says "n open places".
+- **Private offers (contract change, no migration):** new action `list_for {item_ids, unit_price, buyer}` appended at Borsh index 23 (mirrored in `protocol.ts`). It is `list` plus a reservation stored under its own storage key `listing-buyer:<listing id>` (outside the state struct, written only after the command commits, so rejections reserve nothing; listing ids are never reused). `buy` refuses anyone else with `ReservedForAnotherBuyer`. Seller cancel returns unsold goods as before. Unknown or self buyer is rejected. The snapshot gains `reservations` (active listings only, omitted when empty so older snapshot comparisons stay equal); `/api/world` passes it through. No expiry: the seller withdraws to recover goods.
+- UI: the trade panel offers privately by default ("Only the proprietor can buy", untick for public), announces in chat, and the buyer sees "Offered to you: only you can buy this". The market's player-offer list hides offers reserved for others and marks offers to you.
+- Tests: `tests/contract/private-trades.test.ts` (refusal by others, idempotent replay, reserved buyer buys, cancel returns goods, rejected offers leave the next public listing open, credit/item conservation); HTTP check in `town-spaces-http.test.ts`. Browser: the delver offered a club privately to the proprietor; the proprietor saw "Offered to you" and bought it.
+- Needs a contract redeploy on testnet for `list_for` (coordinator).
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
