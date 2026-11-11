@@ -168,3 +168,14 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .saltwake .town-chat-log b{color:var(--sw-brass)}
 .saltwake .studio-tabs button:not(.tile){font-family:var(--sw-head);letter-spacing:.02em}
 .presence-name{paint-order:stroke;stroke:#000;stroke-width:3px;font-weight:700}
+
+/* Shopkeepers stand behind their service fixture. */
+.saltwake .room-board .room-tile>.fixture-keeper{position:absolute;inset:-2% 14% 30%;width:auto;height:auto;animation:sw-idle 1.8s steps(2) infinite}
+.saltwake .room-board .room-tile>.fixture-sprite.with-keeper{inset:34% 4% 10%}
+
+/* Builder grids share the dungeon and room textures (CSS only). */
+.saltwake .fb-grid button.fb-cell.fb-ground{background:var(--tx-floor-a) center/100% 100% no-repeat}
+.saltwake .fb-grid button.fb-cell.fb-wall{background:var(--tx-wall) center/100% 100% no-repeat}
+.saltwake .fb-grid button.fb-cell{color:#fff3d0;text-shadow:0 1px 0 #000,0 0 3px #000;font-weight:800}
+.saltwake .interior-paint-grid button.paint-cell{background:var(--tx-plank-a) center/100% 100% no-repeat;color:#fff3d0;text-shadow:0 1px 0 #000}
+.saltwake .interior-paint-grid button.paint-cell.paint-wall{background:var(--tx-plaster) center/100% 100% no-repeat}

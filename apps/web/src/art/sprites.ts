@@ -103,6 +103,9 @@ const coin=[
 export const spriteMaps={coin,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
+/** Shopkeeper: the hero drawing with a blue coat and grey hair. */
+const keeperPal:Palette={...pal,y:'#5f84a6',Y:'#3e5c7a',h:'#b9b3a2',H:'#857f70',b:'#e8dcc0'};
+export const keeperUrl=dataUrl(pixelSvg(heroDown,keeperPal));
 const urls=new Map<string,string>();
 export function spriteUrl(name:SpriteName,flip=false){const k=name+(flip?':f':'');let u=urls.get(k);if(!u){u=dataUrl(pixelSvg(spriteMaps[name],pal,flip));urls.set(k,u);}return u;}
 /** Two-frame flame strip (32×16) for burning oil and lit fuses. */
