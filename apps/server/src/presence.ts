@@ -38,7 +38,7 @@ export class TownPresence{
  readonly #players=new Map<string,Entry>();
  readonly #history=new Map<string,ChatMessage[]>();
  readonly #now:()=>number;readonly #o:Required<Omit<PresenceOptions,'now'>>;
- #seq=0;readonly #reports:{at:number;reporter:string;from:string;messageId:string;text:string;space:string|null}[]=[];readonly #reportTimes=new Map<string,number[]>();#sweeper?:ReturnType<typeof setInterval>;
+ #seq=0;readonly #timeouts=new Map<string,number>();readonly #reports:{at:number;reporter:string;from:string;messageId:string;text:string;space:string|null}[]=[];readonly #reportTimes=new Map<string,number[]>();#sweeper?:ReturnType<typeof setInterval>;
  constructor(options:PresenceOptions={}){
   this.#now=options.now??Date.now;
   this.#o={staleMs:20_000,moveMinMs:40,chatMax:160,chatBurst:5,chatWindowMs:10_000,historySize:20,historyMs:5*60_000,maxPlayers:200,maxStreamsPerPlayer:4,pingMs:15_000,...options};
@@ -87,6 +87,7 @@ export class TownPresence{
  }
 
  chat(id:string,text:unknown):ChatMessage{
+  const until=this.#timeouts.get(id);if(until&&until>this.#now())throw new PresenceError(`You are timed out from chat for ${Math.ceil((until-this.#now())/60000)} more minute(s)`,403);
   const entry=this.#require(id);const district=spaceOf(entry.player);
   if(!district)throw new PresenceError('Step outside to talk in town',409);
   const clean=normalizeChat(text,this.#o.chatMax);const now=this.#now();
@@ -110,6 +111,9 @@ export class TownPresence{
   console.warn('[presence report]',JSON.stringify(report));return {ok:true};
  }
  reports(){return this.#reports.map(r=>({...r}));}
+ /** Operator moderation (local demo/operator only; routed in http.ts): silence a chatter for 1-60 minutes. Chat only; no effect on the economy. */
+ timeout(player:string,minutes:unknown){if(typeof player!=='string'||!player||player.length>128||!Number.isInteger(minutes)||(minutes as number)<1||(minutes as number)>60)throw new PresenceError('Invalid time-out',400);const until=this.#now()+(minutes as number)*60000;this.#timeouts.set(player,until);return {player,until};}
+ timeouts(){const now=this.#now();return [...this.#timeouts].filter(([,u])=>u>now).map(([player,until])=>({player,until}));}
  /** Drops players whose clients stopped heartbeating (half-open connections, sleeping tabs). */
  sweep(){
   const now=this.#now();

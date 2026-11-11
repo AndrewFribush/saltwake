@@ -3,7 +3,7 @@ import type {FeatureState} from '../../../../packages/game/src/state';
 import {Sprite} from './Sprite';
 import {tintedSprite,type SpriteName} from './sprites';
 
-const art:Partial<Record<FeatureState['kind'],SpriteName>>={barrel:'keg',crack:'crack',fountain:'fountain',altar:'altar',cache:'cache',plate:'plate'};
+const art:Partial<Record<FeatureState['kind'],SpriteName>>={barrel:'keg',crack:'crack',fountain:'fountain',altar:'altar',cache:'cache',plate:'plate',clock:'plate'}; // clock: plate sprite until look-feel draws one
 
 /** Dungeon feature drawing for one tile. Oil and chasms are drawn by CSS (skin.css) so they tile cleanly. */
 export function FeatureArt({feature,lit,on=false}:{feature:FeatureState;lit:boolean;on?:boolean}){

@@ -416,7 +416,7 @@ impl Economy {
     fn process_command(&mut self, op_id: String, mut command: Command, player: bool) -> Receipt {
         let input_limit = match &command.action {
             Action::Publish { terms, .. } | Action::PublishRandom { terms, .. }
-                if matches!(terms.rules_version, 9 | 10 | 11 | 12 | 13) => 131072,
+                if matches!(terms.rules_version, 9 | 10 | 11 | 12 | 13 | 14) => 131072,
             _ => 32768,
         };
         assert!(

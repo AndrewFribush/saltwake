@@ -5,9 +5,10 @@ import type {CustomFloor,FloorLink} from '../../shared/src/custom-layout';
 import {defaultFeature,maxFeaturesPerFloor,maxFeaturesTotal,type Feature} from '../../shared/src/depth-components';
 import {validChannel,type Device} from '../../shared/src/mechanisms';
 type P={x:number;y:number};
-export type PuzzlePiece='plate'|'key'|'lock'|'switch'|'door'|'passage';
+export type PuzzlePiece='plate'|'clock'|'key'|'lock'|'switch'|'door'|'passage';
 export const puzzlePieces:Record<PuzzlePiece,{name:string;glyph:string;summary:string}>={
  plate:{name:'Pressure plate',glyph:'▫',summary:'Its channel is on while any creature stands on it. Lure or shove an enemy onto it to hold a gate open.'},
+ clock:{name:'Tide clock',glyph:'◷',summary:'Rules v14. Its channel is on for some turns of every cycle: wire a gate to it for a timed door, or an exit condition for a timed exit.'},
  switch:{name:'Switch / lever',glyph:'⚡',summary:'Stepping on it toggles, sets or clears its channel. Channels persist across floors.'},
  door:{name:'Gate',glyph:'▣',summary:'Blocks movement and sight unless its channel matches “opens when”. Wire it to a plate or switch with the same channel.'},
  key:{name:'Key',glyph:'⚷',summary:'Picked up on contact; opens one lock of the same colour on any floor.'},
@@ -15,7 +16,7 @@ export const puzzlePieces:Record<PuzzlePiece,{name:string;glyph:string;summary:s
  passage:{name:'Passage',glyph:'↪',summary:'Walk onto it to travel to another floor. With no passage back it is a one-way drop.'},
 };
 export type PuzzleThing={kind:'feature';feature:Feature}|{kind:'device';device:Device}|{kind:'passage';link:FloorLink};
-const puzzleFeatures=new Set(['plate','key','lock']);
+const puzzleFeatures=new Set(['plate','clock','key','lock']);
 export function puzzleAt(floor:CustomFloor,x:number,y:number):PuzzleThing|null{
  const f=(floor.features??[]).find(f=>f.x===x&&f.y===y&&puzzleFeatures.has(f.kind));if(f)return {kind:'feature',feature:f};
  const d=(floor.devices??[]).find(d=>d.x===x&&d.y===y);if(d)return {kind:'device',device:d};
@@ -28,11 +29,11 @@ export function placePuzzlePiece(floors:CustomFloor[],index:number,piece:PuzzleP
  if(floor.tiles[y]?.[x]!=='.')return 'Puzzle pieces go on floor tiles.';
  const taken=[floor.spawn,floor.exit,...floor.sockets,...(floor.devices??[]),...(floor.features??[]),...(floor.links??[])].some(p=>p.x===x&&p.y===y);
  if(taken)return 'That tile already holds something. Pick a free floor tile.';
- if(piece==='plate'||piece==='key'||piece==='lock'){
+ if(piece==='plate'||piece==='clock'||piece==='key'||piece==='lock'){
   if((floor.features??[]).length>=maxFeaturesPerFloor||floors.reduce((n,f)=>n+(f.features?.length??0),0)>=maxFeaturesTotal)return `Use at most ${maxFeaturesPerFloor} features per floor and ${maxFeaturesTotal} in all.`;
-  if(piece==='plate'&&!validChannel(o.channel))return 'Channels start with a letter, then letters, digits, _ or -.';
-  if(piece!=='plate'&&!o.color.trim())return 'Give the key or lock a colour name.';
-  const f={...defaultFeature(piece,o.id,x,y),...(piece==='plate'?{channel:o.channel}:{color:o.color.trim()})} as Feature;
+  if((piece==='plate'||piece==='clock')&&!validChannel(o.channel))return 'Channels start with a letter, then letters, digits, _ or -.';
+  if((piece==='key'||piece==='lock')&&!o.color.trim())return 'Give the key or lock a colour name.';
+  const f={...defaultFeature(piece,o.id,x,y),...(piece==='plate'||piece==='clock'?{channel:o.channel}:{color:o.color.trim()})} as Feature;
   (floor.features??=[]).push(f);return null;
  }
  if(piece==='switch'||piece==='door'){
@@ -79,16 +80,16 @@ export type ChannelWiring={channel:string;plates:P[];switches:(P&{mode:string;fl
 /** How each channel used on a floor is wired, with plain-language problems. Switches on other floors count. */
 export function channelWiring(floors:readonly CustomFloor[],index:number):ChannelWiring[]{
  const f=floors[index];if(!f)return [];
- const local=new Set([...(f.devices??[]).map(d=>d.channel),...(f.features??[]).flatMap(x=>x.kind==='plate'?[x.channel]:[]),...(f.exit_rule?.channel!==undefined?[f.exit_rule.channel]:[])]);
+ const local=new Set([...(f.devices??[]).map(d=>d.channel),...(f.features??[]).flatMap(x=>x.kind==='plate'||x.kind==='clock'?[x.channel]:[]),...(f.exit_rule?.channel!==undefined?[f.exit_rule.channel]:[])]);
  return [...local].sort().map(channel=>{
-  const plates=floors.flatMap(g=>(g.features??[]).flatMap(x=>x.kind==='plate'&&x.channel===channel?[{x:x.x,y:x.y}]:[]));
+  const plates=floors.flatMap(g=>(g.features??[]).flatMap(x=>(x.kind==='plate'||x.kind==='clock')&&x.channel===channel?[{x:x.x,y:x.y}]:[]));
   const switches=floors.flatMap((g,i)=>(g.devices??[]).flatMap(d=>d.kind==='switch'&&d.channel===channel?[{x:d.x,y:d.y,mode:d.mode,floor:i}]:[]));
   const doors=(f.devices??[]).flatMap(d=>d.kind==='door'&&d.channel===channel?[{x:d.x,y:d.y,openWhen:d.open_when}]:[]);
   const exit=f.exit_rule?.channel===channel,issues:string[]=[];
   const drivers=plates.length+switches.length,users=floors.reduce((n,g)=>n+(g.devices??[]).filter(d=>d.kind==='door'&&d.channel===channel).length+(g.exit_rule?.channel===channel?1:0),0);
   if(!drivers)issues.push('Nothing drives this channel: add a plate or switch with the same name.');
   if(!users)issues.push('Nothing listens to this channel: add a gate or an exit condition with the same name.');
-  if(plates.length&&switches.length)issues.push('A plate rewrites this channel every turn, so switches on it are overridden.');
-  return {channel,plates:floors[index].features?.flatMap(x=>x.kind==='plate'&&x.channel===channel?[{x:x.x,y:x.y}]:[])??[],switches:switches.filter(s=>s.floor===index),doors,exit,issues};
+  if(plates.length&&switches.length)issues.push('A plate or clock rewrites this channel every turn, so switches on it are overridden.');
+  return {channel,plates:floors[index].features?.flatMap(x=>(x.kind==='plate'||x.kind==='clock')&&x.channel===channel?[{x:x.x,y:x.y}]:[])??[],switches:switches.filter(s=>s.floor===index),doors,exit,issues};
  });
 }
