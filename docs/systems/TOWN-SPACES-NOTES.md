@@ -56,6 +56,13 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - **Display shelves** (`decor-display-<8 hex>` fixtures, valid on the current contract without changes): owners place them in the shop interior builder; active listings spread over the shelves, each shelf tile shows an item icon, and walking up shows the goods with "Buy one" (ordinary `buy` at the exact listed price). Browser-checked on chain: shop with 2 shelves, 2 listings; the delver bought a fine tonic from a shelf (10 → 4 coins, item transferred, shelf count dropped).
 - **Claim-a-plot tour**: a player with no buildings sees a dashed "free plot" on the nearest land the contract would accept (`suggestPlot`/`footprintBlocked` mirror shops.rs; ShopBuilder now uses the same rule) and a one-time note pointing at Build here; "Got it" remembers per profile.
 
+## Round 4
+
+- **Public records on the board** (server side, `apps/server/src/edition-record.ts`, `shop-record.ts`): each edition record carries `recent` (up to five latest confirmed outcomes, newest first, outcome + time only); every shop in `/api/world` carries `publicRecord` {sold, buyers, coverage} derived from confirmed receipts (no buyer names, no revenue; the owner still gets the full `record`). The board shows "Latest: died · escaped …" and "n sold to m buyers". Browser-checked.
+- **HTTP lifecycle test** `apps/server/test/town-spaces-http.test.ts`: publish → dungeon entrance → shelf shop → third plot → fourth refused (PlotLimit) → stock → visitor buys → public record visible to the visitor, owner receipts hidden → demolition refused while stocked / by non-owner → withdraw → demolish → plot reusable, stock back with the owner.
+- Merged main after the look-feel landing (d085054); board, tour, banners, dungeon mark and pin still render; no console errors.
+- Land lifecycle not changed: abandoning/reclaiming idle plots would need an activity timestamp in contract state (a migration) and an economic rule for who may reclaim; left as a proposal.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
