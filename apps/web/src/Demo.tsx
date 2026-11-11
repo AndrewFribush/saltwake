@@ -25,6 +25,7 @@ import {catalog} from '../../../packages/shared/src/catalog';
 import {Workbench} from './Workbench';
 import type {Action} from '../../../packages/game/src/actions';
 import type {RunState} from '../../../packages/game/src/state';
+const PENDING_NOTICE='Pending confirmation.';
 import type {Item,EditionTerms} from '../../../packages/shared/src/types';
 type RunView={id:string;seq:number;state:RunState;deadline:string;roomTitle:string;roomCount:number;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean;terminal:string|null;settlement:any};
 type World={shops?:Shopfront[];shopContract?:boolean;wallet?:WalletView;listings?:unknown[];npc_order?:unknown;profile:string;credits:string;items:Item[];editions:{record?:EditionRecordData;id:string;maker:string;terms:EditionTerms;fee:string;version:string;closed:boolean;active:number;status:string;bundles:number;remainingValue:number;reservedValue:number;extractedValue?:string;consumedValue?:string;bankedValue?:string;pendingConsumptionValue:number;valueBalanced:boolean|null;originalValue:string;refreshValue:string}[];runs:RunView[];operations:{id:string;status:string;reason?:string;result?:string}[]};
@@ -53,7 +54,9 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
   drawer?.addEventListener('keydown',onKey);return()=>{covered.forEach((el,i)=>{el.inert=states[i];});drawer?.removeEventListener('keydown',onKey);if(previous?.isConnected)previous.focus({preventScroll:true});};
  },[walletOpen,personalOpen,sessionOpen,helpOpen]);
  const refresh=async()=>{const generation=worldGeneration.current;const sequence=++refreshSequence.current;const w=await api('world') as World;if(generation!==worldGeneration.current||sequence!==refreshSequence.current)return;setWorld(w);setRunId(current=>current??w.runs.find(r=>!r.terminal)?.id);const pendingKey=pendingCommandKey(w.profile);const pending=sessionStorage.getItem(pendingKey);if(pending){const id=walletConnection?await walletConnection.operationId(JSON.parse(pending).id):w.profile+'-'+JSON.parse(pending).id;if(generation!==worldGeneration.current||sequence!==refreshSequence.current)return;if(w.operations.some(o=>o.id===id&&['Applied','Rejected'].includes(o.status)))sessionStorage.removeItem(pendingKey);}
- setSelected(ids=>ids.filter(id=>w.items.some(i=>i.id===id)));};
+ setSelected(ids=>ids.filter(id=>w.items.some(i=>i.id===id)));
+ // A retried/recovered command resolves outside this component; drop its stale banner once nothing is pending.
+ if(!sessionStorage.getItem(pendingKey))setNotice(n=>n.startsWith(PENDING_NOTICE)?'':n);};
  useEffect(()=>{let stopped=false;(walletConnection?Promise.resolve():api('session',{})).then(()=>{if(!stopped)return refresh();}).catch(e=>setNotice(e.message));const timer=setInterval(()=>{if(!inflight.current&&!polling.current){polling.current=true;void refresh().catch(e=>setNotice(e.message)).finally(()=>{polling.current=false;});}},3000);return()=>{stopped=true;worldGeneration.current++;clearInterval(timer);};},[]);
  const work=async(fn:()=>Promise<unknown>)=>{if(inflight.current||childBusy)return;inflight.current=true;setBusy(true);try{await fn();await refresh();setNotice('');}catch(e){setNotice((e as Error).message);}finally{inflight.current=false;setBusy(false);}};
  const command=async(action:unknown)=>{
@@ -61,7 +64,7 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
   if(saved&&JSON.stringify(pending.action)!==JSON.stringify(action))throw Error('Retry or reconcile the earlier command before changing it.');
   sessionStorage.setItem(key,JSON.stringify(pending));const r=walletConnection?await walletConnection.execute(pending.id,pending.action):await api('command',{...pending,expectedProfile:world?.profile});
   if(r.status==='Applied'||r.status==='Rejected')sessionStorage.removeItem(key);
-  if(r.status==='Rejected'){await refresh();throw Error(r.result);}if(r.status==='Unknown'||r.status==='Pending')throw Error('Pending confirmation. Keep the same request; do not enter again.');
+  if(r.status==='Rejected'){await refresh();throw Error(r.result);}if(r.status==='Unknown'||r.status==='Pending')throw Error(PENDING_NOTICE+' Keep the same request; do not enter again.');
  };
  const loadout=planLoadout(selected.flatMap(id=>world?.items.find(i=>i.id===id)??[]));
  const suggestions=world?matchEditions(world.editions,world.profile,{...preferences,maxFee:Math.min(preferences.maxFee,Number(world.credits))},rotation):[];
