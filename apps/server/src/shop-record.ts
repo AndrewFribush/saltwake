@@ -1,5 +1,5 @@
 import type {EconomySnapshot} from '../../../packages/shared/src/types';
-import type {ShopRecord,ShopSale} from '../../../packages/shared/src/shop-record';
+import type {PublicShopRecord,ShopRecord,ShopSale} from '../../../packages/shared/src/shop-record';
 import type {StoredOperation} from './db';
 /** Revenue from confirmed receipts only. Never infer sales from cancelled-listing residuals. */
 export function shopRecord(world:EconomySnapshot,operations:readonly StoredOperation[],shopId:string):ShopRecord{
@@ -16,4 +16,9 @@ export function shopRecord(world:EconomySnapshot,operations:readonly StoredOpera
  const unrecordedSoldItems=listings.filter(l=>l.status!=='cancelled').reduce((sum,l)=>sum+l.item_ids.filter(id=>!l.remaining_ids.includes(id)&&!itemsSeen.has(`${l.id}:${id}`)).length,0);
  const cancelledListings=listings.filter(l=>l.status==='cancelled').length,missingListings=shop.listing_ids.filter(id=>!listings.some(l=>l.id===id)).length;
  return {sales,recordedRevenue:revenue.toString(),recordedItems:sales.reduce((sum,s)=>sum+s.itemIds.length,0),stockItems:world.items.filter(i=>i.location.kind==='listed'&&listingIds.has(i.location.listing)).length,coverage:unrecordedSoldItems||cancelledListings||missingListings?'partial':'complete',unrecordedSoldItems,cancelledListings,missingListings};
+}
+
+/** Public projection for the town notice board: counts only. */
+export function publicShopRecord(world:EconomySnapshot,operations:readonly StoredOperation[],shopId:string):PublicShopRecord{
+ const r=shopRecord(world,operations,shopId);return {sold:r.recordedItems,buyers:new Set(r.sales.map(s=>s.buyer)).size,coverage:r.coverage};
 }

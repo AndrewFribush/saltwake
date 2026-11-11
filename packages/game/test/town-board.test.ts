@@ -7,12 +7,13 @@ const shops=[{id:'shop-0',owner:'maker',title:'Hollow gate',district:'e',x:4,y:1
  {id:'shop-1',owner:'p2',title:'Tonic stall',district:'center',x:14,y:7,interior:JSON.stringify(defaultInterior('market')),version:'1',open:true,listing_ids:['listing-1','listing-2']},
  {id:'shop-2',owner:'p3',title:'Shut stall',district:'center',x:4,y:10,interior:JSON.stringify(defaultInterior('market')),version:'1',open:false,listing_ids:[]}];
 test('the notice board lists player buildings from public records',()=>{
- const editions=[{id:'edition-0',fee:'3',status:'open',bundles:2,terms:{title:'Smugglers'},record:{attempts:5,completed:4,extracted:1,died:3}}];
+ const editions=[{id:'edition-0',fee:'3',status:'open',bundles:2,terms:{title:'Smugglers'},record:{attempts:5,completed:4,extracted:1,died:3,recent:[{outcome:'died',finishedAtMs:9},{outcome:'extracted',finishedAtMs:5}]}}];
  const listings=[{id:'listing-1',status:'active',unit_price:'4',remaining_ids:['a','b']},{id:'listing-2',status:'active',unit_price:'9',remaining_ids:['c']},{id:'listing-3',status:'active',unit_price:'1',remaining_ids:['d']}];
  const e=boardEntries(shops,editions,listings);
  assert.deepEqual(e.map(x=>x.shopId),['shop-1','shop-0','shop-2'],'open first, then district order');
  assert.deepEqual(e[0].goods,{count:3,min:4,max:9});
- assert.deepEqual(e[1].dungeon,{title:'Smugglers',fee:'3',status:'open',funded:2,attempts:4,extracted:1,died:3});
+ assert.deepEqual(e[1].dungeon,{title:'Smugglers',fee:'3',status:'open',funded:2,treasure:true,attempts:4,extracted:1,died:3,recent:['died','extracted']});
+ assert.deepEqual(boardEntries([{...shops[1],publicRecord:{sold:7,buyers:2}}],[],listings)[0].goods,{count:3,min:4,max:9,sold:7,buyers:2});
  assert.deepEqual(e[1].door,{x:5,y:11});
  assert.equal(boardEntries([shops[0]],[],[])[0].dungeon,null,'missing edition is disclosed, not invented');
 });

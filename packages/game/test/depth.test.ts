@@ -100,3 +100,17 @@ test('generated drafts are valid for many seeds and practice runs start',()=>{
  for(let seed=1;seed<=40;seed++){const d=generateDraft(seed);for(const f of d.floors)assert.deepEqual(validateCustomFloor(f,'depth'),[]);}
  assert.equal(depthPractice(3).status,'active');
 });
+
+test('generator presets stay affordable and fit-my-budget picks the largest that fits',async()=>{
+ const {generatorPresets,estimateDraft,fitBudget,generateDraft:gen}=await import('../src/draft-generator');
+ for(let seed=1;seed<=30;seed++){const d=gen(seed,generatorPresets.small.options);const e=estimateDraft(d);assert.ok(e.coins<=14&&e.goods<=1,`seed ${seed}: ${e.coins}`);for(const f of d.floors)assert.deepEqual(validateCustomFloor(f,'depth'),[]);}
+ assert.equal(fitBudget(5,12,0)?.preset,'small');assert.equal(fitBudget(5,12,0)?.treasure,false);
+ assert.equal(fitBudget(5,1000,100)?.preset,'large');
+ assert.equal(fitBudget(5,4,0),null);
+});
+
+test('balance harness: careful play survives Small; reckless play on Large usually dies',async()=>{
+ const {simulate}=await import('../../../scripts/depth-sim');
+ const small=Array.from({length:12},(_,i)=>simulate(i+1,'small','cautious'));assert.ok(small.filter(r=>r.status==='died').length<=1);
+ const large=Array.from({length:12},(_,i)=>simulate(i+1,'large','reckless'));assert.ok(large.filter(r=>r.status==='died').length>=8);
+});

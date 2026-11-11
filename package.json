@@ -16,7 +16,8 @@
     "build:contract": "cargo build --manifest-path contracts/economy/Cargo.toml --target wasm32-unknown-unknown --release --locked",
     "verify": "npm run typecheck && npm run build:contract && npm test && npm run test:web && npm run test:contract && npm run test:server && npm run build",
     "server": "tsx apps/server/src/main.ts",
-    "sandbox": "tsx scripts/demo-sandbox.ts"
+    "sandbox": "tsx scripts/demo-sandbox.ts",
+    "sim:depth": "tsx scripts/depth-sim.ts"
   },
   "dependencies": {
     "@near-wallet-selector/core": "10.1.4",

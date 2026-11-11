@@ -6,7 +6,9 @@ import {attackDamage} from '../../../packages/game/src/state';
 import {appendPlayEvent,type PlayTrace} from '../../../packages/game/src/play-events';
 import {Pages,Reading} from './GamePanels';
 import {TileArt} from './tileset';
-import {CharacterSprite} from './CharacterSprite';
+import {Sprite} from './art/Sprite';
+import {ActorLayer,useRunFx} from './art/RunFx';
+import {FeatureArt} from './art/FeatureArt';
 import React, {useState, useRef} from 'react';
 import {distance} from '../../../packages/game/src/state';
 import {keyAction} from '../../../packages/game/src/controls';
@@ -22,8 +24,6 @@ import {featureAt,type FeatureState,type Enemy} from '../../../packages/game/src
 import {supplyTargetError,who} from '../../../packages/game/src/depth';
 import './depth.css';
 import {depthPractice} from '../../../packages/game/src/draft-generator';
-const spriteFor=(e:Enemy)=>e.minion?'rat':e.kind==='charger'?'boar':e.kind==='archer'?'sentry':e.kind==='bomber'?'crab':e.kind==='brute'?'brute':e.kind==='nest'?'nest':'rat';
-const featureGlyph:Record<FeatureState['kind'],string>={barrel:'',crack:'',oil:'',pit:'',fountain:'',altar:'',cache:''};
 const featureLabel=(f:FeatureState)=>f.kind==='barrel'?`Powder keg${f.fuse?' · lit, bursts next turn':' · bump to light'}`:f.kind==='crack'?`Cracked wall · ${f.hp} bump${f.hp>1?'s':''} to break`:f.kind==='oil'?(f.burning?`Burning oil · ${f.burning} turns`:'Oil slick · flammable'):f.kind==='pit'?'Chasm · shove enemies in':f.kind==='fountain'?`Salt spring · +${f.heal} health, ${f.charges} left`:f.kind==='altar'?`Blood altar · pay ${f.cost} health: ${altarBoons[f.boon]}`:`Supply cache · ${f.count} × ${supplyCatalog[f.supply].name}`;
 
 export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;terminal:string|null;settlement:any;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean}}) {
@@ -56,11 +56,12 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
  const nameOf=(e:Enemy)=>s.depth?who(e):e.id;
  const targets=visibleEnemies.map(e=>`${nameOf(e)}: ${enemyTelegraph(s,e)}`).join(' ');
  const viewport=floorViewport(s.room[0].length,s.room.length,s.player.x-6,s.player.y-4);
+ const fx=useRunFx(s);
  return <section className={`expedition ${compact?`compact-run run-tab-${compactTab.toLowerCase()}`:''}`}>
  {compact&&<nav className="studio-tabs" aria-label="Rehearsal sections">{(['Map','Bag','Journal'] as const).map(t=><button type="button" key={t} aria-pressed={compactTab===t} onClick={()=>setCompactTab(t)}>{t}</button>)}</nav>}
   <div>
    <div className="status"><strong>{remote?.title??roomTitle(s)} · {s.roomIndex+1}/{remote?.roomCount??s.layout?.length??2}</strong><span>Health {s.player.hp}/12 · Turn {s.turn}{s.tide?` · ${(s.tideTurns??0)>=s.tide.turns?`Flooding −${s.tide.damage}/turn`:`Tide in ${s.tide.turns-(s.tideTurns??0)}`}`:''}{s.buffs?.might?` · Might +${s.buffs.might}`:''}{s.buffs?.ward?` · Ward +${s.buffs.ward}`:''}</span></div>
-   <div className="board" style={{gridTemplateColumns:`repeat(${viewport.columns},1fr)`,gridTemplateRows:`repeat(${viewport.rows},minmax(0,1fr))`,aspectRatio:`${viewport.columns}/${viewport.rows}`}} ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait. Select Shove mode to push instead of attack." onKeyDown={e=>{
+   <div className={`board ${fx.shake?(fx.shake%2?'shake-a':'shake-b'):''}`} style={{gridTemplateColumns:`repeat(${viewport.columns},1fr)`,gridTemplateRows:`repeat(${viewport.rows},minmax(0,1fr))`,aspectRatio:`${viewport.columns}/${viewport.rows}`}} ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait. Select Shove mode to push instead of attack." onKeyDown={e=>{
     const a=keyAction(s,e);if(a){e.preventDefault();if(e.key==='Escape'&&aiming){setAiming(null);return;}send(a.type==='attack'&&shoving&&canShove?{type:'shove',enemyId:a.enemyId}:a);}else if(e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)e.preventDefault();
    }}>
     {s.room.slice(viewport.y,viewport.y+viewport.rows).flatMap((row,dy)=>[...row].slice(viewport.x,viewport.x+viewport.columns).map((tile,dx)=>{const x=viewport.x+dx,y=viewport.y+dy;
@@ -76,18 +77,17 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
      const connection=s.connections?.find(l=>l.x===x&&l.y===y);
      const exit=remote?.exit??roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
      const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?nameOf(enemy):trap?'spikes':loot?'loot':connection?`passage to floor ${connection.to+1}${connection.require_clear&&s.enemies.length?' · clear room first':''}`:isExit?'exit':'floor'}${feature?` · ${featureLabel(feature)}`:''}${hatch?' · rat hatching here':''}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
-     return <button key={`${x},${y}`} className={`tile ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${threat} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
+     return <button key={`${x},${y}`} className={`tile ${(x*7+y*13)%5<2?'alt':''} ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${threat} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
       {seen&&<TileArt wall={tile==='#'}/>}
-      {seen&&(lit||isExit||!!connection)&&(player?<CharacterSprite/>:<span aria-hidden="true" className={`game-sprite ${player?'delver':enemy?spriteFor(enemy):trap?trap.armed?'spikes':'safe-spikes':loot?'loot':connection?'stairs':isExit?'stairs':tile==='#'?'stone':'ground'}`}>{player?'':enemy?'':trap?'':loot?'◆':connection?'↪':isExit?'≡':''}</span>)}
-      {feature&&!player&&!enemy&&<span aria-hidden="true" className={`depth-feature f-${feature.kind} ${feature.kind==='barrel'&&feature.fuse?'lit':''} ${feature.kind==='oil'&&feature.burning?'burning':''} ${lit?'':'dim'}`}>{featureGlyph[feature.kind]}</span>}
-      {feature&&(player||enemy)&&feature.kind!=='crack'&&<span aria-hidden="true" className={`depth-under f-${feature.kind} ${feature.kind==='oil'&&feature.burning?'burning':''}`}/>}
+      {seen&&(lit||isExit||!!connection)&&(connection||isExit?<Sprite name="stairs" className={`tile-thing stairs-art ${connection?'passage':''}`}/>:trap?<Sprite name={trap.armed?'spikesArmed':'spikesSafe'} className={`tile-thing spikes-art ${trap.armed?'armed':''}`}/>:null)}
+      {feature&&<FeatureArt feature={feature} lit={lit}/>}
+      {seen&&lit&&loot&&<Sprite name="loot" className="tile-thing loot-art"/>}
       {hatch&&<span aria-hidden="true" className="depth-hatch"/>}
-      {enemy?.stunned?<span aria-hidden="true" className="depth-stun">✶</span>:null}
       {device&&<span aria-hidden="true" style={{position:'absolute',right:2,bottom:2,color:device.kind==='switch'?'#ffe08a':doorOpen(device,s.signals??{})?'#8df0c5':'#ff9696',background:'#16202b',borderRadius:3,padding:'0 3px',fontWeight:700,zIndex:2}}>{device.kind==='switch'?'⚡':doorOpen(device,s.signals??{})?'▯':'▣'}</span>}
-      {player&&warning&&<span className="danger-badge" aria-hidden="true">!</span>}
-      {enemy&&<small className="enemy-health">{enemy.hp} HP</small>}
+      {(warning||!!threat)&&<span aria-hidden="true" className="threat-mark"/>}
      </button>;
     }))}
+    <ActorLayer s={s} fx={fx} visible={visible} viewport={viewport} danger={danger.has(`${s.player.x},${s.player.y}`)} ended={ended}/>
    </div>
    <div className="controls">
     {canShove&&<button aria-pressed={shoving} disabled={ended} onClick={()=>{setShoving(!shoving);board.current?.focus();}}>Shove mode {shoving?'on':'off'}</button>}

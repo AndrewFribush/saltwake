@@ -56,6 +56,28 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - **Display shelves** (`decor-display-<8 hex>` fixtures, valid on the current contract without changes): owners place them in the shop interior builder; active listings spread over the shelves, each shelf tile shows an item icon, and walking up shows the goods with "Buy one" (ordinary `buy` at the exact listed price). Browser-checked on chain: shop with 2 shelves, 2 listings; the delver bought a fine tonic from a shelf (10 → 4 coins, item transferred, shelf count dropped).
 - **Claim-a-plot tour**: a player with no buildings sees a dashed "free plot" on the nearest land the contract would accept (`suggestPlot`/`footprintBlocked` mirror shops.rs; ShopBuilder now uses the same rule) and a one-time note pointing at Build here; "Got it" remembers per profile.
 
+## Round 4
+
+- **Public records on the board** (server side, `apps/server/src/edition-record.ts`, `shop-record.ts`): each edition record carries `recent` (up to five latest confirmed outcomes, newest first, outcome + time only); every shop in `/api/world` carries `publicRecord` {sold, buyers, coverage} derived from confirmed receipts (no buyer names, no revenue; the owner still gets the full `record`). The board shows "Latest: died · escaped …" and "n sold to m buyers". Browser-checked.
+- **HTTP lifecycle test** `apps/server/test/town-spaces-http.test.ts`: publish → dungeon entrance → shelf shop → third plot → fourth refused (PlotLimit) → stock → visitor buys → public record visible to the visitor, owner receipts hidden → demolition refused while stocked / by non-owner → withdraw → demolish → plot reusable, stock back with the owner.
+- Merged main after the look-feel landing (d085054); board, tour, banners, dungeon mark and pin still render; no console errors.
+- Land lifecycle not changed: abandoning/reclaiming idle plots would need an activity timestamp in contract state (a migration) and an economic rule for who may reclaim; left as a proposal.
+
+## Round 5: demonstration town
+
+- `scripts/demo-town.ts`, run by `npm run sandbox` by default (`--plain` or `--empty` skip it). After the starter setup it starts an in-process copy of the API on the new epoch's own server database and drives it like separate browsers (one cookie jar per demo character): the proprietor publishes "The drowned stair" (drafting-table Medium preset, no treasure) and builds entrances for it and the starter edition plus "Proprietor's pantry" (3 display shelves; herbs, flasks, fine tonics); the wayfarer publishes "Rat warren" (Small preset, cost checked against its coins) and builds its entrance; the mercenary and scavenger open one-shelf shops with their own clubs; the delver and newcomer pay into the two preset dungeons bare-handed and abandon, so the board shows settled runs. Every building has an authored notice. Terms use the same floor shaping as the drafting table (`designFloor` copy in the script; FloorBuilder untouched).
+- Test `apps/server/test/demo-town.test.ts`: no credit or item issuance, 6 buildings within the 3-plot limit, 3 entrances + 3 stocked shops on the board, 2 abandoned runs, notices present.
+- The notice board says, in the local demo, that the first buildings, stock and runs are demonstration supply. README updated.
+- Ran the real `npm run sandbox` end to end: board lists Rat warren / Hollow gate / The drowned stair with "Latest: abandoned", and the three shelf shops.
+
+## Round 6: wording fixes and private trades
+
+- Quayside sign counts only market stock (bank stock + listings not in a player shop). Treasure-free dungeons say "n places open now · no treasure" on the board and in the expedition offer; the catacombs sign says "n open places".
+- **Private offers (contract change, no migration):** new action `list_for {item_ids, unit_price, buyer}` appended at Borsh index 23 (mirrored in `protocol.ts`). It is `list` plus a reservation stored under its own storage key `listing-buyer:<listing id>` (outside the state struct, written only after the command commits, so rejections reserve nothing; listing ids are never reused). `buy` refuses anyone else with `ReservedForAnotherBuyer`. Seller cancel returns unsold goods as before. Unknown or self buyer is rejected. The snapshot gains `reservations` (active listings only, omitted when empty so older snapshot comparisons stay equal); `/api/world` passes it through. No expiry: the seller withdraws to recover goods.
+- UI: the trade panel offers privately by default ("Only the proprietor can buy", untick for public), announces in chat, and the buyer sees "Offered to you: only you can buy this". The market's player-offer list hides offers reserved for others and marks offers to you.
+- Tests: `tests/contract/private-trades.test.ts` (refusal by others, idempotent replay, reserved buyer buys, cancel returns goods, rejected offers leave the next public listing open, credit/item conservation); HTTP check in `town-spaces-http.test.ts`. Browser: the delver offered a club privately to the proprietor; the proprietor saw "Offered to you" and bought it.
+- Needs a contract redeploy on testnet for `list_for` (coordinator).
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.

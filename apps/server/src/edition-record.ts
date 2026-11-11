@@ -28,6 +28,8 @@ export function editionRecord(world: EconomySnapshot, db: Store, editionId: stri
       durations.push((saved.finishedAtMs!-saved.startedAtMs!)/1000);
     }
   }
+  const recent=completed.map((run,i)=>{const saved=db.get<SavedRun>('run',run.id);const at=saved?.terminal===run.status&&Number.isSafeInteger(saved.finishedAtMs)?saved.finishedAtMs!:null;return {outcome:run.status as 'extracted'|'died'|'abandoned'|'expired',finishedAtMs:at,i};})
+    .sort((a,b)=>(b.finishedAtMs??-1)-(a.finishedAtMs??-1)||b.i-a.i).slice(0,5).map(({outcome,finishedAtMs})=>({outcome,finishedAtMs}));
   const count=(status:string)=>runs.filter(r=>r.status===status).length;
-  return {attempts:runs.length,completed:completed.length,active:count('active'),voided:count('void'),extracted:count('extracted'),died:count('died'),abandoned:count('abandoned'),expired:count('expired'),participants:new Set(completed.map(r=>r.player)).size,lootSamples:loot.length,averageLoot:mean(loot),medianLoot:median(loot),durationSamples:durations.length,averageSeconds:mean(durations),medianSeconds:median(durations)};
+  return {attempts:runs.length,completed:completed.length,active:count('active'),voided:count('void'),extracted:count('extracted'),died:count('died'),abandoned:count('abandoned'),expired:count('expired'),participants:new Set(completed.map(r=>r.player)).size,lootSamples:loot.length,averageLoot:mean(loot),medianLoot:median(loot),durationSamples:durations.length,averageSeconds:mean(durations),medianSeconds:median(durations),recent};
 }
