@@ -45,4 +45,10 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Kept the dungeon-depth run summary, turn log and telegraph colour scheme: the threat overlay now takes its colour from the tile's `warn-*` class (bolt gold, blast red, brute sweep orange; other danger coral). Town keeps `townTerrain` and dungeon-hall roofs with the new textures; Interior keeps builder/notice fixtures, room overlay and idle hints with the new furniture/door art and player facing.
 - Checks after merge: typecheck, game 171, web 30, server 157, build pass.
 
-Next step: shopkeepers behind counters, water animation, builder grid textures; mobile pass (map window larger when idle in town; dungeon board centring in the real layout); then more feedback polish (pickup sparkle, stairs glow, low-health vignette).
+### 4. Second and third merges; Town.tsx kept nearly untouched
+- Town textures now come from CSS: `skin.css` maps the flat colours Town.tsx paints (grass, road, water, wall, timber, slate, four roof colours) onto pixel patterns defined in `art/Places.tsx` via attribute selectors. Town.tsx differs from main by three lines only (import, `<TownPatterns/>`, avatar glide/facing), so the town-spaces lane can keep editing it.
+- Shopkeepers (palette-swapped hero) stand behind service fixtures; harbour water drifts (SMIL, off under reduced motion); builder floor grid and interior paint grid use the floor/wall textures.
+- Per-house floors keep the playtest lane's distinctions with textures: inn planks, market pale flagstones, workshop and gatehouse slate, guild carpet. Fixtures keep a faint gold ring.
+- Checks after merge with build/dungeon-loop 0364ad8: typecheck, game 176, web 30, server 157, build pass.
+
+Next step: skin the builder/trade UI and player buildings (owner banners, notice board, display shelves); mobile pass (map window larger when idle in town; dungeon board centring in the real layout); then more feedback polish (pickup sparkle, stairs glow, low-health vignette).
