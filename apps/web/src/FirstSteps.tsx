@@ -1,4 +1,5 @@
 import React from 'react';
+import {bestOutlets} from './outlets';
 import type {Item} from '../../../packages/shared/src/types';
 
 /** Per-browser memory of things the world snapshot cannot attribute to a player (e.g. a bank sale). */
@@ -22,7 +23,7 @@ export function FirstSteps({world,hidden}:{world:any;hidden:boolean}){
   ...(offer?.eligible?[{id:'wage',title:`Earn a wage (${offer.wage} coins)`,text:`Short of coin? Ivo at the Copper Kettle pays for a recovery job: three timed stirs, no ingredients needed. Keep going until you can afford a batch of ingredients (8 coins); ${offer.jobsLeft} ${offer.jobsLeft===1?'job':'jobs'} left.`,done:false}]:[]),
   {id:'stock',title:'Stock up on ingredients',text:`At Quayside market, buy 2 herbs and 2 flasks from the merchant counter (8 coins).${Number(world.credits)<8?` You have ${world.credits}: earn or sell first, or look for cheaper player offers.`:''}`,done:stocked},
   {id:'brew',title:'Brew tonics',text:'Talk to Ivo at the Copper Kettle. Hit all three gold marks for fine tonics, which are worth more.',done:brewed},
-  {id:'sell',title:'Sell or trade',text:'The bank buys tonics at the market counter (Sell tab), and a standing order pays more for fine ones. Or offer goods to other players: click someone in town to trade.',done:sold},
+  {id:'sell',title:'Sell or trade',text:`Tonics now fetch: ${bestOutlets(world,'tonic').text}. Fine tonics: ${bestOutlets(world,'fineTonic').text}. Or click someone in town to trade.`,done:sold},
   ...(delved?[(()=>{const gearTypes=['club','sword','armor','tonic','fineTonic'];const items=(world.listedItems??[]) as Item[];const active=((world.listings??[]) as {id:string;seller:string;remaining_ids:string[];unit_price:string;status:string}[]).filter(l=>l.status==='active'&&l.seller!==profile);
    const where=((world.shops??[]) as {title:string;owner:string;listing_ids:string[]}[]).filter(sh=>sh.owner!==profile).map(sh=>{const types=new Set<string>(active.filter(l=>sh.listing_ids.includes(l.id)).flatMap(l=>l.remaining_ids.map(id=>items.find(i=>i.id===id)?.item_type as string|undefined)).filter((t):t is string=>!!t&&gearTypes.includes(t)));return types.size?`${sh.title} (${[...types].map(t=>t==='fineTonic'?'fine tonics':t+'s').join(', ')})`:'';}).filter(Boolean);
    const packed=count('club')+count('sword')+count('armor')+count('tonic')+count('fineTonic')>0;

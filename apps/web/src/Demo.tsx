@@ -73,7 +73,7 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
   if(r.status==='Rejected'){await refresh();throw Error(r.result);}if(r.status==='Unknown'||r.status==='Pending')throw Error(PENDING_NOTICE+' Keep the same request; do not enter again.');
  };
  const loadout=planLoadout(selected.flatMap(id=>world?.items.find(i=>i.id===id)??[]));
- const suggestions=world?matchEditions(world.editions,world.profile,{...preferences,maxFee:Math.min(preferences.maxFee,Number(world.credits))},rotation):[];
+ const suggestions=world?matchEditions(world.editions,world.profile,{...preferences,maxFee:Math.min(preferences.maxFee,Number(world.credits))},rotation,12):[]; // the gate pages one offer at a time, so list every match
  const run=world?.runs.find(r=>r.id===runId)??world?.runs.find(r=>!r.terminal);
  const act=(action:Action)=>void work(async()=>{if(!run)return;const p=pendingAction.current??{run:run.id,id:crypto.randomUUID(),seq:run.seq,action};pendingAction.current=p;try{await api('runs/'+p.run+'/action',{id:p.id,seq:p.seq,action:p.action});pendingAction.current=undefined;}catch(e){if(e instanceof ApiError&&e.status>=400&&e.status<500&&e.status!==408)pendingAction.current=undefined;throw e;}});
  const toggle=(id:string)=>setSelected(ids=>ids.includes(id)?ids.filter(i=>i!==id):[...ids,id]);
