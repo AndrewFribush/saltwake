@@ -78,3 +78,14 @@ Playing Saltwake as a stranger on a local sandbox (web 18970, API 18971), fixing
 **Played:** a fresh wallet player registered and bought 10 coins in the purse (`buy_coins`, credited 10). A second fresh player opened the drafting table and went to step 5. It saw "Opening this design costs 2 coins and you have 0" with a "Buy 2 coins for 0.02 NEAR" button, bought, and opened the dungeon straight away. Total time from registration to an open dungeon was under a minute, with no minigames.
 
 **Fixed along the way:** the merged Vite config ignored `**/.claude/**`, which matched every file in a worktree, so worktree dev servers stopped hot-reloading. The ignores are now anchored to the checkout root. In the builder, the buy box sits after the cost message and before Pay, so the step fits in the window.
+
+## Round 5: newcomer in the merged builder (with dungeon-depth features)
+
+**Tried:** "Generate starting floors", then closed the builder, reloaded, and went to the Open step.
+
+**Wrong:**
+- On generated (larger) floors, the map pan controls (left/right/up/down) sat on top of the brush row, so neither could be used.
+- Drafts only saved when you pressed "Save drafts". Closing the builder or reloading threw away a generated layout.
+- The generated layout costs **84 coins** (12 enemies 30, 5 traps 5, 7 treasure spots 7, features 40) and needs 7 owned goods. The Open step showed only the total. (The generator defaults belong to the dungeon-depth lane, so I flagged them there.)
+
+**Fixed:** pan controls moved into the map's top-right corner. Drafts autosave about 0.7 s after each edit and on close, and the footer says so. The Open step breaks the placement cost down and says to remove some to open for less. The coach mentions the generator as the fastest start.
