@@ -370,7 +370,9 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 /* ---------- Top bar wordmark ---------- */
 .saltwake .game-shell>.player-hud::before{content:'Saltwake';display:flex;align-items:center;gap:8px;flex-shrink:0;padding:0 14px 0 44px;height:38px;background:var(--tx-crest) 2px 50%/34px 34px no-repeat;image-rendering:pixelated;font:600 22px/1 var(--sw-head);letter-spacing:.08em;color:#f3d98a;text-shadow:0 2px 0 #5a3a14,0 4px 10px #000a;border-right:1px solid #d9b86633;margin-right:4px}
 .saltwake .world-hint>span{font-family:var(--sw-head);color:#f3d98a}
-@media(max-width:700px){.saltwake .game-shell>.player-hud::before{content:'';padding:0 0 0 36px;background-size:30px 30px;border-right:0;margin-right:0}}
+/* Phones: the HUD is a fixed 58px row with no room for the wordmark (it pushed Session onto a second line). */
+@media(max-width:900px){.saltwake .game-shell>.player-hud::before{display:none}}
+@media(max-width:700px){.saltwake .game-shell>.player-hud{flex-wrap:nowrap;overflow:hidden}}
 
 /* ---------- v13 keys, locked doors, pressure plates ---------- */
 .feature-art.f-lock{z-index:2}
@@ -381,3 +383,50 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .key-ring{position:absolute;left:4px;top:4px;z-index:9;display:flex;gap:2px;padding:3px 5px;border-radius:3px;background:#0c1618d9;box-shadow:inset 0 0 0 1px #d9b86655}
 .key-chip{width:clamp(16px,2.2vw,26px);height:clamp(16px,2.2vw,26px)}
 @media(prefers-reduced-motion:reduce){.feature-art.f-key .feature-sprite{animation:none}}
+
+/* ---------- Crafting juice: bubbling kettle, timing track, quality reveal ---------- */
+.saltwake .alchemy-scene{position:relative;box-shadow:var(--sw-frame);border:0;background:radial-gradient(ellipse at 20% 80%,#3a2a1844,transparent 60%),linear-gradient(#1d2f28,#142325)}
+.saltwake .cauldron{box-shadow:0 13px 0 -8px #b27943,0 21px 18px -9px #ff9a3c,0 26px 30px -10px #ff6a1aaa;animation:sw-fire 1.2s ease-in-out infinite}
+@keyframes sw-fire{50%{box-shadow:0 13px 0 -8px #c98a4a,0 21px 22px -8px #ffb05a,0 28px 36px -10px #ff7a2acc}}
+.saltwake .brew{overflow:visible;animation:sw-brew 2.4s ease-in-out infinite}
+@keyframes sw-brew{50%{background:#9cc274;box-shadow:inset 0 3px #d4e094}}
+.saltwake .brew::before,.saltwake .brew::after{content:'';position:absolute;bottom:4px;width:7px;height:7px;border-radius:50%;background:#c8e08a;border:1px solid #6e8a48;opacity:0;animation:sw-bubble 1.6s ease-in infinite}
+.saltwake .brew::before{left:22%}.saltwake .brew::after{left:62%;animation-delay:.8s;width:5px;height:5px}
+@keyframes sw-bubble{0%{transform:translateY(0) scale(.4);opacity:0}30%{opacity:1}80%{transform:translateY(-16px) scale(1);opacity:.9}100%{transform:translateY(-20px) scale(1.3);opacity:0}}
+.saltwake .cauldron::before{content:'';position:absolute;left:30%;top:-46px;width:40%;height:40px;border-radius:50%;background:radial-gradient(circle at 50% 70%,#e8e2d066,transparent 65%);filter:blur(2px);animation:sw-steam 2.6s ease-out infinite}
+@keyframes sw-steam{0%{transform:translateY(10px) scale(.6);opacity:0}40%{opacity:.8}100%{transform:translateY(-14px) scale(1.4);opacity:0}}
+.saltwake .batch-marks span{transition:transform .15s}
+.saltwake .batch-marks .hit{animation:sw-markhit .45s ease-out;box-shadow:0 0 10px #9fe07a88}
+.saltwake .batch-marks .miss{animation:sw-markmiss .35s ease-out}
+@keyframes sw-markhit{0%{transform:scale(.4)}60%{transform:scale(1.35)}}
+@keyframes sw-markmiss{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}}
+.saltwake .mixing-track,.saltwake section[aria-label="Alchemy crafting practice"]>div[aria-hidden]{background:linear-gradient(#0b1416,#122023)!important;border:1px solid #070d0c!important;border-radius:4px!important;box-shadow:inset 0 2px 4px #000a,0 0 0 1px #9c8a5a66}
+.saltwake .mixing-track>span:first-child,.saltwake section[aria-label="Alchemy crafting practice"]>div[aria-hidden]>div:first-child{background:linear-gradient(#ecd07f,#b8913f)!important;border:0!important;box-shadow:0 0 12px #e8c56a88;animation:sw-band 1s ease-in-out infinite}
+@keyframes sw-band{50%{box-shadow:0 0 20px #f3d98acc}}
+.saltwake .mixing-track>span:nth-child(2),.saltwake section[aria-label="Alchemy crafting practice"]>div[aria-hidden]>div:nth-child(2){background:#fff6d8!important;box-shadow:0 0 8px #fff6d8,0 0 2px #000}
+.saltwake .craft-result{position:relative;overflow:hidden;border-radius:4px;box-shadow:var(--sw-frame);animation:sw-reveal .6s cubic-bezier(.2,1.4,.4,1)}
+.saltwake .craft-result::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,#fff6d855 50%,transparent 70%);transform:translateX(-100%);animation:sw-shine 1.1s .35s ease-out forwards;pointer-events:none}
+.saltwake .craft-result .item-icon{animation:sw-pop .5s .15s ease-out both}
+.saltwake .craft-result:has(.icon-fineTonic){box-shadow:0 0 0 1px #2a1d0c,0 0 0 3px #e8c56a,0 0 24px #e8c56a88}
+.saltwake .craft-result:has(.icon-fineTonic) .item-icon{filter:drop-shadow(0 0 8px #ffd75e)}
+@keyframes sw-reveal{0%{transform:scale(.85);opacity:0}100%{transform:none;opacity:1}}
+@keyframes sw-shine{to{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){.saltwake .cauldron,.saltwake .brew,.saltwake .brew::before,.saltwake .brew::after,.saltwake .cauldron::before,.saltwake .batch-marks span,.saltwake .craft-result,.saltwake .craft-result::after,.saltwake .mixing-track>span:first-child{animation:none!important}}
+
+/* ---------- Dungeon entry ceremony ---------- */
+.entry-ceremony{position:absolute;inset:0;z-index:20;pointer-events:none;overflow:hidden;display:grid;place-items:center}
+.entry-door{position:absolute;top:0;bottom:0;width:50%;background:repeating-linear-gradient(90deg,#5a3a22 0 22px,#4a2e1a 22px 24px),#5a3a22;box-shadow:inset 0 0 0 4px #2a1a10,inset 0 30px 0 -22px #8f9279,inset 0 -30px 0 -22px #8f9279}
+.entry-door::after{content:'';position:absolute;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;border:3px solid #d9b866;box-shadow:0 0 6px #000}
+.entry-door.left{left:0;transform-origin:left center;animation:sw-door-l 1.2s .25s cubic-bezier(.6,0,.4,1) forwards}
+.entry-door.right{right:0;transform-origin:right center;animation:sw-door-r 1.2s .25s cubic-bezier(.6,0,.4,1) forwards}
+.entry-door.left::after{right:12px}.entry-door.right::after{left:12px}
+@keyframes sw-door-l{to{transform:perspective(600px) rotateY(80deg);opacity:.2}}
+@keyframes sw-door-r{to{transform:perspective(600px) rotateY(-80deg);opacity:.2}}
+.entry-ceremony.descend{background:#000;animation:sw-descend 1s ease-out forwards}
+@keyframes sw-descend{0%{opacity:1}35%{opacity:1}100%{opacity:0}}
+.entry-title{position:relative;z-index:2;font:600 clamp(18px,3vw,34px)/1 var(--sw-head);letter-spacing:.08em;color:#f3d98a;text-shadow:0 3px 0 #000,0 0 18px #000;animation:sw-title 1.3s ease-out forwards}
+@keyframes sw-title{0%{opacity:0;transform:translateY(6px)}25%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0}}
+/* Fixed windows never scroll the page: overlong window content scrolls inside its own window. */
+.saltwake .game-stage .compact-run>aside,.saltwake .game-stage .compact-run .inventory,.saltwake .game-stage>.purse-drawer,.saltwake .game-stage>.idle-inspector,.saltwake .game-stage .room-service{overflow-y:auto;overscroll-behavior:contain}
+@media(max-width:700px){.saltwake .game-stage>.purse-drawer{bottom:0!important;max-height:calc(100% - var(--map-window) - var(--window-gap))}}
+.saltwake .game-stage:has(.practice-return) .compact-run>aside{padding-bottom:52px}

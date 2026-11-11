@@ -96,4 +96,11 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - v13: keys and locked doors draw in their pair colour (named metals and colours, other names get a stable hue); pressure plates press down and glow while their channel is on; a key ring in the board corner shows keys held. Levers/gates were already wired to switch/door devices.
 - Checks: typecheck, game 181, web 30, server 163, build pass.
 
-Next step: crafting juice (bubbling kettle, quality reveal), dungeon-opening ceremony, then a consistency sweep of every window at desktop and phone widths.
+### 13. Crafting juice, entry ceremony, fixed-window sweep
+- Crafting (CSS only): fire glow under the cauldron, bubbling brew and rising steam; the timing band glows and the marker shines; hit marks pop, misses shake; the result card scales in with a shine sweep, and fine tonics get a gold halo. The practice bench's inline-styled track gets the same skin.
+- Dungeon entry: great doors swing open with "The doors open" at the start of a run; each new floor fades in from black with a floor banner (EntryCeremony in art/RunFx.tsx; off under reduced motion).
+- Top bar crest is now an anchor; the wordmark hides below 900 px, because on phones it pushed Session onto a second HUD line.
+- Sweep: measured page height with town, wallet, inventory, help, session, room, service and run windows open at 390×844, 768×1024, 1280×720 and 1440×900. The phone run view overflowed by 84 px (practice buttons); window content now scrolls inside its own window (run aside/inventory, drawers, idle inspector, room service), and the phone purse drawer is capped to its window. No page scroll remains in any measured state. I could not reproduce the reported 865 px wallet case in demo mode; the HUD wrap and drawer cap address the likely causes.
+- Checks: typecheck, game 181, web 30, server 163, build pass.
+
+Next step: re-check wallet mode (testnet) layout when a wallet session is available; small polish as other lanes land UI.
