@@ -101,6 +101,11 @@ SALTWAKE_KEEP_HOST=1 SALTWAKE_API_PORT=18973 npx vite apps/web --host 127.0.0.1 
 
 Open `http://127.0.0.1:18972/?devSigner=player1.<contract>` and `http://localhost:18972/?devSigner=player2.<contract>`. Each signs in with its own message bound to the origin it used.
 
+## Wallet-mode simulation and presence load test
+
+- `npm run simulate:wallet -- --days 3`: bots are real sandbox NEAR accounts. They sign in with NEP-413, register, buy coins with NEAR (labelled issuance) and sign every economic action themselves; the server prepares transactions and the operator only settles runs and crafts. Prints per-day purses by role and a conservation check that allows only the NEAR buy-ins.
+- `npx tsx scripts/presence-load.ts --clients 50 --seconds 30`: 50 presence clients walking, crossing districts, entering rooms and chatting through the real relay; then stale-client cleanup and a server restart. Results in docs/systems/MULTIPLAYER-ROBUSTNESS.md.
+
 ## Commissions and small batches
 
 On the harbor notice board, **Commissions** lets any player post an escrowed order (for example 2 tonics at 6 each): the coins leave the purse into escrow, anyone who owns matching goods can deliver them and is paid from the escrow at that price, and the poster can cancel to get the unspent escrow back. Coins move only between players. At the Copper Kettle a small batch (1 herb + 1 flask → 1 tonic) is accepted alongside the full 2 + 2 → 2 recipe; recovery jobs stay full batches.
