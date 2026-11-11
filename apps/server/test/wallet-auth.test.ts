@@ -96,3 +96,17 @@ test('local origin aliases: a second loopback origin can sign in, bound to the o
  assert.throws(()=>setup({aliases:['http://evil.example']}),/local HTTP only/);
  assert.throws(()=>setup({aliases:[alias],secureCookies:true}),/local/);
 });
+import {mkdtempSync as mkd,rmSync as rmd} from 'node:fs';import {tmpdir as tmp} from 'node:os';import {join as pj} from 'node:path';import {Store} from '../src/db';
+test('wallet sessions survive a restart via hashed tokens in SQLite; expiry and logout remove them',async t=>{
+ const dir=mkd(pj(tmp(),'wallet-store-'));let db=new Store(pj(dir,'db'));t.after(()=>{db.close();rmd(dir,{recursive:true,force:true});});
+ const store={get:(h:string)=>db.get<any>('wallet-session',h),put:(h:string,s:any)=>db.put('wallet-session',h,s),delete:(h:string)=>db.remove('wallet-session',h)};
+ let now=1_000_000;const make=()=>setup({store,now:()=>now,sessionMs:60_000}).auth;
+ let auth=make();const b=auth.begin(account,origin);const r=await auth.finish(cookie(b.setCookie),origin,await proof(b.challenge));const sc=cookie(r.setCookies[1]);
+ const token=sc.split('=')[1];assert.ok(!JSON.stringify(db.all('wallet-session')).includes(token),'the raw token is never stored');assert.equal(db.all('wallet-session').length,1);
+ // "Restart": a new instance and a reopened database still recognise the cookie.
+ db.close();db=new Store(pj(dir,'db'));auth=make();assert.equal(auth.requireProfile(sc),'wallet:alice.testnet');
+ auth.destroy(sc);assert.equal(db.all('wallet-session').length,0);assert.throws(()=>make().get(sc),/UNAUTHENTICATED/);
+ // Expired sessions are refused and removed.
+ const b2=auth.begin(account,origin);const r2=await auth.finish(cookie(b2.setCookie),origin,await proof(b2.challenge));const sc2=cookie(r2.setCookies[1]);
+ now+=60_001;assert.throws(()=>make().get(sc2),/UNAUTHENTICATED/);assert.equal(db.all('wallet-session').length,0);
+});
