@@ -39,6 +39,10 @@ Maker placed a dungeon entrance for the starter edition with a notice "Bring a s
 
 Harness quirks: each `aside repl` script is a fresh cookie jar, so a dead script keeps its demo profile leased for 30 min (restart the API to free it); switch profiles in-page via `POST /api/profile`. Local sandboxes started from this worktree have twice exited during `npm run verify` (contract tests start their own nodes); restart `npm run sandbox` + the API afterwards.
 
+Two live browsers (127.0.0.1 and localhost cookie jars, `SALTWAKE_PROXY_ORIGIN=http://127.0.0.1:18980`): the proprietor and the delver stood in the same dungeon entrance, each saw the other's avatar on the room tiles ("1 other visitor here: The proprietor") and both room-chat lines arrived; the street did not see them.
+
+More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server run inside a worktree never sees file edits; restart it after changes. Load average hit 70 with 11 sandboxes from parallel agents; `capacity` and two `economy-stress` contract tests time out under that load (also on a solo rerun) and touch no shop code. They need a rerun on a quiet machine. The detached-sandbox trick (spawn with `detached:true`) kept a sandbox alive where `npm run sandbox` in a background shell kept getting stopped.
+
 ## Next step
 
-Two-browser check of shared-room avatars/chat (unit-tested in `apps/server/test/presence-rooms.test.ts`, not yet seen in two live browsers). Then candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
+Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
