@@ -31,7 +31,7 @@ const days=Math.max(1,Math.min(30,Number(args.days)||7));let rng=Number(args.see
 const rand=()=>{rng=(rng*1103515245+12345)%2147483648;return rng/2147483648;};
 // Economy levers under test (docs/systems/ECONOMY-TUNING.md): --levers refresh,smallbatch
 // Default: all tuned player strategies on (each backed by an in-game prompt); `--levers none` reproduces the baseline.
-const LEVERS=new Set(String(args.levers||'refresh,shelfsource,bankrestock,resale,fastfee,smallbatch,commission,prices').split(',').filter(l=>l&&l!=='none'));
+const LEVERS=new Set(String(args.levers||'refresh,shelfsource,bankrestock,resale,fastfee,smallbatch,commission,prices,herbloot').split(',').filter(l=>l&&l!=='none'));
 // --players N adds N simulation profiles (makers m-*, artisans a-*, delvers d-*) via the contract's init_simulation seed.
 const extra=Math.max(0,Math.min(48,Number(args.players)||0));const scenario=String(args.scenario||'normal');
 const nMakers=extra?Math.max(1,Math.round(extra*0.2)):0,nArtisans=extra?Math.max(1,Math.round(extra*0.3)):0,nDelvers=extra?Math.max(1,extra-nMakers-nArtisans):0;
@@ -85,7 +85,7 @@ try{
   const ask=new Map<string,number>(),bid=new Map<string,number>();const priceObs:Record<string,number[]>={};
   const observe=(type:string,price:number)=>{(priceObs[type]??=[]).push(price);};
   for(let day=1;day<=days;day++){
-   const events:string[]=[];const tally={fees:0n,wages:0n,trades:0,tradeCoins:0n,bankSales:0,crafted:0,runs:{extracted:0,died:0,abandoned:0}};
+   const events:string[]=[];const tally={issued:0,fees:0n,wages:0n,trades:0,tradeCoins:0n,bankSales:0,crafted:0,runs:{extracted:0,died:0,abandoned:0}};
    // Newcomers: one recovery job each while the bank's wage budget lasts.
    for(const p of ROLES.newcomers){
     const w=await world(p);if(!w.recoveryOffer?.eligible)continue;
@@ -110,12 +110,12 @@ try{
     else if(LEVERS.has('smallbatch')&&has('herb').length>=1&&has('flask').length>=1&&await brew(p,[has('herb')[0],has('flask')[0]],events)){tally.crafted++;events.push(`${p} brewed a small batch (1 tonic)`);}
     if(LEVERS.has('commission'))await fillCommissions(p,events,tally);
     w=await world(p);const tonics=w.items.filter((i:any)=>i.item_type==='tonic'||i.item_type==='fineTonic');
-    // Ask: raise after a sale since yesterday, cut (and relist) stock that sat unsold for a day; never below 3.
+    // Ask: raise after a sale since yesterday, cut (and relist) stock that sat unsold for a day; never below cost (4).
     {const now=await snapshot();const mine=(l:any)=>l.seller===p&&l.status==='active';let soldAny=false;
      for(const l of prev.listings.filter((l:any)=>l.seller===p)){const cur=now.listings.find((x:any)=>x.id===l.id);if(cur&&cur.remaining_ids.length<l.remaining_ids.length)soldAny=true;}
      const key=p+':tonic';let a=ask.get(key)??5;if(soldAny)a=Math.min(9,a+1);
      const stale=now.listings.filter((l:any)=>mine(l)&&prev.listings.some((x:any)=>x.id===l.id&&x.remaining_ids.length===l.remaining_ids.length)&&l.remaining_ids.some((id:string)=>{const it=now.items.find((i:any)=>i.id===id);return it&&(it.item_type==='tonic'||it.item_type==='fineTonic');}));
-     if(stale.length&&!soldAny)a=Math.max(3,a-1);ask.set(key,a);
+     if(stale.length&&!soldAny)a=Math.max(4,a-1);// never below ingredient cost (8 coins of inputs make 2 tonics)ask.set(key,a);
      if(LEVERS.has('prices'))for(const l of stale)if(Number(l.unit_price)>a){const r=await cmd(p,{type:'cancel_listing',listing_id:l.id});if(r.ok)events.push(`${p} took back ${l.remaining_ids.length} unsold goods priced ${l.unit_price} to reprice at ${a}`);}}
     w=await world(p);const tonics2=w.items.filter((i:any)=>i.item_type==='tonic'||i.item_type==='fineTonic');tonics.splice(0,tonics.length,...tonics2);
     if(tonics.length){const shop=(w.shops??[]).find((s:any)=>s.owner===p);const price=String(LEVERS.has('prices')?ask.get(p+':tonic')??5:4+Math.floor(rand()*3));
@@ -137,7 +137,7 @@ try{
     if(LEVERS.has('commission'))await fillCommissions(p,events,tally);
     // Cash in finds: keep the best weapon, sell spare swords/armor/iron to the bank at half catalog value.
     {const after=await world(p);const items=after.items as any[];const keep=items.filter(i=>i.item_type==='sword')[0]??items.filter(i=>i.item_type==='club')[0];
-     const spare=items.filter(i=>i!==keep&&['sword','armor','iron','club'].includes(i.item_type)).slice(0,3);const prices=spare.map(i=>String(Math.floor(catalog[i.item_type as keyof typeof catalog].value/2)));
+     const spare=items.filter(i=>i!==keep&&['sword','armor','iron','club',...(LEVERS.has('herbloot')?['herb','flask']:[])].includes(i.item_type)).slice(0,3);const prices=spare.map(i=>String(Math.floor(catalog[i.item_type as keyof typeof catalog].value/2)));
      if(LEVERS.has('resale')&&spare.length){const price=(t:string)=>String(Math.max(1,Math.round(catalog[t as keyof typeof catalog].value*0.8)));
       for(const i of spare){const r=await cmd(p,{type:'list',item_ids:[i.id],unit_price:price(i.item_type)});if(r.ok)events.push(`${p} offered a found ${catalog[i.item_type as keyof typeof catalog].name.toLowerCase()} at ${price(i.item_type)}`);}}
      else if(spare.length&&prices.reduce((n,x)=>n+Number(x),0)<=Number(after.bank)){const r=await cmd(p,{type:'bank_sell',item_ids:spare.map(i=>i.id),expected_unit_prices:prices});if(r.ok){tally.bankSales+=spare.length;events.push(`${p} sold ${spare.length} dungeon finds to the bank for ${prices.reduce((n,x)=>n+Number(x),0)}`);}}}
@@ -186,6 +186,20 @@ try{
      bid.set(p,b);}
     const stillOpen=(((await world(p)).commissions??[]) as any[]).some(c=>c.buyer===p&&c.status==='open');
     if(!stillOpen&&Number((await world(p)).credits)>=Math.max(20,b*2)){const r=await cmd(p,{type:'post_commission',item_type:'tonic',unit_price:String(b),quantity:2});if(r.ok)events.push(`${p} posted a commission for 2 tonics at ${b} each`);}}
+   // OPERATOR RESTOCK (lever restock, OFF by default; central issuance policy for comparison only): when the bank holds
+   // fewer than 2 herbs or flasks, the operator adds 4 of each to the bank's stock (goods, never coins).
+   if(LEVERS.has('restock')){const snap=await snapshot();for(const t of ['herb','flask']){const n=snap.items.filter((i:any)=>i.location.kind==='bank'&&i.item_type===t).length;
+    if(n<2){await root.callFunction({contractId:local.accountId,methodName:'operator_restock',args:{item_type:t,count:4},gas:100_000_000_000_000n,waitUntil:'FINAL'});tally.issued+=4;events.push(`OPERATOR ISSUANCE: 4 ${t}s added to the bank's stock`);}}}
+   // Herbs and flasks as dungeon treasure (lever herbloot, no issuance): makers holding ingredients refill an emptied
+   // random reward pool with them, so delvers bring them back out to sell to artisans.
+   if(LEVERS.has('herbloot'))for(const p of ROLES.makers){const w=await world(p);const snap=await snapshot();
+    for(const e of (w.editions as any[]).filter(e=>e.maker===p&&!e.closed&&(e.randomTables??[]).length)){
+     const below=snap.items.filter((i:any)=>i.location.kind==='edition_random'&&i.location.edition===e.id).length;if(below>0)continue;
+     const table=e.randomTables[0];const goods=(w.items as any[]).filter(i=>i.item_type==='herb'||i.item_type==='flask').slice(0,Math.max(table.socket_ids.length,2));
+     if(goods.length<table.socket_ids.length)continue;
+     const r=await cmd(p,{type:'refresh',edition_id:e.id,fixed_funding:[],random_funding:[{table_id:table.table_id,item_ids:goods.map(i=>i.id)}]});
+     events.push(r.ok?`${p} refilled ${e.terms.title} with ${goods.length} herbs/flasks as treasure`:`${p} could not refill ${e.terms.title}: ${r.result}`);
+    }}
    // Makers revise: cut the fee of an open dungeon nobody entered today; raise it when it was busy.
    for(const p of ROLES.makers){const w=await world(p);for(const e of (w.editions as any[]).filter(e=>e.maker===p&&e.status==='open')){
     // Settled runs are pruned on chain beyond a fixed history (CAPACITY.md): count runs that are new since yesterday.
@@ -206,7 +220,7 @@ try{
    for(const c of s.commissions??[]){const before=(prev.commissions??[]).find((x:any)=>x.id===c.id);for(let k=before?.filled??0;k<c.filled;k++)(paid[c.item_type]??=[]).push(Number(c.unit_price));}
    const bids:Record<string,number>={};for(const c of (s.commissions??[]).filter((c:any)=>c.status==='open'))bids[c.item_type]=Math.max(bids[c.item_type]??0,Number(c.unit_price));
    const role=(list:string[])=>list.reduce((n,p)=>n+Number(s.credits[p]??0),0);
-   const report:DayReport={day,coinsByRole:{makers:role(ROLES.makers),artisans:role(ROLES.artisans),delvers:role(ROLES.delvers)},pricesPaid:paid,bids,coinsInPurses:Object.values(s.credits).reduce((n:number,v:any)=>n+Number(v),0),bank:Number(s.bank),issuance:Number(issuance(s)),conservationDrift:Number(drift),
+   const report:DayReport={day,itemsIssued:tally.issued,coinsByRole:{makers:role(ROLES.makers),artisans:role(ROLES.artisans),delvers:role(ROLES.delvers)},pricesPaid:paid,bids,coinsInPurses:Object.values(s.credits).reduce((n:number,v:any)=>n+Number(v),0),bank:Number(s.bank),issuance:Number(issuance(s)),conservationDrift:Number(drift),
     entryFees:Number(tally.fees),wages:Number(tally.wages),playerTrades:tally.trades,tradeCoins:Number(tally.tradeCoins),bankSales:tally.bankSales,batchesBrewed:tally.crafted,runs:tally.runs,
     treasureValue:treasure,listings:Object.fromEntries(Object.entries(prices).map(([k,v])=>[k,{min:v.min,max:v.max,count:v.count}])),unsoldItems:Object.values(prices).reduce((n,v)=>n+v.count,0),
     bankStock:s.items.filter((i:any)=>i.location.kind==='bank').length,absentDemand:absent,events};
@@ -220,7 +234,7 @@ try{
    entryFeesTotal:D.reduce((n,d)=>n+d.entryFees,0),tradesTotal:D.reduce((n,d)=>n+d.playerTrades,0),batchesBrewed:D.reduce((n,d)=>n+d.batchesBrewed,0),bankSales:D.reduce((n,d)=>n+d.bankSales,0),
    treasureOut:D.at(-1)!.treasureValue.extracted,daysWithEmptyDungeon:D.filter(d=>d.absentDemand.length>0).length,delverCoinsEnd:ROLES.delvers.reduce((n,p)=>n+Number(end.credits[p]??0),0),
    makerCoinsEnd:ROLES.makers.reduce((n,p)=>n+Number(end.credits[p]??0),0),artisanCoinsEnd:ROLES.artisans.reduce((n,p)=>n+Number(end.credits[p]??0),0),unsoldEnd:D.at(-1)!.unsoldItems,bankEnd:D.at(-1)!.bank,
-   delversBrokeDays:D.filter(d=>d.events.some(e=>/could not afford/.test(e))).length};
+   delversBrokeDays:D.filter(d=>d.events.some(e=>/could not afford/.test(e))).length,batchesAfterDay5:D.filter(d=>d.day>5).reduce((n,d)=>n+d.batchesBrewed,0),itemsIssued:D.reduce((n,d)=>n+(d.itemsIssued??0),0)};
   (history as any).summary=summary;console.log('SUMMARY '+JSON.stringify(summary));
   // Bounded storage (docs/systems/CAPACITY.md): live records and the receipt window after the whole run.
   console.log('CAPACITY '+JSON.stringify(await provider.callFunction<any>({contractId:local.accountId,method:'capacity',args:{},blockQuery:{finality:'final'}})));

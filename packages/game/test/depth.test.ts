@@ -158,9 +158,36 @@ test('generator lure vaults: plate in line with the gate approach, a lever hatch
    // Without the guard the player cannot hold the plate and pass the gate at once.
    if(found>3)continue;
    const inner={x:2*lure.gate.x-lure.approach.x,y:2*lure.gate.y-lure.approach.y};
-   const alone=authoredRehearsal([{...f,sockets:[],tuning:[],exit_rule:{extract:true,require_clear:false},tide:undefined} as any],[],'club');
+   const alone=authoredRehearsal([{...f,sockets:[],tuning:[],exit_rule:{extract:true,require_clear:false},tide:undefined,links:undefined} as any],[],'club');
    const r=solveReach(alone,inner,20000,120);assert.equal(r.solved,false);assert.equal(r.truncated,false);
   }});
  }
  console.log(`lure vaults ${found}, ${shoves} need a shove`);assert.ok(found>=5,`found ${found} lure vaults`);assert.ok(shoves>=1,'some lure vaults need a shove');
+});
+
+test('generator arenas: a one-way drop into a sealed hall whose exit and onward passage open only once it is cleared',async()=>{
+ const {arenaSolvable,generatorPresets}=await import('../src/draft-generator');
+ const {oneWay,isSealedArena}=await import('../src/puzzle-editing');
+ const {creatorRehearsal}=await import('../src/authored-layout');
+ const {canExtract}=await import('../src/generation');
+ const {validateFloorGraph}=await import('../../shared/src/custom-layout');
+ let arenas=0,played=0;
+ for(let seed=1;seed<=20;seed++)for(const preset of ['medium','large'] as const){
+  const d=generateDraft(seed,generatorPresets[preset].options);if(!d.floors.some(f=>f.links))continue;arenas++;
+  const a=d.floors.length-1,from=d.floors.findIndex(f=>f.links!.some(l=>l.to===a));
+  assert.deepEqual(validateFloorGraph(d.floors),[]);assert.ok(from>=0&&from<a);
+  const drop=d.floors[from].links!.find(l=>l.to===a)!;assert.ok(oneWay(d.floors,from,drop),'no passage back');assert.ok(isSealedArena(d.floors,a));
+  assert.ok(arenaSolvable(d.floors,a),`seed ${seed} ${preset}`);
+  for(const [i,f] of d.floors.slice(0,a).entries())if(i<a-1)assert.ok(f.links!.some(l=>l.to===i+1),'stairs passage to the next floor');
+  if(played>=3)continue;
+  // Play it: walk onto the drop, find the exit shut while the pack lives, open once it is gone.
+  let s=creatorRehearsal(d.floors,d.placements,'club','tonic');
+  if(from===0){const n=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:drop.x+dx,y:drop.y+dy})).find(p=>d.floors[0].tiles[p.y][p.x]==='.'&&!s.enemies.some(e=>e.x===p.x&&e.y===p.y))!;
+   s.player.x=n.x;s.player.y=n.y;s=act(s,{type:'move',x:drop.x,y:drop.y});assert.equal(s.roomIndex,a,'dropped into the arena');played++;
+   assert.ok(s.enemies.length>0);s.player.x=d.floors[a].exit.x;s.player.y=d.floors[a].exit.y;assert.equal(canExtract(s),false,'exit shut while enemies live');
+   const onward=d.floors[a].links!.find(l=>l.require_clear);if(onward){s.player.x=onward.x+(d.floors[a].tiles[onward.y][onward.x-1]==='.'?-1:1);s.player.y=onward.y;assert.equal(act(s,{type:'move',x:onward.x,y:onward.y}),s,'onward passage shut while enemies live');}
+   s.enemies=[];s.player.x=d.floors[a].exit.x;s.player.y=d.floors[a].exit.y;assert.equal(canExtract(s),true,'exit opens once cleared');
+  }
+ }
+ assert.ok(arenas>=8&&played>=1,`arenas ${arenas}, played ${played}`);
 });

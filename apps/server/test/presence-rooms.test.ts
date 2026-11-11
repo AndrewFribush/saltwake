@@ -31,3 +31,22 @@ test('room occupancy is announced to everyone for notice-board hints, names only
  const count=b.events('rooms').length;now+=100;town.move('buyer',{district:'s',room:'shop-4',x:5,y:6,facing:'up'});assert.equal(b.events('rooms').length,count,'moving inside a room does not rebroadcast');
  now+=100;town.move('buyer',{district:'s',x:5,y:12,facing:'down'});assert.deepEqual(b.events('rooms').at(-1),{});
 });
+test('chat reports are recorded for the operator, validated and rate limited; they change nothing for the reported player',()=>{
+ let now=1_000;const town=new TownPresence({now:()=>now});const a=fakeStream(),b=fakeStream();
+ town.connect('buyer',a.stream);town.connect('maker',b.stream);now+=100;town.move('buyer',{district:'center',x:1,y:1,facing:'down'});now+=100;town.move('maker',{district:'center',x:2,y:1,facing:'down'});
+ const m=town.chat('maker','rude words');
+ assert.deepEqual(town.report('buyer',{messageId:m.id,from:'maker',text:m.text}),{ok:true});
+ assert.equal(town.reports()[0].from,'maker');assert.equal(town.reports()[0].space,'center');
+ assert.throws(()=>town.report('buyer',{messageId:m.id,from:'buyer'}),(e:unknown)=>e instanceof PresenceError&&e.status===400,'cannot report yourself');
+ for(let i=0;i<4;i++)town.report('buyer',{messageId:m.id,from:'maker'});
+ assert.throws(()=>town.report('buyer',{messageId:m.id,from:'maker'}),(e:unknown)=>e instanceof PresenceError&&e.status===429);
+ assert.equal(town.player('maker')?.district,'center','the reported player is unaffected');
+});
+test('operator time-outs silence chat for N minutes and then lapse; nothing else changes',()=>{
+ let now=1_000;const town=new TownPresence({now:()=>now});const a=fakeStream();town.connect('p4',a.stream);now+=100;town.move('p4',{district:'center',x:1,y:1,facing:'down'});
+ assert.throws(()=>town.timeout('p4',0),(e:unknown)=>e instanceof PresenceError&&e.status===400);
+ town.timeout('p4',2);assert.deepEqual(town.timeouts().map(t=>t.player),['p4']);
+ assert.throws(()=>town.chat('p4','hi'),(e:unknown)=>e instanceof PresenceError&&e.status===403);
+ now+=100;assert.equal(town.move('p4',{district:'center',x:2,y:1,facing:'down'}),true,'still walks');
+ now+=2*60_000;assert.equal(town.chat('p4','back').text,'back');assert.deepEqual(town.timeouts(),[]);
+});

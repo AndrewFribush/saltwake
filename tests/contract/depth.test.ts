@@ -53,3 +53,18 @@ test('WASM v13 accepts keys, locks and plates (with costs) and keeps them out of
   assert.equal(before-BigInt((await f.view('snapshot')).credits.maker),9n); // base 2 + brute 4 + key, lock, plate
  }finally{await f.sandbox.tearDown();}
 });
+
+test('WASM v13 accepts generated drafts with a lure vault and a one-way drop into a sealed arena',{timeout:180000},async()=>{
+ const {generateDraft,generatorPresets,lureRooms}=await import('../../packages/game/src/draft-generator');
+ const {encodeCustomModule}=await import('../../packages/shared/src/custom-layout');
+ const f=await fixture();try{
+  const t=base(Number(await f.view('clock_ms')));
+  for(const [preset,seed] of [['medium',13],['medium',29]] as const){
+   const d=generateDraft(seed,generatorPresets[preset].options);
+   assert.ok(d.floors.some(x=>x.links?.some(l=>l.id==='drop'))&&d.floors.some((x,i)=>lureRooms(x,d.placements[i]).length),`${preset} ${seed} has both themes`);
+   const sockets=d.placements.flatMap((ps,room)=>ps.map((p,slot)=>({id:`s${room}-${slot}`,room,slot,enemy:p.enemy,trap:p.trap,reward:null})));
+   const r=await call(f,`gen-${preset}-${seed}`,publish({...t,rules_version:13,modules:d.floors.map(x=>encodeCustomModule(x,'keys')),sockets}));
+   assert.equal(r.status,'Applied',JSON.stringify(r));
+  }
+ }finally{await f.sandbox.tearDown();}
+});

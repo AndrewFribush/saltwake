@@ -642,3 +642,116 @@ main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
 .saltwake .plot-tour-hint::before{content:'';position:absolute;top:-5px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff8a7a,#b8281c 60%,#5e120c)}
 /* In a run, an empty "visible enemies" pager is noise: the heading and turn text already say the coast is clear. */
 .saltwake .expedition>aside>.game-pages:has(>.empty-state:only-child),.saltwake .expedition>aside .empty-state{display:none}
+
+/* ---------- Plate/lever to gate wires (seen only), route checks, wiring list, Check badge ---------- */
+.wire-layer{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);z-index:2;pointer-events:none;overflow:visible}
+.wire path{fill:none;stroke:#e8c56a;stroke-dasharray:.24 .12;opacity:.9;vector-effect:non-scaling-stroke;stroke-width:3px}
+.wire path.wire-bg{stroke:#000;stroke-dasharray:none;opacity:.45;stroke-width:5px}
+.wire circle{fill:#d9b866;opacity:.7}
+.wire.on path:not(.wire-bg){stroke:#ffe9a0;opacity:.95;stroke-dasharray:none;filter:drop-shadow(0 0 2px #ffd75e)}
+.wire.on circle{fill:#ffe9a0}
+.saltwake .route-check{border:0;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:inset 0 0 0 1px #d9b86640,0 2px 0 #0008;padding:8px 10px}
+.saltwake .route-check>b,.saltwake .route-check .studio-row b{font-family:var(--sw-head);color:#f3d98a;font-size:14px}
+.saltwake .route-check li{padding:3px 0 3px 4px;border-bottom:1px dotted #ffffff14}
+.saltwake .route-check li::before{display:inline-grid;place-items:center;width:16px;height:16px;margin-right:6px;border-radius:50%;font:900 10px/1 system-ui;color:#10181a}
+.saltwake .route-check li.ok::before{content:'✓';background:#8fd37a;color:#10241a}
+.saltwake .route-check li.blocked::before{content:'✕';background:#e2563c;color:#fff}
+.saltwake .route-check li.unknown::before{content:'?';background:#e8c56a;color:#2a1d0c}
+.saltwake .route-check li.blocked{color:#ffc4b4}
+.saltwake .builder-steps button{position:relative}
+/* History charts on parchment */
+.saltwake .history-chart{background:var(--tx-parchment) 0 0/32px 32px;border-radius:2px;box-shadow:inset 0 0 0 1px #b89a5e,0 2px 0 #0008;padding:6px 8px}
+.saltwake .history-chart figcaption{font-family:var(--sw-head);color:#5a2a14;font-size:14px}
+.saltwake .history-chart .axis{stroke:#8a7a58}
+.saltwake .history-chart .tick{fill:#5a4a30}
+.saltwake .history-chart .s1{stroke:#a8701c;color:#a8701c}.saltwake .history-chart .s2{stroke:#2e5a8a;color:#2e5a8a}.saltwake .history-chart .s3{stroke:#a82838;color:#a82838}.saltwake .history-chart .s4{stroke:#2f6a24;color:#2f6a24}
+.saltwake .history-chart .s2{stroke-dasharray:5 3}.saltwake .history-chart .s3{stroke-dasharray:2 2}.saltwake .history-chart .s4{stroke-dasharray:8 2 2 2}
+.saltwake .chart-legend li{color:#3a2a18}
+
+/* ---------- Character look picker (cosmetic) ---------- */
+.saltwake .sound-ctl{position:relative}
+.saltwake .look-btn{width:38px;height:34px;padding:0!important;background:linear-gradient(135deg,var(--hair) 0 38%,var(--look) 38%)!important}
+.saltwake .look-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:50;display:grid;grid-template-columns:repeat(4,44px);gap:6px;padding:8px;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:var(--sw-frame)}
+.saltwake .look-pop[hidden]{display:none}
+.saltwake .look-swatch{width:44px;height:44px;padding:2px!important;background:var(--tx-floor-a) center/100% 100%!important;image-rendering:pixelated}
+.saltwake .look-swatch .px-sprite{width:100%;height:100%}
+.saltwake .look-swatch[aria-pressed=true]{box-shadow:0 0 0 2px #f3d98a,0 0 10px #e8c56a88!important}
+
+/* ---------- Passages: drops go down a hatch, others climb stairs ---------- */
+.stairs-art.passage.down::after{content:'↓'}
+.stairs-art.passage.up::after{content:'↑'}
+.stairs-art.passage.down{filter:drop-shadow(0 0 3px #ffe9a066)}
+
+/* ---------- Adventurer offer card (playtest lane) ---------- */
+.saltwake .offer-card{background:var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border-radius:2px;box-shadow:inset 0 0 0 1px #b89a5e,0 2px 0 #0008;padding:8px 10px;font-size:13px}
+.saltwake .offer-card dt{color:#6b3a14;font-family:var(--sw-head)}
+.saltwake .offer-card :is(dd,small,p){color:#3a2a18}
+.saltwake .danger{display:inline-flex;align-items:center;gap:4px;padding:1px 8px 1px 4px;border-radius:9px;box-shadow:inset 0 0 0 1px #0005}
+.saltwake .danger::before{display:inline-grid;place-items:center;width:14px;height:14px;border-radius:50%;background:#0003;font-size:10px}
+.saltwake .danger-calm::before{content:'○'}.saltwake .danger-light::before{content:'◔'}.saltwake .danger-dangerous::before{content:'◑'}.saltwake .danger-deadly::before{content:'☠'}
+.saltwake .danger-calm{background:#3f7a38;color:#fff}.saltwake .danger-light{background:#8a9a3a;color:#141a08}.saltwake .danger-dangerous{background:#c88a2a;color:#1a1004}.saltwake .danger-deadly{background:#a8281c;color:#fff}
+.saltwake .interior-paint-grid .paint-cell>.fixture-sprite{position:absolute;inset:8%;width:auto;height:auto}
+.saltwake .interior-paint-grid .paint-cell>.fixture-keeper{position:absolute;inset:-2% 14% 30%;width:auto;height:auto}
+.saltwake .interior-paint-grid .paint-cell>.fixture-sprite.with-keeper{inset:34% 4% 10%}
+
+/* ---------- Sealed arena ---------- */
+.arena-layer{position:absolute;inset:0;z-index:7;pointer-events:none;transition:box-shadow .6s}
+.arena-layer.locked{box-shadow:inset 0 0 0 4px #3a3f40,inset 0 0 0 6px #8f9279,inset 0 0 40px #000a}
+.arena-layer.locked::before{content:'⛓ SEALED';position:absolute;top:6px;right:8px;padding:2px 8px;border-radius:2px;background:#1a1c1ccc;box-shadow:inset 0 0 0 1px #8f9279;font:800 11px/16px system-ui;letter-spacing:.08em;color:#d8dccf}
+.arena-layer.cleared{box-shadow:inset 0 0 0 3px #8df0c588,inset 0 0 30px #8df0c533}
+.arena-banner{position:absolute;left:50%;top:38%;transform:translateX(-50%);white-space:nowrap;padding:6px 16px;border-radius:3px;background:#120d09e6;box-shadow:inset 0 0 0 1px #d9b866aa,0 6px 18px #000a;font:600 clamp(14px,2vw,22px)/1.2 var(--sw-head);letter-spacing:.04em;color:#f3d98a;animation:sw-arena 2.6s ease-out both}
+.arena-layer.cleared .arena-banner{color:#c8f5e2;box-shadow:inset 0 0 0 1px #8df0c5aa,0 6px 18px #000a}
+@keyframes sw-arena{0%{opacity:0;transform:translate(-50%,8px) scale(.96)}12%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.arena-banner{animation:none}}
+
+/* ---------- Shop placement map uses the town textures ---------- */
+.saltwake .shop-site-map button.ground-grass{background:var(--tx-grass-a) center/100% 100%!important}
+.saltwake .shop-site-map button.ground-grass:nth-child(3n):not(.occupied):not(.selected){background-image:var(--tx-grass-b)!important}
+.saltwake .shop-site-map button.ground-road{background:var(--tx-road-a) center/100% 100%!important}
+.saltwake .shop-site-map button.ground-water{background:var(--tx-water) center/100% 100%!important}
+.saltwake .shop-site-map button.ground-wall{background:var(--tx-wall) center/100% 100%!important}
+.saltwake .shop-site-map{image-rendering:pixelated}
+.saltwake .shop-site-map button.occupied{background:var(--tx-timber) center/100% 100%!important;box-shadow:inset 0 0 0 1px #3b2a1b!important}
+.saltwake .shop-site-map button.own-plot{box-shadow:inset 0 0 0 2px #f3d98a!important}
+.saltwake .shop-site-map button.selected{background:#9fc27acc!important;box-shadow:inset 0 0 0 2px #e8f0d8!important}
+.saltwake .shop-site-map button.selected.blocked{background:#c0614fcc!important}
+.saltwake .shop-site-map button span,.saltwake .shop-site-map button small{color:#fff6d8;text-shadow:0 1px 0 #000,0 0 3px #000}
+
+/* ---------- Large floors: off-screen threat arrows and a minimap ---------- */
+.offscreen{position:absolute;z-index:9;width:clamp(16px,2.4vw,26px);height:clamp(16px,2.4vw,26px);margin:calc(clamp(16px,2.4vw,26px)/-2) 0 0 calc(clamp(16px,2.4vw,26px)/-2);border-radius:50%;background:#1a0f0ccc;box-shadow:0 0 0 2px #e8a23c;pointer-events:none}
+.offscreen i{position:absolute;inset:0;display:block;transform:rotate(var(--ang))}
+.offscreen i::before{content:'';position:absolute;right:2px;top:50%;margin-top:-5px;border-left:9px solid #ffb84a;border-top:5px solid transparent;border-bottom:5px solid transparent}
+.offscreen.hot{box-shadow:0 0 0 2px #ff4a2a,0 0 10px #ff4a2a;animation:sw-threat 1s ease-in-out infinite}
+.offscreen.hot i::before{border-left-color:#ff6a48}
+.minimap{position:absolute;right:6px;bottom:6px;z-index:9;width:clamp(70px,14%,150px);height:auto;max-height:30%;background:#000c;border-radius:2px;box-shadow:0 0 0 1px #d9b86688;pointer-events:none;opacity:.85;shape-rendering:crispEdges}
+.minimap .f{fill:#6b6656}.minimap .w{fill:#2b2f2a}.minimap .cam{fill:none;stroke:#f3d98a;stroke-width:.35}.minimap .you{fill:#ffe9a0}.minimap .foe{fill:#ff5a3c}
+
+/* ---------- Puzzle & passages panel (dungeon-depth) ---------- */
+.saltwake [role=group][aria-label="Puzzle piece"]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.saltwake [role=group][aria-label="Puzzle piece"] button{display:flex;align-items:center;gap:6px;padding:4px 6px!important;text-align:left}
+.saltwake [role=group][aria-label="Puzzle piece"] button::before{content:'';flex:0 0 26px;height:26px;border-radius:2px;background:var(--tx-floor-a) center/100% 100%;image-rendering:pixelated;box-shadow:inset 0 0 0 1px #0008}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(1)::before{background:var(--sp-plate) center/80% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(2)::before{background:var(--sp-leverOff) center/80% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(3)::before{background:var(--sp-gateClosed) center/100% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(4)::before{background:var(--sp-key) center/80% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(5)::before{background:var(--sp-lockedDoor) center/100% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(6)::before{background:var(--sp-hatch) center/90% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake .puzzle-wiring{list-style:none;margin:6px 0;padding:6px 8px;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:inset 0 0 0 1px #d9b86640}
+.saltwake .puzzle-wiring li{padding:4px 0 4px 18px;position:relative;border-bottom:1px dotted #ffffff14}
+.saltwake .puzzle-wiring li::before{content:'';position:absolute;left:2px;top:11px;width:10px;height:2px;background:#e8c56a;box-shadow:6px 0 0 #e8c56a55}
+.saltwake .puzzle-wiring b{color:#f3d98a;font-family:ui-monospace,Menlo,monospace}
+.saltwake .puzzle-wiring .studio-hint{color:#ffc4b4}
+.saltwake fieldset.studio-feature{border:0;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:inset 0 0 0 1px #d9b86640,0 2px 0 #0008}
+.saltwake fieldset.studio-feature legend{font-family:var(--sw-head);color:#f3d98a;padding:0 4px}
+
+/* ---------- Town history first draw and notice-board updates ---------- */
+.saltwake .history-chart svg{animation:sw-chart-draw 1.1s cubic-bezier(.3,.6,.3,1) both}
+@keyframes sw-chart-draw{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.saltwake .town-board .board-entry,.saltwake .town-history article{animation:sw-pin .45s cubic-bezier(.2,1.4,.4,1) both}
+.saltwake .town-board .board-entry:nth-child(2){animation-delay:.06s}.saltwake .town-board .board-entry:nth-child(3){animation-delay:.12s}
+@keyframes sw-pin{0%{opacity:0;translate:0 -6px}100%{opacity:1;translate:0 0}}
+@media(prefers-reduced-motion:reduce){.saltwake .history-chart svg,.saltwake .town-board .board-entry,.saltwake .town-history article{animation:none}}
+/* Builder map: v13 pieces use the pixel sprites too. */
+.depth-feature:is(.f-plate,.f-key,.f-lock){background:center/contain no-repeat!important;border:0!important;outline:0;image-rendering:pixelated}
+.depth-feature:is(.f-plate,.f-key,.f-lock)::before,.depth-feature:is(.f-plate,.f-key,.f-lock)::after{display:none!important}
+.depth-feature.f-plate{background-image:var(--sp-plate)!important}.depth-feature.f-key{background-image:var(--sp-key)!important}.depth-feature.f-lock{background-image:var(--sp-lockedDoor)!important}

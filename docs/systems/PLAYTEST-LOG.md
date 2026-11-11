@@ -206,3 +206,31 @@ Two long-corridor stamps, a charger and a sentry, with the tide set to 30 turns:
 
 **Session 3: no-treasure haunted house.**
 6. The Treasure step still offered goods to assign and said "0 goods · No reward complete copies". **Fixed:** with no treasure spots it says there's nothing to fund, that delvers come for the challenge, and that you still keep the fee.
+
+## Round 12: newcomer adventurer, artisan outlets, showcase dungeon
+
+**Newcomer, start to second run (The newcomer, fresh demo town).**
+1. The newcomer started with "1 expedition completed" and one coin gone, because the demo seed spent their first run on a settled record. **Fixed:** the demo's two settled runs now use a veteran (the mercenary), so the delver and the newcomer start fresh.
+2. The gate offer said "open · 1 floor · 4 places open now · no treasure" and told you to go read two other tabs. Nothing said what was inside or what you were risking. **Fixed:** the Overview is now a card with a danger label (enemy and trap cost per floor, raised when the record shows most finished runs dying), the threats by name and count, the treasure by name with stock value and funded attempts, the record in words ("1 run: 0 escaped, 0 died, 1 gave up. Small sample."), and **You risk**: the fee plus your packed gear by name, which goes to the bank if you die.
+3. The run summary repeated "You made it out." under the identical result card, and never mentioned the fee. A run with no treasure still said "Dungeon makers buy finds like these". **Fixed:** it is now "Your ledger for <dungeon>". It lists the entry fee (kept by the maker), treasure, gear home, gear lost and items used up. After a death it explains that packed gear is the stake and that the bank resells it. If you went in bare-handed it says only the fee was lost.
+4. After the first run the goals list had no next step, and the bank counter sells only ingredients, so gear was hard to find. **Fixed:** a "Gear up for the next run" goal appears once you have delved. It names the player shops currently selling clubs, armour or tonics.
+5. **The gate showed only the three cheapest dungeons.** The matcher capped suggestions at 3, so a fourth dungeon at a higher fee never appeared, even with a pager. **Fixed:** the gate now passes a limit of 12 to `matchEditions`, which still defaults to 3.
+
+Second run: I packed the club, chose The drowned stair (Dangerous: 6 enemies and 2 traps over 2 floors) and escaped from floor 2 with 4 health. The ledger read "Entry paid: 3 coins · Treasure found: none · Your gear came home: 1 Club".
+
+**Artisan.** The goals panel and the kettle result card both said only "sell at the market". **Fixed:** both now list the best current outlets with prices. For example: "Tonics now fetch: 5 each: a player commission wants 2 (notice board, Commissions tab) · 3 each: the bank buys". The demo seed now posts one escrowed commission from the proprietor (2 tonics at 5) so artisans see player demand. The demo-town test counts escrow in coin conservation.
+
+**Showcase dungeon.** "The tide vaults" (demo supply) is the large three-floor preset (seed 11) thinned to the proprietor's budget: enemies come off the shallowest floor first, and 4 enemies and 3 traps remain. A fine tonic on floor 2 and a sword at the bottom are funded from goods the proprietor already holds. It is published by `scripts/demo-town.ts` through the normal publish command and housed in the east hall that used to point at the starter (the starter stays at the gate). It was generated, not hand-drawn in the builder. I copied it into the builder through the Library to check it. The route list shows all three floors reachable on the quick check, and the full check with enemies passed with the club kit (18, 22 and 18 turns). Wiring was fine. As the newcomer with a club I escaped from floor 3 with 1 health; the auto-walker set off a powder keg in a floor-2 corridor on the way.
+
+Evidence: `docs/evidence/playtest/r12-offer-card.png`, `r12-run-ledger.png`, `r12-showcase-offer.png`, `r12-showcase-routes.png`.
+
+## Round 13: showcase made robust, three funded copies
+
+- Generator changes on main (lure vaults, sealed arenas) raised the large preset's cost, and `npm run sandbox` crashed on "Showcase needs 64 coins; budget 45". **Fixed (0385728):**
+  - The showcase now thins in two stages. Optional hazards go first (oil, kegs, caches, altars, springs, chasms). Then the most expensive enemies and traps go, shallowest floor first, always keeping one fight on the last floor. Geometry, keys, locks, plates, cracked walls and devices are never removed.
+  - If one seed can't fit, it tries the next of 10 seeds.
+  - Seeding never throws on the showcase. If no seed fits, it logs "showcase skipped (...)" and seeds the rest of the town.
+  - `apps/server/test/showcase.test.ts` and `demo-town.test.ts` now run the showcase against the current generator.
+- The showcase had only one funded attempt, so it emptied after a single win. **Fixed:** it is now funded for three delvers. Each copy is a herb on floor 2 and a fine tonic on the last floor (10 coins of goods against a 4-coin fee), all from the proprietor's seeded goods. The two fine tonics the pantry used to shelve now fund the showcase. The pantry sells the proprietor's spare sword (12 coins) instead, so the town has a sword for sale. Conservation is unchanged; demo-town.test checks for 6 funded items.
+
+**Next step:** the first five minutes for a fresh visitor. Script a path that ends either with escaping The tide vaults or with building and opening their own Small dungeon, then polish every rough step on that path. Start from the round 12 notes above: the offer card, the run ledger, the gear-up goal and the outlets text are in place. Not yet checked: whether a newcomer with 10 coins can afford the showcase (4) plus gear, and whether the Small preset fits a newcomer's budget.

@@ -46,7 +46,7 @@ struct Tomb {
 pub fn config() -> WindowConfig {
     env::storage_read(CONFIG_KEY)
         .map(|b| borsh::from_slice(&b).expect("Corrupt replay window"))
-        .unwrap_or(WindowConfig { slots: DEFAULT_REPLAY_SLOTS, min_age_ms: DEFAULT_MIN_AGE_MS })
+        .unwrap_or(WindowConfig { slots: DEFAULT_REPLAY_SLOTS.saturating_mul(crate::cap_scale()), min_age_ms: DEFAULT_MIN_AGE_MS })
 }
 pub fn set_config(c: WindowConfig) {
     env::storage_write(CONFIG_KEY, &borsh::to_vec(&c).unwrap());

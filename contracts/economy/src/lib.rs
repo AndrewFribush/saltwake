@@ -54,10 +54,15 @@ fn hash<T: borsh::BorshSerialize>(value: &T) -> String {
         .map(|b| format!("{b:02x}"))
         .collect()
 }
-/// Full receipts kept in the main state (tier 1, receipts.rs): 256 for every normal world; only `init_simulation`
-/// and the capacity test seed change it (own storage key, layout unchanged). Older receipts become tombstones.
+/// Full receipts kept in the main state (tier 1, receipts.rs): 256 for every normal world. `receipt_cap.v1` is set
+/// only by the local capacity test seed (and by simulation seeds before bounded storage). Older receipts become tombstones.
 const RECEIPT_CAP_KEY: &[u8] = b"receipt_cap.v1";
 fn receipt_cap() -> usize { env::storage_read(RECEIPT_CAP_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt receipt cap")) as usize).unwrap_or(256) }
+/// `capacity_scale.v1` (1 on every normal world; raised only by `init_simulation`). Active-record caps and pruning
+/// made the old lifetime multiplier redundant (docs/systems/CAPACITY.md); the scale now multiplies only the
+/// tombstone slots of the receipt window, so long bot runs get more throughput without a larger main state.
+const CAP_SCALE_KEY: &[u8] = b"capacity_scale.v1";
+pub(crate) fn cap_scale() -> u32 { env::storage_read(CAP_SCALE_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt capacity scale"))).unwrap_or(1) }
 fn now_ms() -> u64 {
     env::block_timestamp() / 1_000_000
 }
@@ -198,7 +203,7 @@ impl Economy {
         assert!(makers <= 16 && artisans <= 16 && delvers <= 32 && delver_coins.0 <= 1000, "Simulation seed too large");
         let mut s = Self::init_demo_extended();
         // Long simulations need more receipt slots than the 256-slot prototype cap.
-        env::storage_write(RECEIPT_CAP_KEY, &4096u32.to_le_bytes());
+        env::storage_write(CAP_SCALE_KEY, &32u32.to_le_bytes());
         let mut give = |s: &mut Self, owner: &str, ty: ItemType, prefix: &str, n: u32| {
             for k in 0..n {
                 let id = format!("sim-{owner}-{prefix}-{k}");
@@ -380,6 +385,23 @@ impl Economy {
         }
     }
     pub fn receipt_capacity(&self) -> u32 { receipt_cap() as u32 }
+    /// OPERATOR ISSUANCE (central policy, OFF unless the operator calls it; used only by the simulation's `restock`
+    /// lever for comparison): adds `count` new goods of one type to the bank's stock and records the running total under
+    /// its own storage key. Callable only by the contract account itself. Mints goods, never coins.
+    #[private]
+    pub fn operator_restock(&mut self, item_type: ItemType, count: u32) -> U64 {
+        assert!((1..=32).contains(&count), "Restock between 1 and 32 goods");
+        let mut total: u64 = env::storage_read(b"item_issuance.v1").map(|b| u64::from_le_bytes(b.try_into().expect("Corrupt issuance"))).unwrap_or(0);
+        for _ in 0..count {
+            let id = format!("issued-{total}");
+            assert!(!self.items.contains_key(&id), "Item id conflict");
+            self.items.insert(id.clone(), Item { id, item_type, location: Location::Bank });
+            total += 1;
+        }
+        env::storage_write(b"item_issuance.v1", &total.to_le_bytes());
+        U64(total)
+    }
+    pub fn item_issuance(&self) -> U64 { U64(env::storage_read(b"item_issuance.v1").map(|b| u64::from_le_bytes(b.try_into().expect("Corrupt issuance"))).unwrap_or(0)) }
     pub fn land_rules(&self) -> shops::LandRules {
         shops::land_rules()
     }

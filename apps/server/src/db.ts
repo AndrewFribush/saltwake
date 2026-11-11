@@ -24,5 +24,6 @@ export class Store {
  put(kind:string,id:string,value:unknown){const encoded=JSON.stringify(value);if(Buffer.byteLength(encoded)>262144)throw Error('Record too large');this.sql.prepare('INSERT INTO records(kind,id,value) VALUES (?,?,?) ON CONFLICT(kind,id) DO UPDATE SET value=excluded.value').run(kind,id,encoded);}
  /** Keep only the newest `keep` records of a kind (insertion order). */
  trim(kind:string,keep:number){this.sql.prepare('DELETE FROM records WHERE kind=? AND rowid NOT IN (SELECT rowid FROM records WHERE kind=? ORDER BY rowid DESC LIMIT ?)').run(kind,kind,keep);}
+ remove(kind:string,id:string){this.sql.prepare('DELETE FROM records WHERE kind=? AND id=?').run(kind,id);}
  close(){if(!this.closed){this.sql.close();unlinkSync(this.lock);this.closed=true;}}
 }

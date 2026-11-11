@@ -6,7 +6,7 @@ import {townSize} from '../../../packages/game/src/town';
  * It never reads or writes the economy, the contract or the outbox, and positions grant no authority. */
 export type Facing='up'|'down'|'left'|'right';
 /** `room` is a player building id (contract shop record). Players in a room only see and chat with that room. */
-export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string};
+export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string;look?:number};
 const roomPattern=/^shop-\d{1,4}$/;
 /** The space a player occupies: a player building's room, else their district, else nowhere (indoors in an NPC house or a run). */
 export const spaceOf=(p:PresencePlayer):string|null=>p.district?(p.room??p.district):null;
@@ -38,7 +38,7 @@ export class TownPresence{
  readonly #players=new Map<string,Entry>();
  readonly #history=new Map<string,ChatMessage[]>();
  readonly #now:()=>number;readonly #o:Required<Omit<PresenceOptions,'now'>>;
- #seq=0;#sweeper?:ReturnType<typeof setInterval>;
+ #seq=0;readonly #timeouts=new Map<string,number>();readonly #reports:{at:number;reporter:string;from:string;messageId:string;text:string;space:string|null}[]=[];readonly #reportTimes=new Map<string,number[]>();#sweeper?:ReturnType<typeof setInterval>;
  constructor(options:PresenceOptions={}){
   this.#now=options.now??Date.now;
   this.#o={staleMs:20_000,moveMinMs:40,chatMax:160,chatBurst:5,chatWindowMs:10_000,historySize:20,historyMs:5*60_000,maxPlayers:200,maxStreamsPerPlayer:4,pingMs:15_000,...options};
@@ -69,11 +69,14 @@ export class TownPresence{
   const {x,y,facing}=b;
   if(!Number.isInteger(x)||!Number.isInteger(y)||(x as number)<0||(y as number)<0||(x as number)>=townSize.width||(y as number)>=townSize.height)throw new PresenceError('Position outside the town',400);
   if(typeof facing!=='string'||!facings.has(facing))throw new PresenceError('Unknown facing',400);
+  // Cosmetic palette id only (0-15); it carries no authority.
+  const look=b.look===undefined||b.look===null?undefined:Number.isInteger(b.look)&&(b.look as number)>=0&&(b.look as number)<16?b.look as number:null;
+  if(look===null)throw new PresenceError('Unknown look',400);
   const room=b.room===undefined||b.room===null?undefined:typeof b.room==='string'&&roomPattern.test(b.room)&&district?b.room:null;
   if(room===null)throw new PresenceError('Unknown room',400);
   const now=this.#now();if(now-entry.movedAt<this.#o.moveMinMs)return false;
   entry.movedAt=now;entry.seenAt=now;
-  const before=spaceOf(entry.player);const player:PresencePlayer={id,district,x:x as number,y:y as number,facing:facing as Facing,...(room?{room}:{})};entry.player=player;const after=spaceOf(player);
+  const before=spaceOf(entry.player);const player:PresencePlayer={id,district,x:x as number,y:y as number,facing:facing as Facing,...(room?{room}:{}),...(look!==undefined?{look}:{})};entry.player=player;const after=spaceOf(player);
   if(before&&before!==after)this.#broadcast(before,'leave',{id},id);
   if(before!==after&&(roomPattern.test(before??'')||roomPattern.test(after??'')))this.#broadcastRooms();
   if(after){
@@ -84,6 +87,7 @@ export class TownPresence{
  }
 
  chat(id:string,text:unknown):ChatMessage{
+  const until=this.#timeouts.get(id);if(until&&until>this.#now())throw new PresenceError(`You are timed out from chat for ${Math.ceil((until-this.#now())/60000)} more minute(s)`,403);
   const entry=this.#require(id);const district=spaceOf(entry.player);
   if(!district)throw new PresenceError('Step outside to talk in town',409);
   const clean=normalizeChat(text,this.#o.chatMax);const now=this.#now();
@@ -96,6 +100,20 @@ export class TownPresence{
   return message;
  }
 
+ /** A player flags a chat message for the operator. Kept in memory (last 200) and logged; grants nothing and
+  * changes nothing for the reported player. At most 5 reports per reporter per minute. */
+ report(id:string,body:unknown){
+  const entry=this.#require(id);const b=(body??{}) as Record<string,unknown>;
+  if(typeof b.messageId!=='string'||b.messageId.length>40||typeof b.from!=='string'||b.from.length>128||b.from===id)throw new PresenceError('Invalid report',400);
+  const now=this.#now();const times=(this.#reportTimes.get(id)??[]).filter(t=>now-t<60_000);if(times.length>=5)throw new PresenceError('Too many reports; try again shortly',429);times.push(now);this.#reportTimes.set(id,times);
+  const text=typeof b.text==='string'?normalizeChat(b.text.slice(0,this.#o.chatMax)||'-',this.#o.chatMax):'';
+  const report={at:now,reporter:id,from:b.from,messageId:b.messageId,text,space:spaceOf(entry.player)};this.#reports.push(report);if(this.#reports.length>200)this.#reports.shift();
+  console.warn('[presence report]',JSON.stringify(report));return {ok:true};
+ }
+ reports(){return this.#reports.map(r=>({...r}));}
+ /** Operator moderation (local demo/operator only; routed in http.ts): silence a chatter for 1-60 minutes. Chat only; no effect on the economy. */
+ timeout(player:string,minutes:unknown){if(typeof player!=='string'||!player||player.length>128||!Number.isInteger(minutes)||(minutes as number)<1||(minutes as number)>60)throw new PresenceError('Invalid time-out',400);const until=this.#now()+(minutes as number)*60000;this.#timeouts.set(player,until);return {player,until};}
+ timeouts(){const now=this.#now();return [...this.#timeouts].filter(([,u])=>u>now).map(([player,until])=>({player,until}));}
  /** Drops players whose clients stopped heartbeating (half-open connections, sleeping tabs). */
  sweep(){
   const now=this.#now();
@@ -129,6 +147,7 @@ export class TownPresence{
     const cleanup=()=>{clearInterval(ping);disconnect();};res.on('close',cleanup);res.on('finish',cleanup);
     return;
    }
+   if(req.method==='POST'&&url.pathname==='/api/presence/report'){const id=identityOf(req.headers.cookie);return reply(200,this.report(id,await readJson(req,1024)));}
    if(req.method==='POST'&&(url.pathname==='/api/presence/move'||url.pathname==='/api/presence/chat')){
     const id=identityOf(req.headers.cookie);const body=await readJson(req,1024);
     if(url.pathname.endsWith('/move'))return reply(this.move(id,body)?200:429,{ok:true});

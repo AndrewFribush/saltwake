@@ -1,11 +1,13 @@
 import React,{useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
+import {myLook,useMyLook,asLook} from './art/Looks';
 import {CharacterSprite} from './CharacterSprite';
+import {useSafety,safety,hidden,filtered} from './chat-safety';
 import type {DistrictId} from '../../../packages/game/src/town-districts';
 import './town-presence.css';
 
 /** Other players in your district, plus district chat. Social only: nothing here touches the economy. */
 export type Facing='up'|'down'|'left'|'right';
-export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string};
+export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string;look?:number};
 export type ChatMessage={id:string;from:string;text:string;at:number};
 export type Here={district:DistrictId;x:number;y:number;facing:Facing;room?:string}|null;
 const spaceOf=(p:{district:DistrictId|null;room?:string}|null|undefined)=>p?.district?(p.room??p.district):null;
@@ -34,10 +36,13 @@ export function useTownPresence(here:Here){
  const [rooms,setRooms]=useState<Record<string,string[]>>({});
  const [you,setYou]=useState<string>();const [others,setOthers]=useState<Record<string,PresencePlayer>>({});const [chat,setChat]=useState<ChatMessage[]>([]);const [online,setOnline]=useState(false);
  const latest=useRef(here);latest.current=here;const lastSent=useRef(0);const pending=useRef<ReturnType<typeof setTimeout>>(undefined);const ready=useRef(false);
- const flush=()=>{pending.current=undefined;if(!ready.current)return;lastSent.current=Date.now();const h=latest.current;void post('move',h??{district:null,x:0,y:0,facing:'down'}).catch(()=>{});};
+ const flush=()=>{pending.current=undefined;if(!ready.current)return;lastSent.current=Date.now();const h=latest.current;void post('move',{...(h??{district:null,x:0,y:0,facing:'down'}),look:myLook()}).catch(()=>{});};
  const schedule=()=>{if(pending.current)return;const wait=Math.max(0,MOVE_EVERY_MS-(Date.now()-lastSent.current));pending.current=setTimeout(flush,wait);};
  useEffect(()=>{
-  const source=new EventSource('/api/presence/stream');
+  // EventSource retries dropped connections itself, but gives up for good on a non-200 answer (for example 401
+  // after a server restart cleared sessions). Then reopen with backoff until the page has a session again.
+  let source:EventSource,retry:ReturnType<typeof setTimeout>|undefined,closed=false,backoff=2000;
+  const connect=()=>{if(closed)return;source=new EventSource('/api/presence/stream');
   const on=(name:string,fn:(data:any)=>void)=>source.addEventListener(name,e=>fn(JSON.parse((e as MessageEvent).data)));
   // A (re)connect resets server state; resend where we stand right away.
   on('hello',d=>{setYou(d.you);setOnline(true);setOthers({});ready.current=true;clearTimeout(pending.current);flush();});
@@ -47,11 +52,15 @@ export function useTownPresence(here:Here){
   on('leave',d=>setOthers(o=>{const {[d.id]:_,...rest}=o;return rest;}));
   on('chat',m=>setChat(c=>[...c,m].slice(-40)));
   on('rooms',r=>setRooms(r&&typeof r==='object'?r:{}));
-  source.onerror=()=>{setOnline(false);ready.current=false;};
+  on('hello',()=>{backoff=2000;});
+  source.onerror=()=>{setOnline(false);ready.current=false;if(source.readyState===EventSource.CLOSED){clearTimeout(retry);retry=setTimeout(connect,backoff);backoff=Math.min(15000,backoff*2);}};
+  };
+  connect();
   const beat=setInterval(()=>{if(ready.current)flush();},HEARTBEAT_MS);
-  return()=>{source.close();clearInterval(beat);clearTimeout(pending.current);ready.current=false;};
+  return()=>{closed=true;clearTimeout(retry);source.close();clearInterval(beat);clearTimeout(pending.current);ready.current=false;};
  },[]);
- useEffect(()=>{schedule();},[here?.district,here?.room,here?.x,here?.y,here?.facing,here===null]);
+ const look=useMyLook();
+ useEffect(()=>{schedule();},[here?.district,here?.room,here?.x,here?.y,here?.facing,here===null,look]);
  // Leaving a district clears its crowd and chat immediately; the snapshot refills them.
  useEffect(()=>{setOthers({});setChat([]);},[here?.district,here?.room,here===null]);
  const say=async(text:string)=>{await post('chat',{text});};
@@ -63,14 +72,15 @@ function OtherAvatar({player,cell}:{player:PresencePlayer;cell:number}){
  const prev=useRef(player);const jump=Math.abs(prev.current.x-player.x)+Math.abs(prev.current.y-player.y)>2;useEffect(()=>{prev.current=player;});
  const x=player.x*cell+cell/2,y=player.y*cell+cell/2;
  return <g className={`presence-avatar ${jump?'jump':''}`} style={{transform:`translate(${x}px, ${y}px)`}} data-player={player.id}>
-  <g style={{filter:`hue-rotate(${hue(player.id)}deg) saturate(1.3)`}}><CharacterSprite x={-22} y={-25} width={44} height={46} facing={player.facing} at={player}/></g>
+  <g style={asLook(player.look)===undefined?{filter:`hue-rotate(${hue(player.id)}deg) saturate(1.3)`}:undefined}><CharacterSprite x={-22} y={-25} width={44} height={46} facing={player.facing} at={player} look={asLook(player.look)??0}/></g>
   <text className="presence-name" y={-26} textAnchor="middle">{playerLabel(player.id)}</text>
  </g>;
 }
 
 /** Renders inside the town SVG, beneath your own avatar. */
 export function PresenceAvatars({players,cell}:{players:PresencePlayer[];cell:number}){
- return <g className="presence-layer" aria-hidden="true">{players.map(p=><OtherAvatar key={p.id} player={p} cell={cell}/>)}</g>;
+ const safe=useSafety();
+ return <g className="presence-layer" aria-hidden="true">{players.filter(p=>!safe.blocked.includes(p.id)).map(p=><OtherAvatar key={p.id} player={p} cell={cell}/>)}</g>;
 }
 
 /** Small district chat overlay. Typing here never moves the character; Escape returns to the map, Enter on the map opens chat. */
@@ -79,7 +89,9 @@ export function TownChat({presence,districtName,field,disabled,onPlayer}:{presen
  useEffect(()=>{const el=field.current;if(!el)return;const onKey=(e:KeyboardEvent)=>{if(e.key==='Enter'&&e.target===el&&!disabled){e.preventDefault();setOpen(true);setTimeout(()=>input.current?.focus(),0);}};el.addEventListener('keydown',onKey);return()=>el.removeEventListener('keydown',onKey);},[field,disabled]);
  useEffect(()=>{log.current?.scrollTo({top:log.current.scrollHeight});},[presence.chat.length,manual]);
  const send=async()=>{const text=draft.trim();if(!text)return;try{await presence.say(text);setDraft('');setError('');}catch(e){setError((e as Error).message);}};
- const count=presence.others.length;
+ const count=presence.others.length;const safe=useSafety();const [menu,setMenu]=useState<string>();const [manage,setManage]=useState(false);const [reported,setReported]=useState<string[]>([]);
+ const shown=presence.chat.filter(m=>m.from===presence.you||!hidden(safe,m.from)),hiddenCount=presence.chat.length-shown.length;
+ const report=async(m:ChatMessage)=>{try{await post('report',{messageId:m.id,from:m.from,text:m.text});setReported(r=>[...r,m.id]);}catch(e){setError((e as Error).message);}setMenu(undefined);};
  // Collapsed while you are alone and nothing has been said; opens by itself when someone arrives or speaks.
  const open=manual??(wide&&(count>0||presence.chat.length>0));
  return <div className={`town-chat ${open?'open':''}`} onClick={e=>e.stopPropagation()}>
@@ -88,9 +100,14 @@ export function TownChat({presence,districtName,field,disabled,onPlayer}:{presen
   </button>
   {open&&<>
    <ol className="town-chat-log" ref={log} aria-live="polite" aria-label={`${districtName} chat`}>
-    {presence.chat.map(m=><li key={m.id} className={m.from===presence.you?'mine':''}>{onPlayer&&m.from!==presence.you&&presence.others.some(o=>o.id===m.from)?<button className="chat-name" onClick={()=>onPlayer(m.from)} title="Trade">{playerLabel(m.from)}</button>:<b>{playerLabel(m.from)}</b>} {m.text}</li>)}
+    {shown.map(m=><li key={m.id} className={m.from===presence.you?'mine':''}>{onPlayer&&m.from!==presence.you&&presence.others.some(o=>o.id===m.from)&&!safe.blocked.includes(m.from)?<button className="chat-name" onClick={()=>onPlayer(m.from)} title="Trade">{playerLabel(m.from)}</button>:<b>{playerLabel(m.from)}</b>} {filtered(m.text,safe.filter)}
+     {m.from!==presence.you&&<button className="chat-more" aria-label={`Options for ${playerLabel(m.from)}'s message`} aria-expanded={menu===m.id} onClick={()=>setMenu(menu===m.id?undefined:m.id)}>⋯</button>}
+     {menu===m.id&&<span className="chat-menu"><button onClick={()=>{safety.mute(m.from);setMenu(undefined);}}>Mute</button><button onClick={()=>{safety.block(m.from);setMenu(undefined);}}>Block</button><button disabled={reported.includes(m.id)} onClick={()=>void report(m)}>{reported.includes(m.id)?'Reported':'Report'}</button></span>}</li>)}
+    {hiddenCount>0&&<li className="empty">{hiddenCount} message{hiddenCount===1?'':'s'} from muted or blocked players hidden.</li>}
     {!presence.chat.length&&<li className="empty">Press Enter to talk to anyone nearby. Click a player to trade.</li>}
    </ol>
+   <div className="chat-safety"><label><input type="checkbox" checked={safe.filter} onChange={e=>safety.setFilter(e.target.checked)}/> Filter words</label>{(safe.muted.length>0||safe.blocked.length>0)&&<button className="link-button" onClick={()=>setManage(!manage)}>Muted ({safe.muted.length})</button>}</div>
+   {manage&&<ul className="chat-manage">{safe.muted.map(id=><li key={id}>{playerLabel(id)}{safe.blocked.includes(id)?' (blocked)':''} <button onClick={()=>safety.unmute(id)}>Unmute</button></li>)}</ul>}
    <form className="town-chat-send" onSubmit={e=>{e.preventDefault();void send();}}>
     <input ref={input} value={draft} maxLength={160} disabled={disabled||!presence.online} placeholder={`Say something in ${districtName}`} aria-label="Chat message" onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();field.current?.focus({preventScroll:true});}}}/>
     <button type="submit" disabled={disabled||!presence.online||!draft.trim()}>Say</button>

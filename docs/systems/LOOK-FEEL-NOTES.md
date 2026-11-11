@@ -163,4 +163,43 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - First real dungeon run (paid entry on the local sandbox): the run aside no longer shows a "Nothing here yet." box when no enemy is in sight; the way-out line and turn text already say so (`first-run.jpg`). Builder first open was checked in earlier passes (coach, steps, area tools).
 - Checks: typecheck, web 31, build pass (game/server unchanged since part 1).
 
-Next step: price history/charts, route/Wiring lists and ⚠ Check badge when they land.
+### 23. Route checks, wiring, plate-to-gate wires, history charts
+- Builder Check step: "Routes to the stairs" and "Wiring" panels framed; each floor/channel line has a round status badge (✓ green, ✕ red, ? amber) so state does not depend on colour alone.
+- In play: a faint dashed brass wire runs (elbowed) from every seen lever or pressure plate to the gates on its channel; it turns solid and glows while the channel is on. Only things the player has seen are connected, so it reveals nothing new. Makes lure vaults and ambush rooms readable (`gallery-wires.jpg`). `WireLayer` in art/RunFx.tsx; no component edits.
+- Town history charts (landed with this merge): parchment figure cards; series in dark inks with distinct dash patterns as well as colours.
+- Checks: typecheck, game 188, web 31, server 168, build pass.
+
+### 24. Lure vault and ambush in real play
+- Gallery modes `?vault=lure` and `?vault=ambush` rehearse a real generated Large draft (seeds 1 and 2, floor 2) with the delver placed beside the trigger. Stepping onto the lure plate opens the vault gate; the wire turns solid and the gate dusts open (`lure-vault-plate-held.jpg`). The ambush trip switch and its gate connect the same way.
+- Tuned: wires are 3 px with a dark underlay so they read on light and dark floor; dashed while off, solid and glowing while on.
+
+### 25. Cosmetic character looks
+- Eight hero palettes (cloak and hair swaps: Harbor gold, Tide blue, Kelp green, Coral red, Storm grey, Dusk violet, Rope brown, Salt white) in `art/Looks.ts`. A swatch button in the top bar opens a 4×2 picker of hero previews (Escape closes, keyboard focus moves into it). Stored per browser and per character (`localStorage['saltwake.look.<character>']`), applied to the town avatar, room hero and dungeon hero, including walk frames (`look-picker.jpg`, `look-coral.jpg`).
+- Shared with other players: the presence move message carries `look` (0-15). The server validates it as a small integer and relays it; it grants nothing and is not stored. Other players' avatars use their look; avatars without one keep the old per-id hue tint. Server change: 3 lines in apps/server/src/presence.ts plus a test (valid look relayed, out-of-range and non-integer rejected, omitted stays omitted).
+- Checks: typecheck, game 188, web 31, server 169, build pass.
+
+### 26. Two-player look check, decor furniture, offer card, drops
+- Two live sessions (127.0.0.1 and localhost cookie jars, `SALTWAKE_PROXY_ORIGIN=http://127.0.0.1:18990`): the delver picked Kelp green and the proprietor Dusk violet; each saw the other in their chosen colours, with name labels (`two-players-a.jpg`, `two-players-b.jpg`). Known limit: an avatar standing right under a building signboard is partly hidden by the sign (signs are HTML above the SVG map).
+- Decor furniture: six cosmetic pieces in the interior builder palette (stacked crates, table, potted plant, standing lamp, wall banner, old anchor), each with a pixel sprite; the builder's paint grid now shows furniture sprites instead of glyphs. Small edits in InteriorBuilder.tsx (tool list, furniture names, labels, sprite in the paint cell). Pieces use the existing `decor-*` fixture format, so saved layouts validate unchanged (`decor-builder.jpg`, `decor-room.jpg`).
+- Adventurer offer card (playtest): parchment card; danger tag has a shape as well as colour (○ calm, ◔ light, ◑ dangerous, ☠ deadly).
+- Passages: links deeper draw as a drop hatch with ↓, links back up as stairs with ↑ (one line in Run.tsx).
+- Checks: typecheck, game 193, web 31, server 169, build pass.
+
+### 27. Sealed arenas
+- In play, a room whose every way out needs it cleared shows an iron frame and a "⛓ SEALED" tag while foes remain; on arrival a banner reads "Sealed arena · defeat every foe to leave"; when the last foe falls the frame turns green and "Arena cleared · the way out opens" plays with the door chord (`ArenaLayer` in art/RunFx.tsx). Gallery `?vault=arena` rehearses the generator's arena (seed 2, floor 4) (`sealed-arena.jpg`). The cleared moment is implemented from state transitions but not yet watched live.
+- Checks: typecheck, web 31, build pass.
+
+### 28. Player-shop decor, end to end
+- The proprietor (127.0.0.1) furnished Proprietor's pantry with all six decor pieces and saved through "Save shop changes" (the interior is stored on the local sandbox contract). The delver (localhost, separate session) then walked in and saw the same room: crates, table, plant, lamp, banner and anchor, with "1 other visitor here: The proprietor" (`shop-decor-edit.jpg`, `shop-decor-visitor.jpg`). The builder correctly refused a layout where a decor piece blocked a display shelf ("Display shelf cannot be reached") until it was moved.
+- Shop placement map ("Place a building") now uses the town textures: grass, cobbles, water, walls, timber for existing buildings, gold outline on your own plot, green or red footprint (`shop-site-map.jpg`).
+- Checks: typecheck, game 193, web 31, server 171, build pass.
+
+### 29. Arena cleared live, large floors, Puzzle panel, gentle board/chart motion
+- Arena cleared watched live (gallery `?vault=arena`, "Defeat all foes"): frame turns green and the banner reads "Arena cleared · the way out opens" (`arena-cleared.jpg`).
+- Fixed an information leak found while watching it: damage numbers and death puffs were shown for enemies the player could not see (e.g. killed in the dark). They now appear only for enemies on visible tiles inside the camera.
+- Large floors (sight is 6 but the camera shows ±4 rows): enemies you can see but that are outside the camera get an arrow chip on the board edge pointing at them (amber; red and pulsing if their threat is near), and a small minimap of explored ground with the camera box, you and those enemies sits in the corner. Only already-visible or explored information is drawn. Fixed: such enemies' sprites were drawn outside the board (`large-floor-edge-arrows.jpg`, gallery `?big=1`).
+- Puzzle & passages panel (dungeon-depth): piece buttons in a 3×2 grid with a sprite each (plate, lever, gate, key, locked door, drop hatch); wiring list as a framed ledger with wire marks and amber issue text; the selected-piece fieldset framed. Builder map now draws plates, keys and locks with the pixel sprites instead of the CSS fallback (`puzzle-panel.jpg`).
+- Checks: typecheck, game 193, web 31, server 171, build pass.
+- Town history charts draw in left to right on first show; notice-board notes and history cards drop in when they appear (new entries on live updates animate; existing ones do not). Off under reduced motion.
+
+Next step: polish as lanes land UI.

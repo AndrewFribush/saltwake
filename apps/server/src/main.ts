@@ -57,7 +57,9 @@ const demo=new DemoSessions({profiles:config.profiles??['buyer','maker','p2','p3
 const walletNetwork=testnet?'testnet':'localnet';
 // --wallet-local-alias http://localhost:<port>: a second loopback origin (separate cookie jar) for two local wallet players. Local wallet mode only.
 const aliases=args['wallet-local-alias'] as string[];if(aliases.length&&!walletLocal)throw Error('--wallet-local-alias requires --wallet-local');for(const a of aliases){const u=new URL(a);if(u.origin!==a||u.protocol!=='http:'||!['localhost','127.0.0.1'].includes(u.hostname)||a===webOrigin)throw Error('--wallet-local-alias must be another http://localhost:<port> origin');}
-const wallet=testnet||walletLocal?{origin:webOrigin,network:walletNetwork,contractId:config.accountId,aliases,walletSessions:new WalletSessions({origin:webOrigin,network:walletNetwork,contractId:config.accountId,provider,secureCookies:false,sessionMs:3600000,aliases})}:undefined;
+const wallet=testnet||walletLocal?{origin:webOrigin,network:walletNetwork,contractId:config.accountId,aliases,walletSessions:new WalletSessions({origin:webOrigin,network:walletNetwork,contractId:config.accountId,provider,secureCookies:false,sessionMs:3600000,aliases,
+ // Sessions survive a server restart: hashed tokens with expiry in this epoch's SQLite.
+ store:{get:h=>db.get('wallet-session',h),put:(h,s)=>db.put('wallet-session',h,s),delete:h=>db.remove('wallet-session',h)}})}:undefined;
 const {server}=httpServer(box,runs,snapshot,demo,wallet,{webOrigin,pollMs:testnet?5000:2000,historyPath:'.state/'+config.epoch+'/town-history.json'});
 server.listen(port,'127.0.0.1',()=>console.log(walletLocal?`Saltwake LOCAL wallet API http://127.0.0.1:${port} for ${webOrigin} · sandbox contract ${config.accountId}`:testnet?`Saltwake testnet API (wallet sign-in) http://127.0.0.1:${port} for ${webOrigin} · contract ${config.accountId} · operator budget ${JSON.stringify(bounded!.status())}`:`Local custodial demo API: http://127.0.0.1:${port}`));
 for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>server.close(()=>{db.close();process.exit();}));

@@ -82,10 +82,10 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
      const loot=lit&&Object.values(s.items).some(i=>i.location.kind==='floor'&&i.location.room===s.roomIndex&&i.location.x===x&&i.location.y===y);
      const connection=s.connections?.find(l=>l.x===x&&l.y===y);
      const exit=remote?.exit??roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
-     const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?nameOf(enemy):trap?'spikes':loot?'loot':connection?`passage to floor ${connection.to+1}${connection.require_clear&&s.enemies.length?' · clear room first':''}`:isExit?'exit':'floor'}${feature?` · ${featureLabel(feature)}`:''}${hatch?' · rat hatching here':''}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
+     const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?nameOf(enemy):trap?'spikes':loot?'loot':connection?`passage to floor ${connection.to+1}${connection.require_clear&&s.enemies.length?' · clear room first':''}${connection.to!==s.roomIndex&&!s.layout?.[connection.to]?.links?.some(l=>l.to===s.roomIndex)?' · one way, no return':''}`:isExit?'exit':'floor'}${feature?` · ${featureLabel(feature)}`:''}${hatch?' · rat hatching here':''}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
      return <button key={`${x},${y}`} className={`tile ${(x*7+y*13)%5<2?'alt':''} ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${threat} ${calm&&exitSeen&&isExit?'exit-cue':''} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
       {seen&&<TileArt wall={tile==='#'}/>}
-      {seen&&(lit||isExit||!!connection)&&(connection||isExit?<Sprite name="stairs" className={`tile-thing stairs-art ${connection?'passage':''}`}/>:trap?<Sprite name={trap.armed?'spikesArmed':'spikesSafe'} className={`tile-thing spikes-art ${trap.armed?'armed':''}`}/>:null)}
+      {seen&&(lit||isExit||!!connection)&&(connection||isExit?<Sprite name={connection&&connection.to>s.roomIndex?'hatch':'stairs'} className={`tile-thing stairs-art ${connection?(connection.to>s.roomIndex?'passage down':'passage up'):''}`}/>:trap?<Sprite name={trap.armed?'spikesArmed':'spikesSafe'} className={`tile-thing spikes-art ${trap.armed?'armed':''}`}/>:null)}
       {feature&&<FeatureArt feature={feature} lit={lit} on={feature.kind==='plate'&&signalValue(s.signals,feature.channel)}/>}
       {seen&&lit&&loot&&<Sprite name="loot" className="tile-thing loot-art"/>}
       {hatch&&<span aria-hidden="true" className="depth-hatch"/>}
@@ -93,7 +93,7 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
       {(warning||!!threat)&&<span aria-hidden="true" className="threat-mark"/>}
      </button>;
     }))}
-    <ActorLayer s={s} fx={fx} visible={visible} viewport={viewport} danger={danger.has(`${s.player.x},${s.player.y}`)} ended={ended}/>
+    <ActorLayer s={s} fx={fx} visible={visible} viewport={viewport} danger={danger.has(`${s.player.x},${s.player.y}`)} ended={ended} dangerSet={danger}/>
    </div>
    <div className="controls">
     {canShove&&<button aria-pressed={shoving} disabled={ended} onClick={()=>{setShoving(!shoving);board.current?.focus();}}>Shove mode {shoving?'on':'off'}</button>}

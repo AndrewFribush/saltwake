@@ -14,6 +14,10 @@ import {Sprite} from '../art/Sprite';
 import {spriteMaps,type SpriteName} from '../art/sprites';
 import {depthPractice} from '../../../../packages/game/src/draft-generator';
 import {actWithMessages} from '../../../../packages/game/src/actions';
+import {generateDraft,generatorPresets} from '../../../../packages/game/src/draft-generator';
+import {startTrial} from '../../../../packages/game/src/creator-trial';
+import {explore} from '../../../../packages/game/src/roguelike';
+import {walkable} from '../../../../packages/game/src/state';
 import type {RunState} from '../../../../packages/game/src/state';
 
 function scene():RunState{
@@ -48,15 +52,32 @@ function scene():RunState{
  return s;
 }
 
+/** ?vault=lure|ambush: a real generated Large draft, rehearsed from the floor with that room, the delver placed beside its trigger. */
+function vaultScene(kind:string):RunState{
+ const [seed,floor]=kind==='ambush'?[2,1]:kind==='arena'?[2,3]:[1,1];const d=generateDraft(seed,generatorPresets.large.options);
+ const st=startTrial('g','g',{floors:d.floors,placements:d.placements},'armored','tonic',floor).state;
+ const f=d.floors[floor] as any;const t=kind==='ambush'?(f.devices??[]).find((x:any)=>x.kind==='switch'):(f.features??[]).find((x:any)=>x.kind==='plate');
+ if(t)for(const [dx,dy] of [[0,2],[2,0],[0,-2],[-2,0],[1,1],[-1,1],[0,1],[1,0]]){const p={x:t.x+dx,y:t.y+dy};if(walkable(st,p)&&!st.enemies.some(e=>e.x===p.x&&e.y===p.y)){st.player={...st.player,...p};break;}}
+ explore(st);return st;
+}
+/** ?big=1: a 25×17 open floor with foes beyond the camera but within sight, to check edge arrows and the minimap. */
+function bigScene():RunState{
+ const s=scene();const W=25,H=17;s.room=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>x===0||y===0||x===W-1||y===H-1||(x%6===3&&y%5===2)?'#':'.').join(''));
+ s.roguelike=true;s.explored=[];s.features=[];s.traps=[];s.devices=[];s.player={...s.player,x:12,y:8};
+ const e=(id:string,kind:any,x:number,y:number,extra:any={})=>({id,kind,x,y,hp:4,intent:{x,y},alerted:true,...extra});
+ s.enemies=[e('n','pursuer',12,2),e('s','archer',12,14,{aim:true,lane:[{x:12,y:13},{x:12,y:12},{x:12,y:11},{x:12,y:10},{x:12,y:9}]}),e('far','charger',23,15)] as any;
+ explore(s);return s;
+}
+const vault=new URLSearchParams(location.search).get('vault');const big=new URLSearchParams(location.search).has('big');
 function Gallery(){
- const [s,set]=useState<RunState>(scene);const [lastBlast,setBlast]=useState(false);
+ const [s,set]=useState<RunState>(()=>big?bigScene():vault?vaultScene(vault):scene());const [lastBlast,setBlast]=useState(false);
  const send=(a:any)=>set(prev=>actWithMessages(prev,a,()=>{}));
  return <main className="saltwake" style={{height:'auto',minHeight:0,overflow:'visible'}}>
   <section className="gallery-sheet" style={{display:'flex',flexWrap:'wrap',gap:8,padding:8}}>
    {(Object.keys(spriteMaps) as SpriteName[]).map(n=><figure key={n} style={{margin:0,width:72,textAlign:'center',fontSize:10}}><div style={{width:64,height:64,margin:'auto',background:'var(--tx-floor-a) center/100% 100%',imageRendering:'pixelated'}}><Sprite name={n} style={{width:64,height:64}}/></div>{n}</figure>)}
    {['--tx-floor-a','--tx-floor-b','--tx-wall','--tx-grass-a','--tx-road-a','--tx-water','--tx-plank-a','--tx-plaster','--tx-slate'].map(v=><figure key={v} style={{margin:0,width:72,textAlign:'center',fontSize:10}}><div style={{width:64,height:64,margin:'auto',background:`var(${v}) center/100% 100%`,imageRendering:'pixelated'}}/>{v}</figure>)}
   </section>
-  <div style={{display:'flex',gap:8,padding:8}}><button onClick={()=>set(scene())}>Reset scene</button><button onClick={()=>set(p=>({...p,status:'died',player:{...p.player,hp:0},killedBy:'powder crab #crab-1'} as RunState))}>End run (summary)</button><button onClick={()=>{setBlast(!lastBlast);set(p=>({...p,turn:p.turn+1,blasts:[{x:4,y:5},{x:5,y:5},{x:6,y:5},{x:4,y:6},{x:5,y:6},{x:6,y:6},{x:4,y:7},{x:5,y:7},{x:6,y:7}],player:{...p.player,hp:p.player.hp-3}}));}}>Fake blast</button></div>
+  <div style={{display:'flex',gap:8,padding:8}}><button onClick={()=>set(vault?vaultScene(vault):scene())}>Reset scene</button><button onClick={()=>set(p=>({...p,turn:p.turn+1,enemies:p.enemies.map(e=>({...e,hp:0})).filter(()=>false)}))}>Defeat all foes</button><button onClick={()=>set(p=>({...p,status:'died',player:{...p.player,hp:0},killedBy:'powder crab #crab-1'} as RunState))}>End run (summary)</button><button onClick={()=>{setBlast(!lastBlast);set(p=>({...p,turn:p.turn+1,blasts:[{x:4,y:5},{x:5,y:5},{x:6,y:5},{x:4,y:6},{x:5,y:6},{x:6,y:6},{x:4,y:7},{x:5,y:7},{x:6,y:7}],player:{...p.player,hp:p.player.hp-3}}));}}>Fake blast</button></div>
   <div className="game-shell" style={{height:760,flex:'none'}}><div className="game-stage"><Run compact remote={{state:s,send,busy:false,title:'Gallery',roomCount:1,terminal:null,settlement:null,canExtract:true}}/></div></div>
  </main>;
 }

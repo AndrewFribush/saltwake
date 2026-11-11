@@ -8,14 +8,14 @@ import type {Device} from '../../shared/src/mechanisms';
 type P={x:number;y:number};type Room={x:number;y:number;w:number;h:number};
 function rng(seed:number){let n=(seed>>>0)||1;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};}
 export type GeneratedDraft={floors:CustomFloor[];placements:CreatorPlacement[][]};
-export type GeneratorOptions={vaults?:boolean;floors?:number;width?:number;height?:number;danger?:1|2|3;treasure?:boolean;budget?:FloorBudget};
+export type GeneratorOptions={arena?:boolean;vaults?:boolean;floors?:number;width?:number;height?:number;danger?:1|2|3;treasure?:boolean;budget?:FloorBudget};
 /** Per-floor caps used to keep generated drafts affordable. */
 export type FloorBudget={enemies:number;traps:number;treasure:number;featureCoins:number;tide:boolean};
 export type GeneratorPreset='small'|'medium'|'large';
 export const generatorPresets:Record<GeneratorPreset,{label:string;options:GeneratorOptions}>={
  small:{label:'Small · 1 floor',options:{floors:1,width:15,height:11,danger:1,budget:{enemies:2,traps:0,treasure:1,featureCoins:2,tide:false}}},
- medium:{label:'Medium · 2 floors',options:{vaults:true,floors:2,width:19,height:12,danger:2,budget:{enemies:3,traps:1,treasure:1,featureCoins:7,tide:true}}},
- large:{label:'Large · 3 floors',options:{vaults:true,floors:3,danger:2}},
+ medium:{label:'Medium · 2 floors',options:{arena:true,vaults:true,floors:2,width:19,height:12,danger:2,budget:{enemies:3,traps:1,treasure:1,featureCoins:7,tide:true}}},
+ large:{label:'Large · 3 floors',options:{arena:true,vaults:true,floors:3,danger:2}},
 };
 /** Placement coins and owned treasure goods a draft needs before it can open. */
 export function estimateDraft(d:GeneratedDraft):{coins:number;goods:number}{
@@ -170,7 +170,7 @@ export function lureRooms(floor:CustomFloor,placements:readonly CreatorPlacement
 /** Proof for a generated lure vault: from the approach, with only its guard present, a shove onto the plate gets the player
  * through the gate (exact play rules, bounded search); and from inside, the lever-door leads back to the stairs. */
 export function lureSolvable(floor:CustomFloor,lure:{gate:P;approach:P},guard:P):{entry:SolveResult;exit:SolveResult}|null{
- const base={...floor,tuning:[],exit_rule:{extract:true,require_clear:false}};delete (base as {tide?:unknown}).tide;
+ const base={...floor,tuning:[],exit_rule:{extract:true,require_clear:false}};delete (base as {tide?:unknown}).tide;delete base.links;
  const inner={x:2*lure.gate.x-lure.approach.x,y:2*lure.gate.y-lure.approach.y};
  const enter=authoredRehearsal([{...base,sockets:[guard]}],[{id:'guard',room:0,slot:0,enemy:'pursuer',trap:false,reward:null}],'club');enter.player.x=lure.approach.x;enter.player.y=lure.approach.y;
  const entry=solveReach(enter,inner,6000,24);if(!entry.solved)return null;
@@ -188,7 +188,65 @@ export function generateDraft(seed:number,options:GeneratorOptions={}):Generated
   if(options.budget)trimFloor(made.floor,made.placements,options.budget);
   floors.push(made.floor);placements.push(options.treasure===false?made.placements.map(p=>({...p,reward:null})):made.placements);
  }
+ // Drawn after the main floors so their layouts do not change: sometimes a one-way drop into a sealed arena.
+ if(options.arena&&count>=2&&r()<.45){
+  const from=Math.floor(r()*count);
+  for(let attempt=0;attempt<20;attempt++){
+   const arena=arenaFloor(r,from,count,danger);if(!arena)continue;
+   if(options.budget)trimFloor(arena.floor,arena.placements,{...options.budget,enemies:Math.max(3,options.budget.enemies),treasure:Math.max(1,options.budget.treasure)});
+   const linked=linkArena(floors,from,arena.floor,r);if(!linked)break;
+   floors.splice(0,floors.length,...linked);placements.push(options.treasure===false?arena.placements.map(p=>({...p,reward:null})):arena.placements);break;
+  }
+ }
  return {floors,placements};
+}
+type ArenaFloor={floor:CustomFloor;placements:CreatorPlacement[]};
+/** A sealed arena: one open hall with pillars, a pack, and an exit that opens only once every enemy is down. */
+function arenaFloor(r:()=>number,from:number,count:number,danger:number):ArenaFloor|null{
+ const int=(a:number,b:number)=>a+Math.floor(r()*(b-a+1));const pick=<T,>(xs:readonly T[])=>xs[Math.floor(r()*xs.length)];
+ const W=int(11,15),H=int(9,11);const g=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>x===0||y===0||x===W-1||y===H-1?'#':'.'));
+ const spawn={x:2,y:Math.floor(H/2)},exit={x:W-2,y:Math.floor(H/2)};
+ for(const [x,y] of [[4,2],[4,H-3],[W-5,2],[W-5,H-3]])if(r()<.75)g[y][x]='#';
+ if(W>=13&&r()<.5)g[Math.floor(H/2)][Math.floor(W/2)]='#';
+ const tiles=g.map(row=>row.join(''));const used=new Set([key(spawn),key(exit),key({x:exit.x,y:exit.y-1})]);
+ const open:P[]=[];tiles.forEach((row,y)=>[...row].forEach((c,x)=>{if(c==='.')open.push({x,y});}));
+ const take=(f:(p:P)=>boolean)=>{const xs=open.filter(p=>!used.has(key(p))&&f(p));if(!xs.length)return;const p=pick(xs);used.add(key(p));return p;};
+ const depth=Math.min(2,from+1),far=(p:P)=>Math.abs(p.x-spawn.x)+Math.abs(p.y-spawn.y)>=5;
+ // A pack that comes to you: no crossbow sentries (they kite, and the hall only opens once everything is down).
+ const pool:EnemyKind[][]=[['pursuer','charger'],['pursuer','charger','bomber'],['charger','bomber','brute','pursuer']];
+ const sockets:P[]=[],placements:CreatorPlacement[]=[];
+ for(let i=0;i<1+danger+Math.min(1,from);i++){const p=take(far);if(!p)return null;sockets.push(p);placements.push({enemy:pick(pool[depth]),trap:false,reward:i<2?'random':null});}
+ const features:Feature[]=[];let n=0;
+ for(let i=0;i<int(1,2);i++){const p=take(q=>q.y===1||q.y===H-2);if(p)features.push(defaultFeature('barrel',`arena-${n++}`,p.x,p.y));}
+ const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices:[],exit_rule:{extract:true,require_clear:true},features,links:[]};
+ return validateCustomFloor(floor,floorFormat(floor)).length?null:{floor,placements};
+}
+/** Turn a linear draft into connected floors: stairs passages beside each exit, a one-way drop into the arena,
+ * and (when floors remain below) a passage onward from the arena that opens once it is cleared. */
+function linkArena(floors:CustomFloor[],from:number,arena:CustomFloor,r:()=>number):CustomFloor[]|null{
+ const out=floors.map(f=>structuredClone(f));const arenaIndex=out.length;
+ const blocked=(f:CustomFloor)=>new Set([f.spawn,f.exit,...f.sockets,...(f.devices??[]),...(f.features??[]),...(f.links??[])].map(key));
+ // Tiles the arrival reaches without opening anything (closed gates, cracks, locks, kegs and chasms stay shut).
+ const reach=(f:CustomFloor,extra?:P)=>{const stop=new Set([...(extra?[key(extra)]:[]),...(f.devices??[]).filter(d=>d.kind==='door').map(key),...(f.features??[]).filter(x=>['crack','lock','barrel','pit'].includes(x.kind)).map(key)]);
+  const seen=new Map([[key(f.spawn),0]]);const q=[f.spawn];for(const p of q)for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n={x:p.x+dx,y:p.y+dy};if(f.tiles[n.y]?.[n.x]==='.'&&!stop.has(key(n))&&!seen.has(key(n))){seen.set(key(n),seen.get(key(p))!+1);q.push(n);}}return seen;};
+ // A passage tile must never be a chokepoint: walking onto it travels, so everything else must stay reachable around it.
+ const aside=(f:CustomFloor,p:P,seen:Map<string,number>)=>reach(f,p).size===seen.size-1;
+ const beside=(f:CustomFloor,p:P)=>{const b=blocked(f),seen=reach(f);return [[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(n=>seen.has(key(n))&&!b.has(key(n))&&aside(f,n,seen));};
+ for(const [i,f] of out.entries()){f.links=[];if(i<floors.length-1){const p=beside(f,f.exit);if(!p)return null;f.links.push({id:`down${i}`,...p,to:i+1,require_clear:false});}}
+ const f=out[from],b=blocked(f),seen=reach(f);
+ const spots=[...seen].filter(([k,d])=>d>=6&&!b.has(k)&&Math.abs(Number(k.split(',')[0])-f.exit.x)+Math.abs(Number(k.split(',')[1])-f.exit.y)>2).map(([k])=>{const [x,y]=k.split(',').map(Number);return {x,y};});
+ const open=spots.filter(p=>aside(f,p,seen));if(!open.length)return null;const drop=open[Math.floor(r()*open.length)];
+ f.links!.push({id:'drop',...drop,to:arenaIndex,require_clear:false});
+ const a=structuredClone(arena);a.links=[];
+ if(from+1<floors.length){const p=beside(a,a.exit);if(!p)return null;a.links.push({id:'onward',...p,to:from+1,require_clear:true});}
+ out.push(a);return out;
+}
+/** Proof for a generated arena: no passage leads back, and once its enemies are gone the exit is reachable (exact play rules). */
+export function arenaSolvable(floors:readonly CustomFloor[],arenaIndex:number):SolveResult|null{
+ const a=floors[arenaIndex];if(!a||a.exit_rule?.require_clear!==true||!a.exit_rule.extract)return null;
+ if((a.links??[]).some(l=>(floors[l.to].links??[]).some(back=>back.to===arenaIndex)))return null;
+ const s=authoredRehearsal([{...a,links:undefined,sockets:[],tuning:[]} as CustomFloor],[],'club');
+ const r=solveReach(s,a.exit,6000,80);return r.solved?r:null;
 }
 import {creatorRehearsal,authoredRehearsal,type RehearsalKit} from './authored-layout';
 import {solveReach,type SolveResult} from './solver';
