@@ -173,4 +173,9 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Gallery modes `?vault=lure` and `?vault=ambush` rehearse a real generated Large draft (seeds 1 and 2, floor 2) with the delver placed beside the trigger. Stepping onto the lure plate opens the vault gate; the wire turns solid and the gate dusts open (`lure-vault-plate-held.jpg`). The ambush trip switch and its gate connect the same way.
 - Tuned: wires are 3 px with a dark underlay so they read on light and dark floor; dashed while off, solid and glowing while on.
 
-Next step: cosmetic hero palettes, shared through presence as a small id.
+### 25. Cosmetic character looks
+- Eight hero palettes (cloak and hair swaps: Harbor gold, Tide blue, Kelp green, Coral red, Storm grey, Dusk violet, Rope brown, Salt white) in `art/Looks.ts`. A swatch button in the top bar opens a 4×2 picker of hero previews (Escape closes, keyboard focus moves into it). Stored per browser and per character (`localStorage['saltwake.look.<character>']`), applied to the town avatar, room hero and dungeon hero, including walk frames (`look-picker.jpg`, `look-coral.jpg`).
+- Shared with other players: the presence move message carries `look` (0-15). The server validates it as a small integer and relays it; it grants nothing and is not stored. Other players' avatars use their look; avatars without one keep the old per-id hue tint. Server change: 3 lines in apps/server/src/presence.ts plus a test (valid look relayed, out-of-range and non-integer rejected, omitted stays omitted).
+- Checks: typecheck, game 188, web 31, server 169, build pass.
+
+Next step: keep styling new UI from other lanes.

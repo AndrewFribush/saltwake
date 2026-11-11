@@ -667,3 +667,12 @@ main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
 .saltwake .history-chart .s1{stroke:#a8701c;color:#a8701c}.saltwake .history-chart .s2{stroke:#2e5a8a;color:#2e5a8a}.saltwake .history-chart .s3{stroke:#a82838;color:#a82838}.saltwake .history-chart .s4{stroke:#2f6a24;color:#2f6a24}
 .saltwake .history-chart .s2{stroke-dasharray:5 3}.saltwake .history-chart .s3{stroke-dasharray:2 2}.saltwake .history-chart .s4{stroke-dasharray:8 2 2 2}
 .saltwake .chart-legend li{color:#3a2a18}
+
+/* ---------- Character look picker (cosmetic) ---------- */
+.saltwake .sound-ctl{position:relative}
+.saltwake .look-btn{width:38px;height:34px;padding:0!important;background:linear-gradient(135deg,var(--hair) 0 38%,var(--look) 38%)!important}
+.saltwake .look-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:50;display:grid;grid-template-columns:repeat(4,44px);gap:6px;padding:8px;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:var(--sw-frame)}
+.saltwake .look-pop[hidden]{display:none}
+.saltwake .look-swatch{width:44px;height:44px;padding:2px!important;background:var(--tx-floor-a) center/100% 100%!important;image-rendering:pixelated}
+.saltwake .look-swatch .px-sprite{width:100%;height:100%}
+.saltwake .look-swatch[aria-pressed=true]{box-shadow:0 0 0 2px #f3d98a,0 0 10px #e8c56a88!important}

@@ -2,7 +2,8 @@ import React,{useEffect,useRef,useState} from 'react';
 import {spriteUrl,textureVars,type SpriteName} from './sprites';
 import {installHudJuice} from './Juice';
 import {installSound} from './Sound';
-installHudJuice();installSound();
+import {lookUrl,useMyLook,installLookPicker} from './Looks';
+installHudJuice();installSound();installLookPicker();
 
 export type Facing='up'|'down'|'left'|'right';
 
@@ -26,11 +27,11 @@ export function Sprite({name,flip=false,className='',style}:{name:SpriteName;fli
 
 /** The player character in SVG form, usable inside the town SVG or in HTML tiles. */
 export const walkFrame=(n:SpriteName):SpriteName=>(n+'Walk') as SpriteName;
-export function HeroSvg({facing='down',x,y,width='100%',height='100%',walking=false}:{facing?:Facing;x?:number;y?:number;width?:number|string;height?:number|string;walking?:boolean}){
- const [name,flip]=heroFrame(facing);
+export function HeroSvg({facing='down',x,y,width='100%',height='100%',walking=false,look}:{facing?:Facing;x?:number;y?:number;width?:number|string;height?:number|string;walking?:boolean;look?:number}){
+ const [name,flip]=heroFrame(facing);const mine=useMyLook();const l=look??mine;
  return <svg className={`character-sprite facing-${facing} ${walking?'walking':''}`} aria-hidden="true" focusable="false" x={x} y={y} width={width} height={height} viewBox="0 0 16 17" style={{display:'block',pointerEvents:'none',overflow:'visible'}}>
   <ellipse cx="8" cy="15.6" rx="5" ry="1.6" fill="#0b0f0d" opacity=".45"/>
-  <g className="hero-body"><image className="frame-a" href={href(spriteUrl(name,flip))} width="16" height="16" style={{imageRendering:'pixelated'}}/><image className="frame-b" href={href(spriteUrl(walkFrame(name),flip))} width="16" height="16" style={{imageRendering:'pixelated'}}/></g>
+  <g className="hero-body"><image className="frame-a" href={href(lookUrl(name,flip,l))} width="16" height="16" style={{imageRendering:'pixelated'}}/><image className="frame-b" href={href(lookUrl(walkFrame(name),flip,l))} width="16" height="16" style={{imageRendering:'pixelated'}}/></g>
  </svg>;
 }
 

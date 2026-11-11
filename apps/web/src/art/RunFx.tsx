@@ -6,6 +6,7 @@ import type {RunState,Enemy} from '../../../../packages/game/src/state';
 import {doorOpen,signalValue} from '../../../../packages/shared/src/mechanisms';
 import {emit} from './Sound';
 import {heroFrame,Sprite,useMoving,walkFrame,type Facing} from './Sprite';
+import {lookUrl,useMyLook} from './Looks';
 import {tintedSprite,type SpriteName} from './sprites';
 
 export const enemySprite=(e:Enemy):SpriteName=>e.minion?'rat':e.kind==='charger'?'boar':e.kind==='archer'?'sentry':e.kind==='bomber'?'crab':e.kind==='brute'?'brute':e.kind==='nest'?'nest':'rat';
@@ -75,7 +76,7 @@ function Pips({hp,max}:{hp:number;max:number}){
 export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:RunFx;visible:Set<string>;viewport:{x:number;y:number;columns:number;rows:number};danger:boolean;ended:boolean}){
  const enemies=s.enemies.filter(e=>e.hp>0&&visible.has(`${e.x},${e.y}`));
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
- const walking=useMoving(s.player.x,s.player.y);
+ const walking=useMoving(s.player.x,s.player.y);const look=useMyLook();
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
  return <><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
   {(s.blasts??[]).filter(b=>b.x>=viewport.x&&b.y>=viewport.y).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
@@ -88,7 +89,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
     <Pips hp={e.hp} max={max}/>
    </span>;})}
   <span className={`actor hero-actor ${walking?'walking':''} ${s.status==='died'?'fallen':''} ${danger?'in-danger':''}`} style={at(s.player,viewport)}>
-   <span key={`p-${s.turn}`} className={`actor-body ${fx.playerLunge?'lunge':''} ${fx.playerHit?'hit':''}`} style={lungeStyle(fx.playerLunge)}><Sprite name={hero} flip={heroFlip} className="actor-sprite frame-a"/><Sprite name={walkFrame(hero)} flip={heroFlip} className="actor-sprite frame-b"/></span>
+   <span key={`p-${s.turn}`} className={`actor-body ${fx.playerLunge?'lunge':''} ${fx.playerHit?'hit':''}`} style={lungeStyle(fx.playerLunge)}><span aria-hidden="true" className="px-sprite actor-sprite frame-a" style={{backgroundImage:lookUrl(hero,heroFlip,look)}}/><span aria-hidden="true" className="px-sprite actor-sprite frame-b" style={{backgroundImage:lookUrl(walkFrame(hero),heroFlip,look)}}/></span>
    {danger&&!ended&&<span className="danger-badge">!</span>}
   </span>
   {!!s.keys?.length&&<span className="key-ring" title={`Keys: ${s.keys.join(', ')}`}>{s.keys.map((k,i)=><span key={i} className="px-sprite key-chip" style={{backgroundImage:tintedSprite('key',k)}}/>)}</span>}
