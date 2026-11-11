@@ -102,7 +102,7 @@ export function Shop({world, busy, command, refresh,onBusyChange}: ShopProps) {
     <StackRows stacks={supplyStacks} counts={counts} onCount={setCount} disabled={disabled} empty={bankItems.length?'Nothing in this category.':'The bank has no stock.'}/>
     <p className="trade-guidance">{!supplyIds.length?'Use + to choose how many. Tonics need 2 herbs + 2 flasks at the Copper Kettle.':supplyTotal>credits?`You need ${supplyTotal-credits} more coins.`:`${summary(supplyIds,bankItems)} · ${supplyTotal} coins`}</p>
     <button className="primary checkout" type="button" disabled={disabled || !supplyIds.length || supplyIds.length > 128 || supplyTotal > credits}
-      onClick={() => void execute({type: 'bank_buy', item_ids: supplyIds, expected_unit_prices: supplyIds.map(id=>sale(bankItems.find(i=>i.id===id)!.item_type))},`Bought ${summary(supplyIds,bankItems)}. They are in your satchel.`)}>{supplyIds.length?`Buy for ${supplyTotal} coins`:'Choose supplies'}</button>
+      onClick={() => void execute({type: 'bank_buy', item_ids: supplyIds, expected_unit_prices: supplyIds.map(id=>sale(bankItems.find(i=>i.id===id)!.item_type))},`Bought ${summary(supplyIds,bankItems)}. ${supplyIds.length===1?"It is":"They are"} in your satchel.`)}>{supplyIds.length?`Buy for ${supplyTotal} coins`:'Choose supplies'}</button>
     </>}
 
     {view==='Player offers'&&<>

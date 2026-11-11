@@ -25,7 +25,7 @@ export function FirstSteps({world,hidden}:{world:any;hidden:boolean}){
   {id:'sell',title:'Sell or trade',text:'The market has a standing order for fine tonics. Or offer goods to other players: click someone in town to trade.',done:sold},
   {id:'delve',title:'Delve for treasure',text:'At the old catacombs, pack gear and pay an entry fee. Escape with treasure; die and your gear is lost.',done:delved},
   ...(world.shopContract?[{id:'shop',title:'Open a shop',text:'Press “Build here” above the map to place a shop of your own in this district, then stock it with goods to sell.',done:(world.shops??[]).some((x:{owner:string})=>x.owner===profile)}]:[]),
-  {id:'build',title:'Build a dungeon',text:'At the Delvers’ guild, draw floors, rehearse for free, fund treasure, and earn the entry fees others pay.',done:built},
+  {id:'build',title:'Build a dungeon',text:'At the Delvers’ guild, walk to the drafting table (✎). Draw floors, rehearse for free, then open it: other players pay you to enter.',done:built},
  ];
  const now=steps.find(s=>!s.done);
  return <aside className="idle-inspector first-steps" aria-label="Your goals in Saltwake" hidden={hidden}>

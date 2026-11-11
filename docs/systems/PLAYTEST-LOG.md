@@ -47,3 +47,24 @@ Playing Saltwake as a stranger on a local sandbox (web 18970, API 18971), fixing
 - Builder: a step strip (1 Draw · 2 Encounters · 3 Treasure · 4 Check · 5 Open), with the full list kept under "All tools". The fee now explains that the maker keeps it, and warns at 0. Opening shows a green callout: "“Herb cellar” is open…".
 - **Loot prompt:** standing on loot shows "You found Herb" with Take, plus Equip or Drink when they apply. It sends the existing `pickup`/`equip`/`use` actions.
 - Maker headline: "1 delver has entered: 1 escaped, 0 died · You earned 2 coins". It also explains a depleted status and how to reopen. The offer card names the builder.
+
+## Round 3: wallet mode and the builder ("I can't access it at all")
+
+**Tried:** a local wallet mode that sends no testnet transactions. `scripts/wallet-sandbox.ts` deploys `init_public_testnet` plus the starter town, and creates player accounts. The server runs with `--wallet-local`, and the dev signer runs against the loopback RPC. Played the full maker loop as wallet players:
+- player1 registered and did two recovery jobs (4 coins). It drew a floor, placed a pursuer and rehearsed. The draft survived a reload, and it opened the dungeon for 4 coins.
+- player2 registered, earned 2 coins, found the dungeon at the gate, paid 1 and played it to extraction.
+- player3 did three jobs (6 coins), bought a herb, funded it as a fixed reward and opened "Herb vault" for 3 coins.
+
+**Wrong:**
+- The builder itself works in wallet mode. Finding it is the problem: guild → walk to the Steward → Enter → "Build a dungeon" tab → "Open dungeon builder". Nothing in town or the guild says a builder exists. The guild's sign read "Fund an expedition".
+- A new wallet player has 0 coins. Opening costs 2 coins plus 2 per pursuer, 3 per charger, 1 per trap and 1 per treasure spot, and the only hint was "You need 4 coins for placement" on the last step.
+- The "All tools" dropdown repeated all 17 sections on top of the step strip.
+- The shop-site picker was an abstract dot grid with no streets or building names.
+
+**Fixed:**
+- The guild has a **drafting table (✎)**. Walking to it, or clicking it, opens the dungeon builder directly. The room foot reads "Drafting table · Enter to open the builder". The guild's idle panel explains the table and the Steward, and the town sign now reads "Build a dungeon". Guild rooms saved before this change get the table added on load. The interior validator accepts at most one `builder` fixture.
+- The builder launch panel says up front what opening costs and how many coins you have. When you're short, the Open step says how many recovery jobs would cover it, or what to remove to make it cheaper. Rehearsal stays free.
+- The step strip (Draw · Encounters · Treasure · Check · Open) is the main flow. The dropdown is now "More tools" and holds only the other 12 sections.
+- The shop-site picker draws the real water, roads and buildings with their names, and turns red when the footprint is blocked.
+
+**Money finding (no contract change made):** under the deployed rules a fresh wallet player *can* open a first dungeon. Two recovery jobs (4 coins) cover a one-enemy design. Three jobs (6 coins) cover a herb and one treasure spot. It takes 1–3 short minigames first. Making it instant would need a starter grant at registration or cheaper placement. Both are contract state or rule changes that the deployed testnet state can't take without a migration, so the UI explains the path instead.
