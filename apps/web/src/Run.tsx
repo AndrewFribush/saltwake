@@ -9,7 +9,7 @@ import {TileArt} from './tileset';
 import {Sprite} from './art/Sprite';
 import {ActorLayer,useRunFx} from './art/RunFx';
 import {FeatureArt} from './art/FeatureArt';
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {distance} from '../../../packages/game/src/state';
 import {keyAction} from '../../../packages/game/src/controls';
 import {actWithMessages, type Action} from '../../../packages/game/src/actions';
@@ -29,6 +29,8 @@ const featureLabel=(f:FeatureState)=>f.kind==='barrel'?`Powder keg${f.fuse?' · 
 export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;terminal:string|null;settlement:any;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean}}) {
  const [local, set] = useState(()=>depthPractice(crypto.getRandomValues(new Uint32Array(1))[0]));const s=remote?.state??local;
  const board = useRef<HTMLDivElement>(null);
+ // Keys go to the board as soon as a run screen appears (including after a reload mid-run).
+ useEffect(()=>{board.current?.focus({preventScroll:true});},[]);
  const [compactTab,setCompactTab]=useState<'Map'|'Bag'|'Journal'>('Map'),[itemPage,setItemPage]=useState(0);
  const [notice, setNotice] = useState('');
  const [shoving,setShoving]=useState(false),[aiming,setAiming]=useState<SupplyKind|null>(null);const trace=useRef<PlayTrace>({events:[],dropped:0});
