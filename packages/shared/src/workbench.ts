@@ -16,6 +16,6 @@ export function recipeSelection(items:readonly Item[],profile:string,ids:readonl
  const selected=ids.map(id=>items.find(i=>i.id===id&&i.location.kind==='owned'&&i.location.profile===profile));
  if(selected.some(i=>!i))return {valid:false,reason:'Some selected goods are no longer in your storage.'};
  const herbs=selected.filter(i=>i?.item_type==='herb').length,flasks=selected.filter(i=>i?.item_type==='flask').length;
- const valid=ids.length===4&&herbs===2&&flasks===2;
- return {valid,reason:valid?'Ready: 2 herbs and 2 flasks make 2 tonics.':`Selected ${herbs}/2 herbs and ${flasks}/2 flasks${ids.length>herbs+flasks?'; remove non-ingredients':''}. Choose exactly 2 of each from stored goods.`};
+ const small=ids.length===2&&herbs===1&&flasks===1;const valid=ids.length===4&&herbs===2&&flasks===2||small;
+ return {valid,reason:small?'Ready: a small batch, 1 herb and 1 flask make 1 tonic.':valid?'Ready: 2 herbs and 2 flasks make 2 tonics.':`Selected ${herbs}/2 herbs and ${flasks}/2 flasks${ids.length>herbs+flasks?'; remove non-ingredients':''}. Choose exactly 2 of each from stored goods.`};
 }

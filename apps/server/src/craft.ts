@@ -47,9 +47,9 @@ export class Craft {
   }
   private prepare(profile: string, requestId: string, inputIds: readonly string[], recovery: boolean, accountId?: string): CraftView {
     if (typeof profile !== 'string' || !profile.length || profile.length > 128 || !validId(requestId)
-      || typeof recovery !== 'boolean' || !Array.isArray(inputIds) || inputIds.length !== 4
+      || typeof recovery !== 'boolean' || !Array.isArray(inputIds) || !(inputIds.length === 4 || (!recovery && inputIds.length === 2))
       || inputIds.some(id => typeof id !== 'string' || !id.length || id.length > 128)
-      || new Set(inputIds).size !== 4) throw Error('Invalid craft request');
+      || new Set(inputIds).size !== inputIds.length) throw Error('Invalid craft request');
     const id = accountId ? playerOperationId(accountId,requestId) : 'c-' + hash([profile, requestId]).slice(0, 48);
     const requestHash = hash([profile, inputIds, recovery]);
     return this.db.transaction(() => {
@@ -127,7 +127,7 @@ export class Craft {
           row.deadlineMs=deadline;row.confirmed=true;this.save(row);continue;
         }
         const deadline=Number(batch.deadline_ms);
-        if(!Number.isSafeInteger(deadline)||deadline<=0||batch.input_ids.length!==4||new Set(batch.input_ids).size!==4||! /^[a-fA-F0-9]{64}$/.test(batch.challenge_commitment))throw Error('Invalid discovered craft');
+        if(!Number.isSafeInteger(deadline)||deadline<=0||!(batch.input_ids.length===4||(!batch.recovery&&batch.input_ids.length===2))||new Set(batch.input_ids).size!==batch.input_ids.length||! /^[a-fA-F0-9]{64}$/.test(batch.challenge_commitment))throw Error('Invalid discovered craft');
         let herbs=0,flasks=0;
         for(const id of batch.input_ids){
           const item=snapshot.items.find(i=>i.id===id),location=item?.location;

@@ -1,4 +1,5 @@
 mod buyin;
+mod commissions;
 mod craft;
 mod shops;
 mod editions;
@@ -270,6 +271,7 @@ impl Economy {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            commissions: commissions::read().into_values().collect(),
             buy_ins: self.credits.keys().filter(|p| p.starts_with("wallet:")).filter_map(|p| buyin::read_buyer(p).map(|b| (p.clone(), b.coins_issued))).collect(),
             reservations: self.listings.values().filter(|l| l.status == "active").filter_map(|l| market::reserved_buyer(&l.id).map(|b| (l.id.clone(), b))).collect(),
             shops: self.shops.values().cloned().collect(),
@@ -361,7 +363,7 @@ fn player_action_allowed(action: &Action) -> bool {
         | Action::FinalizeClose { .. } | Action::Refresh { .. } | Action::SetFee { .. }
         | Action::List { .. } | Action::CancelListing { .. } | Action::Buy { .. }
         | Action::BankBuy { .. } | Action::BankSell { .. } | Action::FillNpcOrder { .. }
-        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. } | Action::ListFor { .. } | Action::Retire { .. }
+        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. } | Action::ListFor { .. } | Action::Retire { .. } | Action::PostCommission { .. } | Action::FillCommission { .. } | Action::CancelCommission { .. }
         | Action::BeginCraft { .. } | Action::BeginRecovery { .. })
 }
 impl Economy {
@@ -466,6 +468,9 @@ impl Economy {
             Action::RemoveShop {shop_id,expected_version} => self.remove_shop(c.actor,shop_id,expected_version),
             Action::ListFor {item_ids,unit_price,buyer} => self.list_for(c.actor,item_ids,unit_price,buyer),
             Action::Retire {edition_id} => self.retire(c.actor,edition_id),
+            Action::PostCommission {item_type,unit_price,quantity} => self.post_commission(c.actor,item_type,unit_price,quantity),
+            Action::FillCommission {commission_id,item_ids,expected_unit_price} => self.fill_commission(c.actor,commission_id,item_ids,expected_unit_price),
+            Action::CancelCommission {commission_id} => self.cancel_commission(c.actor,commission_id),
             Action::BeginCraft {
                 batch_id,
                 input_ids,

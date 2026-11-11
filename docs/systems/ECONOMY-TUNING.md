@@ -51,3 +51,52 @@ With L1 alone the proprietor wanted tonics every day and found none on offer: th
 - Delver solvency improved strongly on one seed only. On seeds 1 and 3 makers still accumulate coins: the proprietor's starting 100 coins plus fees outweigh what it spends on restocks. The remaining structural issue is maker accumulation, not a missing faucet.
 - Candidate next levers (not applied): a cheaper entry tier when delvers are broke (makers already cut fees on zero entries, but only one step a day), and smaller artisan batches (1 herb + 1 flask → 1 tonic) to lower the cash needed to brew; the latter needs a contract recipe change.
 - The four levers are now the simulation's default strategies (`--levers none` reproduces the baseline).
+
+## Round 2: maker accumulation and broke delvers (2026-11-11, later)
+
+New levers, added one at a time on seed 2 on top of L1–L4:
+
+| Lever | Change | Where it lives |
+|---|---|---|
+| L5 `fastfee` | When a dungeon gets no entries and delvers are broke, or its fee exceeds the poorest delver's purse, makers halve the fee down to what the poorest delver can pay (a "happy hour"); they raise it again only after 3+ entries. | Maker strategy (fees are already adjustable with `set_fee`). |
+| L6 `smallbatch` | A small batch, 1 herb + 1 flask → 1 tonic, so an artisan with 4 coins can brew. | **Contract recipe change** (`craft.rs`): non-recovery batches of 2 inputs make 1 output; the full 2 + 2 → 2 recipe and recovery jobs are unchanged; server craft validation and the workbench (Small batch button) accept it. |
+| L7 `commission` | Escrowed commissions: a player posts an order for N goods at a price, coins leave the purse into escrow, other players deliver goods and are paid from the escrow; cancel refunds the rest. Makers with idle coins commission tonics for future restocks and use commissions instead of the bank when a restock lacks goods; artisans and delvers deliver into open commissions first. | **New contract actions** `post_commission` / `fill_commission` / `cancel_commission` (Borsh indices 25–27, own storage key `commissions.v1`, so old state loads; snapshot `commissions` with escrow). Notice board → Commissions tab to post, fill and cancel. |
+
+The bank-restock lever (L3) is switched off when commissions are on, so restock money goes to players rather than the operator's bank.
+
+### Seed 2, cumulative
+
+| Metric (7 days) | L1–L4 | +L5 fastfee | +L6 smallbatch | +L7 commission |
+|---|---|---|---|---|
+| Runs | 18 | 21 | 21 | 21 |
+| Runs/day, last 3 days | 2.67 | 3.0 | 3.0 | 3.0 |
+| Days a delver could not afford any dungeon | 2 | 0 | 0 | 0 |
+| Player trades | 17 | 14 | 13 | 18 |
+| Batches brewed | 2 | 2 | 3 | 3 |
+| Treasure value taken out | 84 | 48 | 42 | 66 |
+| Delvers' coins at end | 33 | 6 | 1 | 33 |
+| Makers' coins at end | 59 | 86 | 96 | 38 |
+| Artisans' coins at end | 12 | 12 | 4 | 18 |
+
+L5 ended broke days but, alone, kept makers rich (fees just dropped toward zero). L6 added one brew. L7 is the lever that moved makers' coins into players' pockets: the proprietor commissioned tonics every day, the scavenger and the newcomer delivered them (6 coins each), and the proprietor restocked its dungeon with them.
+
+### All levers vs baseline, three seeds
+
+| Metric (7 days) | Seed 1 | Seed 2 | Seed 3 |
+|---|---|---|---|
+| Runs/day, last 3 days | 2.0 → 3.0 | 1.0 → 3.0 | 0.67 → 3.0 |
+| Days a delver could not afford any dungeon | 2 → 0 | 3 → 0 | 4 → 0 |
+| Player trades | 4 → 17 | 3 → 18 | 4 → 20 |
+| Batches brewed | 1 → 3 | 1 → 3 | 1 → 3 |
+| Treasure value taken out | 12 → 30 | 48 → 66 | 18 → 78 |
+| Delvers' coins at end | 0 → 25 | 0 → 33 | 0 → 57 |
+| Makers' coins at end | 85 → 53 | 93 → 38 | 88 → 24 |
+| Unsold items at end | 14 → 7 | 15 → 8 | 14 → 8 |
+
+Coins were conserved every day in every run (the check now also counts commission escrow). No faucet, no new issuance.
+
+### Still open
+
+- Treasure taken out varies a lot by seed because delvers' bot policies and dungeon generation are random; 7 rounds with 3 delvers is a small sample.
+- Commission prices in the simulation are fixed at catalog value; no price discovery yet.
+- All seven levers are the simulation default; `--levers none` is the baseline, and any subset can be named.

@@ -33,7 +33,10 @@ export type Command={readonly actor:string;readonly action:
  |{readonly type:'finish_craft';readonly batch_id:string;readonly tier:CraftTier;readonly reason:FinishReason}
  |{readonly type:'begin_recovery';readonly batch_id:string;readonly bank_input_ids:readonly string[];readonly challenge_commitment:string;readonly deadline_ms:string}
  |{readonly type:'finish_recovery';readonly batch_id:string;readonly tier:CraftTier;readonly reason:FinishReason}
- |{readonly type:'finalize_close';readonly edition_id:string}|{readonly type:'retire';readonly edition_id:string}};
+ |{readonly type:'finalize_close';readonly edition_id:string}|{readonly type:'retire';readonly edition_id:string}
+ |{readonly type:'post_commission';readonly item_type:ItemType;readonly unit_price:string;readonly quantity:number}
+ |{readonly type:'fill_commission';readonly commission_id:string;readonly item_ids:readonly string[];readonly expected_unit_price:string}
+ |{readonly type:'cancel_commission';readonly commission_id:string}};
 export type OperationStatus={status:'Applied'|'Rejected';op_id:string;payload_hash:string;result:string;run:EconomicRun|null}|{status:'Pending';op_id:string;tx_hash?:string}|{status:'Unknown';op_id:string;reason:string};
 
 export type Partition={readonly town_consumed:readonly string[];readonly town_returned:readonly string[];readonly town_forfeited:readonly string[];readonly dungeon_consumed:readonly string[];readonly dungeon_extracted:readonly string[];readonly dungeon_returned:readonly string[]};
@@ -44,7 +47,8 @@ export type Listing={id:string;seller:string;item_ids:string[];remaining_ids:str
 export type NpcOrder={id:string;item_type:ItemType;unit_price:string;remaining:number;budget:string;seeded_demo_demand:boolean};
 export type BankPrice={item_type:ItemType;sale_price:string;buyback_price:string};
 export type Shopfront={id:string;owner:string;title:string;district:string;x:number;y:number;interior:string;version:string;open:boolean;listing_ids:string[]};
-export type EconomySnapshot={buy_ins?:Record<string,string>;reservations?:Record<string,string>;shops?:Shopfront[];credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState;coin_issuance?:{coins_issued:string;near_received:string;purchases:string};retired_editions?:string[]};
+export type Commission={id:string;buyer:string;item_type:ItemType;unit_price:string;quantity:number;filled:number;escrow:string;status:'open'|'filled'|'cancelled';delivered:string[]};
+export type EconomySnapshot={commissions?:Commission[];buy_ins?:Record<string,string>;reservations?:Record<string,string>;shops?:Shopfront[];credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState;coin_issuance?:{coins_issued:string;near_received:string;purchases:string};retired_editions?:string[]};
 
 export type CraftTier='normal'|'fine';
 export type FinishReason='completed'|'expired';

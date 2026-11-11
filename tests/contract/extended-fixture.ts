@@ -15,10 +15,10 @@ export async function extendedFixture(){
  await account.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));
  await call('init_demo_extended');
  const apply=async(op_id:string,command:Command)=>{const r=await call('execute',{op_id,command});assert.equal(r.payload_hash,commandHash(command));const s=await view();
-  assert.equal(s.items.length,51+2*s.batches.filter((b:any)=>b.status!=='active').length);
+  assert.equal(s.items.length,51+s.batches.filter((b:any)=>b.status!=='active').reduce((n:number,b:any)=>n+b.input_ids.length/2,0));
   assert.equal(new Set(s.items.map((i:any)=>i.id)).size,s.items.length);
   const escrow=s.runs.filter((r:any)=>r.status==='active').reduce((n:bigint,r:any)=>n+BigInt(r.fee),0n);
-  const wages=s.batches.reduce((n:bigint,b:any)=>n+BigInt(b.wage_reserved),0n);
+  const wages=s.batches.reduce((n:bigint,b:any)=>n+BigInt(b.wage_reserved),0n)+(s.commissions??[]).reduce((n:bigint,c:any)=>n+BigInt(c.escrow),0n);
   assert.equal(Object.values(s.credits).reduce<bigint>((n,v)=>n+BigInt(v as string),BigInt(s.bank)+BigInt(s.npc_order.budget)+BigInt(s.recovery.budget)+escrow+wages),176n);
   return r;
  };

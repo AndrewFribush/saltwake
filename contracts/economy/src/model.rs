@@ -211,6 +211,10 @@ pub enum Action {
     ListFor {item_ids:Vec<String>,unit_price:U64,buyer:String},
     /// Stop new admissions to an edition (its terms stay immutable). Active runs finish; closure may then follow early.
     Retire {edition_id:String},
+    /// Escrowed order for goods (commissions.rs). Appended: indices 25-27.
+    PostCommission {item_type:ItemType,unit_price:U64,quantity:u32},
+    FillCommission {commission_id:String,item_ids:Vec<String>,expected_unit_price:U64},
+    CancelCommission {commission_id:String},
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]
@@ -338,6 +342,9 @@ pub struct Snapshot {
     /// Coins each player bought with NEAR (labelled issuance). Omitted when empty.
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty", default)]
     pub buy_ins: std::collections::BTreeMap<String, U64>,
+    /// Commissions with their escrow (coins held for open orders). Omitted when empty.
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub commissions: Vec<crate::commissions::Commission>,
     pub shops: Vec<Shopfront>,
     pub credits: std::collections::BTreeMap<String, U64>,
     pub bank: U64,
