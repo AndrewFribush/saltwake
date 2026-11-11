@@ -157,6 +157,11 @@ Greedy tide deaths on Medium went from 8 to 0 (they were ambush traps); greedy d
 - Builder Check tab: "Check route to the stairs" runs the solver on the selected floor with the chosen test kit and reports turns needed (and whether a shove is required), a proof of no route, or that the floor was too big to check exhaustively.
 - Not yet: the generator does not emit lure rooms (needs geometry with the plate in line with the approach and a separate way out of the vault), and the one-way drop into a sealed arena.
 
+## Route check in the browser
+
+- Clicked "Check route to the stairs" on a generated Small floor (seed 3: reachable in 15 turns, about 1.5 s) and on a hand-built floor whose only doorway is a gate held shut by a clear-switch (proven unreachable, 96 positions).
+- Awkward bits fixed: a stale result stayed on screen after edits (now cleared on any edit); the full search is too slow to run automatically on floors with enemies, so opening the Check step now runs a quick structural check with enemies removed (capped at 4,000 positions): it says the stairs are reachable "if the enemies are dealt with", or proves them unreachable because of gates, plates, switches or locks. The button still runs the full search with enemies.
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
