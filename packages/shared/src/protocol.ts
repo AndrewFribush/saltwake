@@ -33,6 +33,7 @@ export function encodeCommand(c:Command):Uint8Array{
  else if(a.type==='create_shop'||a.type==='update_shop'){byte(a.type==='create_shop'?19:20);if(a.type==='update_shop'){str(a.shop_id);u64(a.expected_version);}str(a.title);str(a.district);byte(a.x);byte(a.y);str(a.interior);bool(a.open);}
  else if(a.type==='stock_shop'){byte(21);str(a.shop_id);strings(a.item_ids);u64(a.unit_price);}
  else if(a.type==='remove_shop'){byte(22);str(a.shop_id);u64(a.expected_version);}
+ else if(a.type==='list_for'){byte(23);strings(a.item_ids);u64(a.unit_price);str(a.buyer);}
  else throw Error('Unknown action');
  return Buffer.concat(chunks);
 }

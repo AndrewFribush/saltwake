@@ -92,6 +92,9 @@ impl Economy {
         if l.seller == actor {
             return Err("SelfPurchase".into());
         }
+        if reserved_buyer(&id).is_some_and(|b| b != actor) {
+            return Err("ReservedForAnotherBuyer".into());
+        }
         if price.0 != l.unit_price.0 {
             return Err("StalePrice".into());
         }
@@ -231,5 +234,22 @@ impl Economy {
         let balance = self.credits.get_mut(&actor).unwrap();
         *balance = balance.checked_add(total).ok_or("CreditOverflow")?;
         Ok(id)
+    }
+}
+
+/// Private offers: listing id -> the only profile allowed to buy it. Listing ids are never reused.
+/// Stored outside the main state struct so existing state loads without migration.
+fn reservation_key(listing: &str) -> Vec<u8> { format!("listing-buyer:{listing}").into_bytes() }
+pub(crate) fn reserved_buyer(listing: &str) -> Option<String> {
+    near_sdk::env::storage_read(&reservation_key(listing)).and_then(|v| String::from_utf8(v).ok())
+}
+pub(crate) fn reserve(listing: &str, buyer: &str) {
+    near_sdk::env::storage_write(&reservation_key(listing), buyer.as_bytes());
+}
+impl Economy {
+    pub(crate) fn list_for(&mut self, actor: String, ids: Vec<String>, price: U64, buyer: String) -> Result<String, String> {
+        if buyer.is_empty() || buyer.len() > 80 || !self.credits.contains_key(&buyer) { return Err("UnknownBuyer".into()); }
+        if buyer == actor { return Err("SelfPurchase".into()); }
+        self.list(actor, ids, price)
     }
 }

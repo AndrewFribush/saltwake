@@ -13,7 +13,11 @@ export function PlayerTrade({partner,distance,trade,onClose,onApproach,announce}
  const {world}=trade;const [buyCounts,setBuyCounts]=useState<Record<string,number>>({});const [offerCounts,setOfferCounts]=useState<Record<string,number>>({});const [price,setPrice]=useState('5');
  const [working,setWorking]=useState(false);const [notice,setNotice]=useState('');const inflight=useRef(false);
  const listings=(world.listings as Listing[]??[]).filter(l=>l.status==='active');const listedItems=(world.listedItems as Item[]??[]);
- const theirs=listings.filter(l=>sellerIs(l.seller,partner));const mine=listings.filter(l=>l.seller===world.profile);
+ const reserved=(world.reservations??{}) as Record<string,string>;
+ // Economy profiles keep the `wallet:` prefix that presence ids drop.
+ const partnerProfile=String(world.profile).startsWith('wallet:')&&!partner.startsWith('wallet:')?'wallet:'+partner:partner;
+ const [privateOffer,setPrivateOffer]=useState(true);
+ const theirs=listings.filter(l=>sellerIs(l.seller,partner)&&(!reserved[l.id]||reserved[l.id]===world.profile));const mine=listings.filter(l=>l.seller===world.profile);
  const owned=(world.items as Item[]).filter(i=>i.location.kind==='owned'&&i.location.profile===world.profile);
  const unresolved=(world.operations??[]).some((o:{status:string})=>['Pending','Unknown'].includes(o.status));
  const near=distance!==null&&distance<=TRADE_RANGE;const disabled=trade.busy||working||unresolved;
@@ -21,7 +25,7 @@ export function PlayerTrade({partner,distance,trade,onClose,onApproach,announce}
  const them=playerLabel(partner),themLower=them.startsWith('The ')?'the'+them.slice(3):them;
  const available=(l:Listing)=>l.remaining_ids.filter(id=>listedItems.some(i=>i.id===id&&i.location.kind==='listed'&&i.location.listing===l.id));
  const typeOf=(id?:string)=>listedItems.find(i=>i.id===id)?.item_type;
- const theirStacks:Stack[]=theirs.flatMap(l=>{const ids=available(l),type=typeOf(ids[0]);return type?[{key:l.id,type,ids,price:l.unit_price}]:[];});
+ const theirStacks:Stack[]=theirs.flatMap(l=>{const ids=available(l),type=typeOf(ids[0]);return type?[{key:l.id,type,ids,price:l.unit_price,...(reserved[l.id]?{note:'Offered to you: only you can buy this'}:{})}]:[];});
  const buyStack=theirStacks.find(s=>(buyCounts[s.key]??0)>0),buyIds=buyStack?chosenIds([buyStack],buyCounts):[];
  const buyTotal=buyStack?BigInt(buyStack.price!)*BigInt(buyIds.length):0n;
  const offerStacks=stacksOf(owned),offerStack=offerStacks.find(s=>(offerCounts[s.key]??0)>0),offerIds=offerStack?chosenIds([offerStack],offerCounts):[];
@@ -43,9 +47,10 @@ export function PlayerTrade({partner,distance,trade,onClose,onApproach,announce}
   <section><h4>Offer your goods</h4>
    <StackRows stacks={offerStacks} counts={offerStack?{[offerStack.key]:offerCounts[offerStack.key]}:offerCounts} onCount={(key,n)=>setOfferCounts({[key]:Math.max(0,n)})} disabled={disabled} empty="Your satchel is empty."/>
    <div className="trade-offer"><label>Price <input type="number" min="1" max="1000000" value={price} disabled={disabled} onChange={e=>setPrice(e.target.value)}/> coins each</label>
-    <button className="primary" disabled={disabled||!near||!offerStack||!offerIds.length||offerIds.length>128||!validPrice} onClick={()=>offerStack&&void run({type:'list',item_ids:offerIds,unit_price:String(Number(price))},`Offered ${countOf(offerIds.length,offerStack.type)} at ${Number(price)} coins each.`,()=>announce(`Offering ${countOf(offerIds.length,offerStack.type)} at ${Number(price)} coins each. Click me to trade.`))}>{offerIds.length?`Offer ${countOf(offerIds.length,offerStack!.type)}`:'Choose goods to offer'}</button></div>
-   <p className="trade-empty">Offers are public: {themLower} sees them here, and anyone can buy them at the market.</p>
-   {mine.map(l=>{const ids=available(l),type=typeOf(ids[0]??l.remaining_ids[0]);return <p key={l.id} className="trade-mine">Your offer: {type?countOf(ids.length,type):ids.length+' items'} at {l.unit_price} coins each <button disabled={disabled} onClick={()=>void run({type:'cancel_listing',listing_id:l.id},'Offer withdrawn. Unsold goods are back in your satchel.')}>Withdraw</button></p>;})}
+    <button className="primary" disabled={disabled||!near||!offerStack||!offerIds.length||offerIds.length>128||!validPrice} onClick={()=>offerStack&&void run(privateOffer?{type:'list_for',item_ids:offerIds,unit_price:String(Number(price)),buyer:partnerProfile}:{type:'list',item_ids:offerIds,unit_price:String(Number(price))},`Offered ${countOf(offerIds.length,offerStack.type)} at ${Number(price)} coins each${privateOffer?` to ${themLower} only`:''}.`,()=>announce(privateOffer?`${them}: I’ve offered you ${countOf(offerIds.length,offerStack.type)} at ${Number(price)} coins each. Only you can buy it. Click me to trade.`:`Offering ${countOf(offerIds.length,offerStack.type)} at ${Number(price)} coins each. Click me to trade.`))}>{offerIds.length?`Offer ${countOf(offerIds.length,offerStack!.type)}`:'Choose goods to offer'}</button></div>
+   <label className="trade-private"><input type="checkbox" checked={privateOffer} disabled={disabled} onChange={e=>setPrivateOffer(e.target.checked)}/> Only {themLower} can buy</label>
+   <p className="trade-empty">{privateOffer?`A private offer: only ${themLower} can buy it, at this price. Withdraw it any time to get unsold goods back.`:`A public offer: ${themLower} sees it here, and anyone can buy it at the market.`}</p>
+   {mine.map(l=>{const ids=available(l),type=typeOf(ids[0]??l.remaining_ids[0]);return <p key={l.id} className="trade-mine">Your offer{reserved[l.id]?` to ${playerLabel(reserved[l.id])}`:' (public)'}: {type?countOf(ids.length,type):ids.length+' items'} at {l.unit_price} coins each <button disabled={disabled} onClick={()=>void run({type:'cancel_listing',listing_id:l.id},'Offer withdrawn. Unsold goods are back in your satchel.')}>Withdraw</button></p>;})}
   </section>
  </div>;
 }

@@ -7,7 +7,7 @@ import type {Command} from '../../../packages/shared/src/types';
 
 export type NearAdapterConfig={network:string;contractId:string};
 type IdentityRequest={accountId:string;network:string};
-const supportedActions=new Set(['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order','create_shop','update_shop','stock_shop','remove_shop','begin_craft','begin_recovery']);
+const supportedActions=new Set(['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order','create_shop','update_shop','stock_shop','remove_shop','list_for','begin_craft','begin_recovery']);
 /** Wallets offered on testnet. MyNearWallet and Meteor open a popup (no install needed); Nightly is an extension. */
 export const SUPPORTED_WALLETS=[
  {id:'my-near-wallet',name:'MyNearWallet',note:'web wallet, no install'},

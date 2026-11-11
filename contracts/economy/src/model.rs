@@ -207,6 +207,8 @@ pub enum Action {
     UpdateShop {shop_id:String,expected_version:U64,title:String,district:String,x:u8,y:u8,interior:String,open:bool},
     StockShop {shop_id:String,item_ids:Vec<String>,unit_price:U64},
     RemoveShop {shop_id:String,expected_version:U64},
+    /// A listing only `buyer` may purchase (a private trade offer). Reservation lives in its own storage key.
+    ListFor {item_ids:Vec<String>,unit_price:U64,buyer:String},
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]
@@ -328,6 +330,9 @@ pub struct BankPrice {
 }
 #[near(serializers=[json])]
 pub struct Snapshot {
+    /// Active listings reserved for one buyer. Omitted when empty so older snapshots compare equal.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty", default)]
+    pub reservations: std::collections::BTreeMap<String, String>,
     pub shops: Vec<Shopfront>,
     pub credits: std::collections::BTreeMap<String, U64>,
     pub bank: U64,
