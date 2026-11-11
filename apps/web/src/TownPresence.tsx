@@ -1,11 +1,12 @@
 import React,{useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
+import {myLook,useMyLook,asLook} from './art/Looks';
 import {CharacterSprite} from './CharacterSprite';
 import type {DistrictId} from '../../../packages/game/src/town-districts';
 import './town-presence.css';
 
 /** Other players in your district, plus district chat. Social only: nothing here touches the economy. */
 export type Facing='up'|'down'|'left'|'right';
-export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string};
+export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string;look?:number};
 export type ChatMessage={id:string;from:string;text:string;at:number};
 export type Here={district:DistrictId;x:number;y:number;facing:Facing;room?:string}|null;
 const spaceOf=(p:{district:DistrictId|null;room?:string}|null|undefined)=>p?.district?(p.room??p.district):null;
@@ -34,7 +35,7 @@ export function useTownPresence(here:Here){
  const [rooms,setRooms]=useState<Record<string,string[]>>({});
  const [you,setYou]=useState<string>();const [others,setOthers]=useState<Record<string,PresencePlayer>>({});const [chat,setChat]=useState<ChatMessage[]>([]);const [online,setOnline]=useState(false);
  const latest=useRef(here);latest.current=here;const lastSent=useRef(0);const pending=useRef<ReturnType<typeof setTimeout>>(undefined);const ready=useRef(false);
- const flush=()=>{pending.current=undefined;if(!ready.current)return;lastSent.current=Date.now();const h=latest.current;void post('move',h??{district:null,x:0,y:0,facing:'down'}).catch(()=>{});};
+ const flush=()=>{pending.current=undefined;if(!ready.current)return;lastSent.current=Date.now();const h=latest.current;void post('move',{...(h??{district:null,x:0,y:0,facing:'down'}),look:myLook()}).catch(()=>{});};
  const schedule=()=>{if(pending.current)return;const wait=Math.max(0,MOVE_EVERY_MS-(Date.now()-lastSent.current));pending.current=setTimeout(flush,wait);};
  useEffect(()=>{
   const source=new EventSource('/api/presence/stream');
@@ -51,7 +52,8 @@ export function useTownPresence(here:Here){
   const beat=setInterval(()=>{if(ready.current)flush();},HEARTBEAT_MS);
   return()=>{source.close();clearInterval(beat);clearTimeout(pending.current);ready.current=false;};
  },[]);
- useEffect(()=>{schedule();},[here?.district,here?.room,here?.x,here?.y,here?.facing,here===null]);
+ const look=useMyLook();
+ useEffect(()=>{schedule();},[here?.district,here?.room,here?.x,here?.y,here?.facing,here===null,look]);
  // Leaving a district clears its crowd and chat immediately; the snapshot refills them.
  useEffect(()=>{setOthers({});setChat([]);},[here?.district,here?.room,here===null]);
  const say=async(text:string)=>{await post('chat',{text});};
@@ -63,7 +65,7 @@ function OtherAvatar({player,cell}:{player:PresencePlayer;cell:number}){
  const prev=useRef(player);const jump=Math.abs(prev.current.x-player.x)+Math.abs(prev.current.y-player.y)>2;useEffect(()=>{prev.current=player;});
  const x=player.x*cell+cell/2,y=player.y*cell+cell/2;
  return <g className={`presence-avatar ${jump?'jump':''}`} style={{transform:`translate(${x}px, ${y}px)`}} data-player={player.id}>
-  <g style={{filter:`hue-rotate(${hue(player.id)}deg) saturate(1.3)`}}><CharacterSprite x={-22} y={-25} width={44} height={46} facing={player.facing} at={player}/></g>
+  <g style={asLook(player.look)===undefined?{filter:`hue-rotate(${hue(player.id)}deg) saturate(1.3)`}:undefined}><CharacterSprite x={-22} y={-25} width={44} height={46} facing={player.facing} at={player} look={asLook(player.look)??0}/></g>
   <text className="presence-name" y={-26} textAnchor="middle">{playerLabel(player.id)}</text>
  </g>;
 }

@@ -6,7 +6,7 @@ import {townSize} from '../../../packages/game/src/town';
  * It never reads or writes the economy, the contract or the outbox, and positions grant no authority. */
 export type Facing='up'|'down'|'left'|'right';
 /** `room` is a player building id (contract shop record). Players in a room only see and chat with that room. */
-export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string};
+export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string;look?:number};
 const roomPattern=/^shop-\d{1,4}$/;
 /** The space a player occupies: a player building's room, else their district, else nowhere (indoors in an NPC house or a run). */
 export const spaceOf=(p:PresencePlayer):string|null=>p.district?(p.room??p.district):null;
@@ -69,11 +69,14 @@ export class TownPresence{
   const {x,y,facing}=b;
   if(!Number.isInteger(x)||!Number.isInteger(y)||(x as number)<0||(y as number)<0||(x as number)>=townSize.width||(y as number)>=townSize.height)throw new PresenceError('Position outside the town',400);
   if(typeof facing!=='string'||!facings.has(facing))throw new PresenceError('Unknown facing',400);
+  // Cosmetic palette id only (0-15); it carries no authority.
+  const look=b.look===undefined||b.look===null?undefined:Number.isInteger(b.look)&&(b.look as number)>=0&&(b.look as number)<16?b.look as number:null;
+  if(look===null)throw new PresenceError('Unknown look',400);
   const room=b.room===undefined||b.room===null?undefined:typeof b.room==='string'&&roomPattern.test(b.room)&&district?b.room:null;
   if(room===null)throw new PresenceError('Unknown room',400);
   const now=this.#now();if(now-entry.movedAt<this.#o.moveMinMs)return false;
   entry.movedAt=now;entry.seenAt=now;
-  const before=spaceOf(entry.player);const player:PresencePlayer={id,district,x:x as number,y:y as number,facing:facing as Facing,...(room?{room}:{})};entry.player=player;const after=spaceOf(player);
+  const before=spaceOf(entry.player);const player:PresencePlayer={id,district,x:x as number,y:y as number,facing:facing as Facing,...(room?{room}:{}),...(look!==undefined?{look}:{})};entry.player=player;const after=spaceOf(player);
   if(before&&before!==after)this.#broadcast(before,'leave',{id},id);
   if(before!==after&&(roomPattern.test(before??'')||roomPattern.test(after??'')))this.#broadcastRooms();
   if(after){
