@@ -18,7 +18,7 @@ Goal: make runs play like a roguelike while keeping every new thing a player-aut
 
 **Player verbs (v12 runs)**: shove with any weapon (target loses its next action), interact [E] on springs/altars, throw bomb/dart at a target tile, use flash powder.
 
-**Builder**: Features inspector (place/configure/remove, tide), six enemy kinds in Encounters with summaries, costs include features, guide pages generated from the catalog, "Generate starting floors" (seeded rooms + hidden stash + hazards + mixed enemies, fully editable, undoable). Drafts that use no v12 component still publish as rules v11, so they work on the currently deployed testnet contract.
+**Builder**: generator seed and a Treasure toggle (no-treasure drafts publish without funding). Features inspector (place/configure/remove, tide), six enemy kinds in Encounters with summaries, costs include features, guide pages generated from the catalog, "Generate starting floors" (seeded rooms + hidden stash + hazards + mixed enemies, fully editable, undoable). Drafts that use no v12 component still publish as rules v11, so they work on the currently deployed testnet contract.
 
 **Run UI**: CSS sprites for the new enemies and features, lit kegs/burning oil animate, blast flash, hatch markers, stun marks, supplies/aiming, spring/altar buttons, tide countdown and boons in the status line, readable log names ("powder crab #1").
 
@@ -30,10 +30,16 @@ Goal: make runs play like a roguelike while keeping every new thing a player-aut
 
 `packages/game/test/depth.test.ts` (mechanics, validation, blueprint, generator), `tests/contract/depth.test.ts` (WASM v12 validation and costs), `apps/server/test/depth.test.ts` (paid v12 run: hidden stash, tide, extract/die settlement).
 
+## Play observations (agent playtests, not human evidence)
+
+- Browser, local sandbox: the proprietor generated seed 3, published it as rules v12 (66 coins charged, wallet 89 → 23); the delver paid 1 coin, entered, broke the cracked wall into the hidden stash, collected bombs and bombed the pursuer that followed. Screenshots in `docs/evidence/dungeon-depth/`.
+- Text replays of generated seeds produced the intended emergent moments: stepping away from a lit powder crab let the pursuer walk into the burst; the burst lit a keg and oil, whose telegraphed blast then punished standing still. Two pursuers in the open are deadly for careless play; doorways, shoves and supplies matter.
+- A naive scripted bot that runs at the exit dies on most generated floors; that measures the bot more than the game. Human difficulty tuning is still open.
+- Fixed during play: raw socket IDs in logs ("floor-0-slot-1 blast hits") replaced by readable names; large v12 offers showed 37 rule pages, now grouped by kind; the aim prompt lingered after a throw.
+
 ## Next
 
-- Enemies should avoid burning oil and lit kegs when pathing (now they walk through; exploitable but dumb-looking).
-- Charge into a keg should light it; brute smash should chip cracked walls.
+- Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
 - Economic consumables (bombs crafted from iron+flask) so "use it now or sell it" becomes a real decision; needs ItemType/contract/bank-price changes and coordination with the crafting work.
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).

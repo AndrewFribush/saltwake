@@ -135,7 +135,7 @@ export function planDepthEnemy(s:RunState,e:Enemy,distances:Map<string,number>):
  if(e.kind==='bomber'){if(e.primed||chebyshev(e,s.player)<=1){e.primed=true;e.intent={x:e.x,y:e.y};e.lane=square(e).filter(p=>s.room[p.y]?.[p.x]==='.');return true;}return false;}
  if(e.kind==='brute'){
   if(e.resting){e.intent={x:e.x,y:e.y};return true;}
-  if(distance(e,s.player)===1){const dx=s.player.x-e.x,dy=s.player.y-e.y;e.intent={x:e.x,y:e.y};e.lane=[{x:s.player.x,y:s.player.y},{x:s.player.x+dy,y:s.player.y+dx},{x:s.player.x-dy,y:s.player.y-dx}].filter(p=>s.room[p.y]?.[p.x]==='.');return true;}
+  if(distance(e,s.player)===1){const dx=s.player.x-e.x,dy=s.player.y-e.y;e.intent={x:e.x,y:e.y};e.lane=[{x:s.player.x,y:s.player.y},{x:s.player.x+dy,y:s.player.y+dx},{x:s.player.x-dy,y:s.player.y-dx}].filter(p=>s.room[p.y]?.[p.x]==='.'||!!featureAt(s,p,'crack'));return true;}
   return false;
  }
  if(e.kind==='archer'){
@@ -166,7 +166,7 @@ export function actDepthEnemy(ctx:Ctx,e:Enemy):boolean{
  if(e.kind==='brute'){
   if(e.resting){e.resting=false;return true;}
   e.resting=true;
-  if(e.lane?.length){s.log.push(`${who(e)} smashes.`);for(const p of e.lane){if(same(p,s.player))ctx.hitPlayer(e.damage??5,who(e));for(const o of s.enemies)if(o.id!==e.id&&o.hp>0&&same(o,p))hurt(ctx,o,e.damage??5,who(e));const keg=featureAt(s,p,'barrel');if(keg)light(ctx,keg);}return true;}
+  if(e.lane?.length){s.log.push(`${who(e)} smashes.`);for(const p of e.lane){if(same(p,s.player))ctx.hitPlayer(e.damage??5,who(e));for(const o of s.enemies)if(o.id!==e.id&&o.hp>0&&same(o,p))hurt(ctx,o,e.damage??5,who(e));const keg=featureAt(s,p,'barrel');if(keg)light(ctx,keg);const crack=featureAt(s,p,'crack');if(crack){crack.spent=true;s.room[p.y]=s.room[p.y].slice(0,p.x)+'.'+s.room[p.y].slice(p.x+1);s.log.push('The smash breaks a cracked wall.');}}return true;}
   return false;
  }
  return false;
