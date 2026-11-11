@@ -7,6 +7,7 @@ import type {InjectedWalletAdapter} from './wallet-transport';
 import './fixed-windows.css';
 import './saltwake-polish.css';
 import './navigation.css';
+import './playtest.css';
 
 type Config={authMode:'demo';label:string}|{authMode:'wallet';origin:string;network:string;contractId:string};
 const WALLET_NETWORKS=new Set(['testnet']);
