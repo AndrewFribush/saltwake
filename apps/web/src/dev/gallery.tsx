@@ -60,9 +60,17 @@ function vaultScene(kind:string):RunState{
  if(t)for(const [dx,dy] of [[0,2],[2,0],[0,-2],[-2,0],[1,1],[-1,1],[0,1],[1,0]]){const p={x:t.x+dx,y:t.y+dy};if(walkable(st,p)&&!st.enemies.some(e=>e.x===p.x&&e.y===p.y)){st.player={...st.player,...p};break;}}
  explore(st);return st;
 }
-const vault=new URLSearchParams(location.search).get('vault');
+/** ?big=1: a 25×17 open floor with foes beyond the camera but within sight, to check edge arrows and the minimap. */
+function bigScene():RunState{
+ const s=scene();const W=25,H=17;s.room=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>x===0||y===0||x===W-1||y===H-1||(x%6===3&&y%5===2)?'#':'.').join(''));
+ s.roguelike=true;s.explored=[];s.features=[];s.traps=[];s.devices=[];s.player={...s.player,x:12,y:8};
+ const e=(id:string,kind:any,x:number,y:number,extra:any={})=>({id,kind,x,y,hp:4,intent:{x,y},alerted:true,...extra});
+ s.enemies=[e('n','pursuer',12,2),e('s','archer',12,14,{aim:true,lane:[{x:12,y:13},{x:12,y:12},{x:12,y:11},{x:12,y:10},{x:12,y:9}]}),e('far','charger',23,15)] as any;
+ explore(s);return s;
+}
+const vault=new URLSearchParams(location.search).get('vault');const big=new URLSearchParams(location.search).has('big');
 function Gallery(){
- const [s,set]=useState<RunState>(()=>vault?vaultScene(vault):scene());const [lastBlast,setBlast]=useState(false);
+ const [s,set]=useState<RunState>(()=>big?bigScene():vault?vaultScene(vault):scene());const [lastBlast,setBlast]=useState(false);
  const send=(a:any)=>set(prev=>actWithMessages(prev,a,()=>{}));
  return <main className="saltwake" style={{height:'auto',minHeight:0,overflow:'visible'}}>
   <section className="gallery-sheet" style={{display:'flex',flexWrap:'wrap',gap:8,padding:8}}>

@@ -5,6 +5,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import type {RunState,Enemy} from '../../../../packages/game/src/state';
 import {doorOpen,signalValue} from '../../../../packages/shared/src/mechanisms';
 import {emit} from './Sound';
+import {visibleTiles} from '../../../../packages/game/src/roguelike';
 import {heroFrame,Sprite,useMoving,walkFrame,type Facing} from './Sprite';
 import {lookUrl,useMyLook} from './Looks';
 import {tintedSprite,type SpriteName} from './sprites';
@@ -38,12 +39,14 @@ export function useRunFx(s:RunState):RunFx{
   const add:Floater[]=[],dead:Ghost[]=[],enemyHit=new Set<string>(),enemyMoved=new Set<string>(),enemyLunge=new Map<string,Pt>();let playerLunge:Pt|null=null;
   const moved=now.pos.x!==p.pos.x||now.pos.y!==p.pos.y;
   if(moved)facing.current=dirTo(p.pos,now.pos);
+  // Only what the player could see: unseen enemies dying off-screen must not leak their position.
+  const seenNow=visibleTiles(s),seen=(q:Pt)=>seenNow.has(`${q.x},${q.y}`);
   for(const [id,old] of p.enemies){
    const cur=now.enemies.get(id);
    const lost=old.hp-(cur?.hp??0);
-   if(lost>0){add.push({id:++seq,x:old.x,y:old.y,text:`−${Math.min(lost,old.hp)}`,tone:'hit'});enemyHit.add(id);
+   if(lost>0&&seen(old)){add.push({id:++seq,x:old.x,y:old.y,text:`−${Math.min(lost,old.hp)}`,tone:'hit'});enemyHit.add(id);
     if(!moved&&adj(now.pos,old)&&!playerLunge){playerLunge={x:old.x-now.pos.x,y:old.y-now.pos.y};facing.current=dirTo(now.pos,old);}}
-   if(!cur||cur.hp<=0)dead.push({id:++seq,x:old.x,y:old.y,sprite:enemySprite(old),flip:flips.current.get(id)??old.x>now.pos.x,minion:!!old.minion});
+   if((!cur||cur.hp<=0)&&seen(old))dead.push({id:++seq,x:old.x,y:old.y,sprite:enemySprite(old),flip:flips.current.get(id)??old.x>now.pos.x,minion:!!old.minion});
    if(cur){if(cur.x!==old.x)flips.current.set(id,cur.x<old.x);if(cur.x!==old.x||cur.y!==old.y)enemyMoved.add(id);}
   }
   const hurt=p.hp-now.hp;
@@ -74,13 +77,14 @@ function Pips({hp,max}:{hp:number;max:number}){
 }
 
 export function ActorLayer({s,fx,visible,viewport,danger,ended,dangerSet=new Set()}:{s:RunState;fx:RunFx;visible:Set<string>;viewport:{x:number;y:number;columns:number;rows:number};danger:boolean;ended:boolean;dangerSet?:Set<string>}){
- const enemies=s.enemies.filter(e=>e.hp>0&&visible.has(`${e.x},${e.y}`));
+ const inCam=(p:Pt)=>p.x>=viewport.x&&p.y>=viewport.y&&p.x<viewport.x+viewport.columns&&p.y<viewport.y+viewport.rows;
+ const enemies=s.enemies.filter(e=>e.hp>0&&visible.has(`${e.x},${e.y}`)&&inCam(e));
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
  const walking=useMoving(s.player.x,s.player.y);const look=useMyLook();
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
  return <><ArenaLayer s={s}/><OffscreenLayer s={s} visible={visible} viewport={viewport} danger={dangerSet}/><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
-  {(s.blasts??[]).filter(b=>b.x>=viewport.x&&b.y>=viewport.y).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
-  {fx.ghosts.map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
+  {(s.blasts??[]).filter(inCam).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
+  {fx.ghosts.filter(g=>g.x>=viewport.x&&g.y>=viewport.y&&g.x<viewport.x+viewport.columns&&g.y<viewport.y+viewport.rows).map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
   {enemies.map(e=>{const flip=fx.enemyFlip.get(e.id)??(e.x>s.player.x),max=fx.maxHp.get(e.id)??e.hp,lunge=fx.enemyLunge.get(e.id),hit=fx.enemyHit.has(e.id);
    const unaware=!!s.roguelike&&e.alerted===false;
    return <span key={e.id} className={`actor enemy-actor k-${enemySprite(e)} ${e.minion?'minion':''} ${e.primed?'primed':''} ${e.aim?'aiming':''} ${e.stunned?'stunned':''} ${e.recovering?'recovering':''} ${unaware?'unaware':''}`} style={at(e,viewport)}>
@@ -94,7 +98,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended,dangerSet=new Set
   </span>
   {!!s.keys?.length&&<span className="key-ring" title={`Keys: ${s.keys.join(', ')}`}>{s.keys.map((k,i)=><span key={i} className="px-sprite key-chip" style={{backgroundImage:tintedSprite('key',k)}}/>)}</span>}
   {fx.slams.map(d=><span key={d.id} className={`fx-door ${d.shut?'shut':'open'}`} style={at(d,viewport)}><i/><i/><i/><i/><i/></span>)}
-  {fx.floaters.map(f=><span key={f.id} className={`fx-float tone-${f.tone}`} style={at(f,viewport)}>{f.text}</span>)}
+  {fx.floaters.filter(f=>f.x>=viewport.x&&f.y>=viewport.y&&f.x<viewport.x+viewport.columns&&f.y<viewport.y+viewport.rows).map(f=><span key={f.id} className={`fx-float tone-${f.tone}`} style={at(f,viewport)}>{f.text}</span>)}
  </div></>;
 }
 
