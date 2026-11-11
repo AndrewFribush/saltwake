@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
-import {Demo,type WalletDemoConnection} from './Demo';
+import {Demo,offline,type WalletDemoConnection} from './Demo';
 import {WalletOnboarding} from './WalletOnboarding';
 import {WalletTransport,walletOperationId,type InjectedWalletAdapter,type WalletIdentity,type WalletSession} from './wallet-transport';
 import type {CraftView} from '../../server/src/craft';
@@ -11,7 +11,7 @@ function identity(adapter?:InjectedWalletAdapter):WalletIdentity|null{
 }
 async function request(path:string,body?:unknown):Promise<any>{
  const response=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',credentials:'same-origin',redirect:'error',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
- const value=await response.json();
+ const value=await response.json().catch(()=>{throw offline();});
  if(!response.ok)throw Object.assign(Error(value.error??'Wallet request failed'),{status:response.status});
  return value;
 }

@@ -12,7 +12,7 @@ test('the notice board lists player buildings from public records',()=>{
  const e=boardEntries(shops,editions,listings);
  assert.deepEqual(e.map(x=>x.shopId),['shop-1','shop-0','shop-2'],'open first, then district order');
  assert.deepEqual(e[0].goods,{count:3,min:4,max:9});
- assert.deepEqual(e[1].dungeon,{title:'Smugglers',fee:'3',status:'open',funded:2,treasure:true,attempts:4,extracted:1,died:3,recent:['died','extracted']});
+ assert.deepEqual(e[1].dungeon,{title:'Smugglers',fee:'3',status:'open',funded:2,treasure:true,attempts:4,extracted:1,died:3,recent:['died','extracted'],recentAt:[9,5]});
  assert.deepEqual(boardEntries([{...shops[1],publicRecord:{sold:7,buyers:2}}],[],listings)[0].goods,{count:3,min:4,max:9,sold:7,buyers:2});
  assert.deepEqual(e[1].door,{x:5,y:11});
  assert.equal(boardEntries([shops[0]],[],[])[0].dungeon,null,'missing edition is disclosed, not invented');
