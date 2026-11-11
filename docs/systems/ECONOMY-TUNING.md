@@ -189,3 +189,16 @@ What it shows:
 - Artisans lost money in this run because price discovery let tonic asks fall to 3, below the cost of ingredients (4 per tonic). The simulation's ask floor is now the ingredient cost (4); not yet rerun.
 
 Decision needed from Andrew: whether the operator issues goods at all, at what rate and price, and what the bank does with the coins it collects. Until then the lever stays off and the default world has no goods issuance.
+
+### Rerun with the ask floor at ingredient cost (restock lever on, same seed)
+
+| 15 days, 20 players, restock on | Ask floor 3 | Ask floor 4 (cost) |
+|---|---|---|
+| Batches brewed (after day 5) | 45 (25) | 43 (22) |
+| Player trades | 88 | 64 |
+| Unsold items at end | 17 | 30 |
+| Artisans' coins at end | 32 | 9 |
+| Bank coins at end | 233 | 301 |
+| Players' purses at end | 133 | ≈ 71 |
+
+Holding the price at cost did not save artisans: buyers, already drained by restock purchases flowing into the bank, bought fewer tonics at 4+, so stock piled up (30 unsold) and artisans ended with less. It confirms the restock finding: without a bank outflow, goods issuance pulls coins out of players' hands faster than trade can return them.

@@ -23,6 +23,10 @@
 - New, server-side: **Report** sends the message id, author and text to `POST /api/presence/report`; the server keeps the last 200 reports in memory and logs each one for the operator. At most 5 reports per reporter per minute; you cannot report yourself; a report changes nothing for the reported player.
 - Browser check: another player said "you idiot, what the hell", which showed as "you •••••, what the ••••"; Report produced a server log line with the message; Mute hid it ("1 message from muted or blocked players hidden"); Unmute brought it back.
 
+## Simulation in local wallet mode
+
+`npm run simulate:wallet -- --days 3` (`scripts/simulate-wallet.ts`): six sandbox NEAR accounts (one maker, two artisans, three delvers) sign in with NEP-413 through the real server, register (`register_player`, signed by each account), buy coins with NEAR (`buy_coins`, 100 coins of labelled issuance in total), and then sign every economic action themselves through the server-prepared `execute_player` transactions: the maker publishes a generated dungeon, artisans buy ingredients from the bank, begin crafts (finished by the operator oracle) and list tonics, delvers buy tonics and pay into dungeons, and runs are played through the server and settled by the oracle. 3 days in 51 s: 9 runs, 5 player trades, 4 batches; coins conserved every day apart from the 100 issued by buy-in. Test: `apps/server/test/simulate-wallet.test.ts`.
+
 ## Not done
 
 - Reports are not yet surfaced in any operator view, and there is no server-side moderation (kick, time-out).
