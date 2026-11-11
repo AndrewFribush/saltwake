@@ -53,7 +53,7 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
  const visibleItems=Object.values(s.items).filter(i=>accessible(s,i));
  const ended=s.status!=='active'||!!remote?.terminal;
  const report=ended&&!remote?disposition(s,s.status==='died'?'died':'extracted'):null;
- const nameOf=(e:Enemy)=>s.depth?who(e):e.id;
+ const nameOf=(e:Enemy)=>who(e);
  const targets=visibleEnemies.map(e=>`${nameOf(e)}: ${enemyTelegraph(s,e)}`).join(' ');
  const viewport=floorViewport(s.room[0].length,s.room.length,s.player.x-6,s.player.y-4);
  const fx=useRunFx(s);

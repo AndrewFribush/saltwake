@@ -47,9 +47,9 @@ test('powder crab lights when adjacent and bursts next turn; stepping clear dodg
 });
 
 test('crossbow sentry aims along a line then fires at the first creature; sidestepping dodges and it reloads',()=>{
- let s=run(floor({spawn:{x:2,y:3},sockets:[{x:7,y:3}]}),[sock('archer')]);
+ let s=run(floor({spawn:{x:3,y:3},sockets:[{x:7,y:3}]}),[sock('archer')]);
  assert.equal(s.enemies[0].aim,true);
- s=act(s,{type:'move',x:2,y:4});assert.equal(s.player.hp,12);assert.equal(s.enemies[0].recovering,true);
+ s=act(s,{type:'move',x:3,y:4});assert.equal(s.player.hp,12);assert.equal(s.enemies[0].recovering,true);
  let t=run(floor({spawn:{x:2,y:3},sockets:[{x:7,y:3}]}),[sock('archer')]);t=act(t,{type:'wait'});assert.equal(t.player.hp,10);
 });
 

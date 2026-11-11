@@ -74,6 +74,11 @@ large  reckless died  98% out   0% stalled   2% · loot out 0.00 + drunk 0.22 of
 ```
 Reading: Small is survivable for careful play (2% deaths) and still nicks reckless play; Medium punishes greed (30%) and recklessness (75%); Large kills most greedy (60%) and nearly all reckless runs, while cautious players can still take floor-one loot home. Crossbow sentries are the top killer on Small/Medium, chargers and brutes on deep Large floors. "Drunk" counts found tonics the bot used; it is not loot loss.
 
+## Fourth pass
+
+- Readable enemy names in every rule version: log lines and attack buttons now say "pursuer #0" (authored dungeons) or "pursuer (sword)" (older socket IDs) instead of raw IDs. Rules are unchanged; only text.
+- Floor-one sentries softened: crossbow sentry alert distance 6 → 5. Harness, 60 seeds, cautious bot: deaths Small 2%, Medium 5%, Large 13%, with no sentry deaths on Small or Medium (Medium had 4 before); spikes and pursuers now cause most careful-play deaths.
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
@@ -81,4 +86,4 @@ Reading: Small is survivable for careful play (2% deaths) and still nicks reckle
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** watch a human play Small and Medium; if sentries still dominate deaths, lower their alert range or damage on floor one of generated drafts.
+**Next step:** rules v13 progression components (keys and locked doors, pressure plates driving gates) with builder, contract, rehearsal, paid play and harness coverage.
