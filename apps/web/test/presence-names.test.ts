@@ -15,3 +15,9 @@ test('trade partner listings match demo profiles and wallet profiles, nothing lo
  assert.equal(sellerIs('maker2','maker'),false);
  assert.equal(sellerIs('wallet:bob.testnet','alice.testnet'),false);
 });
+import {economyProfile} from '../src/presence-names';
+test('private offers address the partner by their economy profile',()=>{
+ assert.equal(economyProfile('wallet:alice.testnet','bob.testnet'),'wallet:bob.testnet');
+ assert.equal(economyProfile('buyer','maker'),'maker');
+ assert.equal(economyProfile('wallet:alice.testnet','wallet:bob.testnet'),'wallet:bob.testnet');
+});

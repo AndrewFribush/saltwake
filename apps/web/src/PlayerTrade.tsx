@@ -1,7 +1,7 @@
 import React,{useRef,useState} from 'react';
 import {StackRows,stacksOf,chosenIds,countOf,type Stack} from './TradeRows';
 import type {Command,Item,Listing} from '../../../packages/shared/src/types';
-import {playerLabel,sellerIs} from './presence-names';
+import {playerLabel,sellerIs,economyProfile} from './presence-names';
 
 /** What the town needs from the game shell to trade. Every trade is an ordinary `list`/`buy`/`cancel_listing`
  * command sent through Demo's command wrapper, so the server binds it to the acting session and quotes are exact. */
@@ -15,7 +15,7 @@ export function PlayerTrade({partner,distance,trade,onClose,onApproach,announce}
  const listings=(world.listings as Listing[]??[]).filter(l=>l.status==='active');const listedItems=(world.listedItems as Item[]??[]);
  const reserved=(world.reservations??{}) as Record<string,string>;
  // Economy profiles keep the `wallet:` prefix that presence ids drop.
- const partnerProfile=String(world.profile).startsWith('wallet:')&&!partner.startsWith('wallet:')?'wallet:'+partner:partner;
+ const partnerProfile=economyProfile(String(world.profile),partner);
  const [privateOffer,setPrivateOffer]=useState(true);
  const theirs=listings.filter(l=>sellerIs(l.seller,partner)&&(!reserved[l.id]||reserved[l.id]===world.profile));const mine=listings.filter(l=>l.seller===world.profile);
  const owned=(world.items as Item[]).filter(i=>i.location.kind==='owned'&&i.location.profile===world.profile);
