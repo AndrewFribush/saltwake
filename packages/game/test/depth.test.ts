@@ -132,3 +132,13 @@ test('v13 keys open matching locks once; plates hold gates open while occupied',
  s.player.x=6;s.player.y=3;s=act(s,{type:'move',x:7,y:3});assert.equal(s.features!.find(x=>x.id==='l')!.spent,true);assert.deepEqual(s.keys,[]);
  s=act(s,{type:'move',x:7,y:3});assert.equal(s.player.x,7);
 });
+
+test('solver: a plate-held gate is opened by shoving an enemy onto the plate; without the plate it is unsolvable',async()=>{
+ const {solveReach}=await import('../src/solver');
+ const tiles=['#########','#...#...#','#.......#','#...#...#','#########'];
+ const lure=(withPlate:boolean):any=>({tiles,spawn:{x:1,y:3},exit:{x:1,y:1},sockets:[{x:2,y:1}],tuning:[{slot:0,hp:30,damage:1}],devices:[{id:'g',x:4,y:2,kind:'door',channel:'p',open_when:true},...(withPlate?[]:[{id:'s',x:3,y:3,kind:'switch',channel:'p',mode:'clear'}])],exit_rule:{extract:true,require_clear:false},features:withPlate?[{id:'pl',x:1,y:2,kind:'plate',channel:'p'}]:[]});
+ const solved=solveReach(authoredRehearsal([lure(true)],[sock('pursuer')],'club'),{x:6,y:2});
+ assert.ok(solved.solved,`explored ${solved.explored}`);assert.ok(solved.actions.some(a=>a.type==='shove'),'needs a shove to pin the enemy');
+ const blocked=solveReach(authoredRehearsal([lure(false)],[sock('pursuer')],'club'),{x:6,y:2});
+ assert.equal(blocked.solved,false);assert.equal(blocked.truncated,false);
+});

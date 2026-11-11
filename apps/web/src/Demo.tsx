@@ -149,7 +149,7 @@ function RunSummary({run}:{run:RunView}){
   {lost.length>0&&<li className="loss">Lost to the bank: {list(lost)}</li>}
   {used.length>0&&<li>Used up: {list(used)}</li>}
   {left>0&&<li>{left} treasure {left===1?'item stays':'items stay'} below for the next delver.</li>}
- </ul>{found.length>0&&<p>Sell finds at the market, or offer them to other players.</p>}</div>;
+ </ul>{found.length>0&&<p>Sell finds at the market, or offer them to other players.</p>}{run.terminal==='extracted'&&<p className="trade-note">Dungeon makers buy finds like these to restock their treasure. Offering them to players at the market usually pays more than the bank’s half-price buyback.</p>}</div>;
 }
 
 /** When you stand on loot, say so and offer the one-click actions; otherwise it hides in the Bag tab. */

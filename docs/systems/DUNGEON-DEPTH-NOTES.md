@@ -150,6 +150,13 @@ Greedy tide deaths on Medium went from 8 to 0 (they were ambush traps); greedy d
 - Another profile (the wayfarer) paid 1 coin and entered. Standing on the plate turned channel `gate` on and the gate read open ("Door gate: open", portcullis raised); keys, locks and plates drew with look-feel's sprites. Screenshot: `docs/evidence/dungeon-depth/v13-paid-plate-holds-gate-open.jpg`.
 - Friction seen while testing (not my lane, reported): opening the offers pager is easy to confuse with each offer's own detail pager (both say "Next →"), and a mis-click can pay into the wrong dungeon.
 
+## Route solver and the lure puzzle
+
+- `packages/game/src/solver.ts`: bounded breadth-first search over real game states (the same deterministic engine as play) using moves, waits and shoves; enemies, hazards, plates, doors and keys resolve exactly as in play. It returns a shortest action list, or proves a goal unreachable when the search space is exhausted, or reports that it was truncated.
+- Lure puzzle proven: a vault behind a gate wired to a plate placed two tiles out from the gate's approach. Standing at the approach and shoving the pursuer onto the plate pins it for one turn, long enough to step into the gate; the solver finds this (the solution contains a shove), and proves the same room without the plate unsolvable. Test in `packages/game/test/depth.test.ts`.
+- Builder Check tab: "Check route to the stairs" runs the solver on the selected floor with the chosen test kit and reports turns needed (and whether a shove is required), a proof of no route, or that the floor was too big to check exhaustively.
+- Not yet: the generator does not emit lure rooms (needs geometry with the plate in line with the approach and a separate way out of the vault), and the one-way drop into a sealed arena.
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
@@ -157,4 +164,4 @@ Greedy tide deaths on Medium went from 8 to 0 (they were ambush traps); greedy d
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** plate-lure puzzle room with a solvability check (BFS over player/enemy positions with the plate-held gate), then the one-way drop into a sealed arena.
+**Next step:** generator lure room filtered by the solver (and a separate vault exit), then the one-way drop into a sealed arena.
