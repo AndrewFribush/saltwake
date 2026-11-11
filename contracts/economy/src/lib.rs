@@ -338,6 +338,23 @@ impl Economy {
         }
     }
     pub fn receipt_capacity(&self) -> u32 { receipt_cap() as u32 }
+    /// OPERATOR ISSUANCE (central policy, OFF unless the operator calls it; used only by the simulation's `restock`
+    /// lever for comparison): adds `count` new goods of one type to the bank's stock and records the running total under
+    /// its own storage key. Callable only by the contract account itself. Mints goods, never coins.
+    #[private]
+    pub fn operator_restock(&mut self, item_type: ItemType, count: u32) -> U64 {
+        assert!((1..=32).contains(&count), "Restock between 1 and 32 goods");
+        let mut total: u64 = env::storage_read(b"item_issuance.v1").map(|b| u64::from_le_bytes(b.try_into().expect("Corrupt issuance"))).unwrap_or(0);
+        for _ in 0..count {
+            let id = format!("issued-{total}");
+            assert!(!self.items.contains_key(&id), "Item id conflict");
+            self.items.insert(id.clone(), Item { id, item_type, location: Location::Bank });
+            total += 1;
+        }
+        env::storage_write(b"item_issuance.v1", &total.to_le_bytes());
+        U64(total)
+    }
+    pub fn item_issuance(&self) -> U64 { U64(env::storage_read(b"item_issuance.v1").map(|b| u64::from_le_bytes(b.try_into().expect("Corrupt issuance"))).unwrap_or(0)) }
     pub fn land_rules(&self) -> shops::LandRules {
         shops::land_rules()
     }

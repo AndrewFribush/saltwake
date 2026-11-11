@@ -157,3 +157,48 @@ Recovery path, in order: on day 1 nobody can pay, so every maker halves its fee 
 
 - **Ingredient supply** (above) is the next lever: a labelled, scheduled operator restock of herbs and flasks at catalog price (central issuance, which the brief allows the operator), or herbs/flasks as fundable dungeon treasure so delvers bring them back. Not implemented here.
 - **Record capacity** (found by the 30-day run): the contract caps runs, listings and craft batches at 64 over a world's whole life, and receipts at 256. The live game would stall at those totals. The simulation seed scales them for its own world only; a proper fix (pruning settled records) is now the capacity lane's job.
+
+## Round 4: the ingredient bottleneck
+
+Both runs: `--players 12 --days 15 --seed 4`, all no-issuance levers on. Coins conserved every day in both.
+
+### No-issuance path (default levers + `herbloot`)
+
+- Herbs and flasks are already valid dungeon treasure under the existing rules: any good can go into a random reward pool, and fixed sockets can name herb or flask. The new `herbloot` behaviour has makers refill an emptied random pool with herbs and flasks they hold, and lets delvers resell found herbs and flasks to players.
+- The rules have no way to recover ingredients: a batch consumes its inputs for good, and the bank buying tonics back cannot turn them into herbs (that would create goods), so neither was added.
+- Result: **brewing still stops after day 4** (19 batches, then 0 from day 5 to 15). No maker ever refilled a dungeon with herbs: by then nobody holds any. Moving ingredients between players cannot outlast the stock that exists.
+- Stock arithmetic for this world: 48 herbs and 48 flasks exist at the start (proprietor 8 + 8, bank 8 + 8, four sim artisans 2 + 2 each, plus 6 + 6 per artisan in the bank). That is at most 24 full batches (or 48 small ones), and recovery jobs consume bank ingredients too. 19 batches plus 3 recovery jobs used essentially all of it. **Without issuance, ingredient-based crafting is finite by construction.**
+
+### Proposal for Andrew: scheduled operator restock (implemented OFF by default, lever `restock`)
+
+What it does: whenever the bank holds fewer than 2 herbs or 2 flasks, the operator adds 4 of each to the bank's stock (contract `operator_restock`, callable only by the contract account; it creates goods, never coins, and keeps a running total visible through the `item_issuance` view). Players buy them from the bank at catalog price (2 coins each), as today.
+
+| 15 days, 20 players | No issuance | With operator restock |
+|---|---|---|
+| Batches brewed (after day 5) | 19 (0) | 45 (25) |
+| Player trades | 63 | 88 |
+| Goods issued by the operator | 0 | 96 herbs and flasks (8 a day from day 4) |
+| Bank coins at end (start 54) | 108 | 233 |
+| Coins in players' purses at end | 210 | 133 |
+| Artisans' coins at end | 85 | 32 |
+| Tonic prices paid, days 5–15 | none traded | 3–5 |
+
+What it shows:
+- Restocking keeps the artisan trade alive (2–4 batches a day indefinitely, tonics keep trading).
+- **It is also a coin sink into the bank:** every restocked herb or flask is sold for coins the bank does not spend back, so players' purses fell from 290 to 133 in 15 days while the bank rose to 233. A restock policy would need a matching bank outflow (for example bank-funded NPC tonic orders or replenished recovery wages from bank revenue) to avoid draining players.
+- Artisans lost money in this run because price discovery let tonic asks fall to 3, below the cost of ingredients (4 per tonic). The simulation's ask floor is now the ingredient cost (4); not yet rerun.
+
+Decision needed from Andrew: whether the operator issues goods at all, at what rate and price, and what the bank does with the coins it collects. Until then the lever stays off and the default world has no goods issuance.
+
+### Rerun with the ask floor at ingredient cost (restock lever on, same seed)
+
+| 15 days, 20 players, restock on | Ask floor 3 | Ask floor 4 (cost) |
+|---|---|---|
+| Batches brewed (after day 5) | 45 (25) | 43 (22) |
+| Player trades | 88 | 64 |
+| Unsold items at end | 17 | 30 |
+| Artisans' coins at end | 32 | 9 |
+| Bank coins at end | 233 | 301 |
+| Players' purses at end | 133 | ≈ 71 |
+
+Holding the price at cost did not save artisans: buyers, already drained by restock purchases flowing into the bank, bought fewer tonics at 4+, so stock piled up (30 unsold) and artisans ended with less. It confirms the restock finding: without a bank outflow, goods issuance pulls coins out of players' hands faster than trade can return them.

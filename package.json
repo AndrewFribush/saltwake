@@ -18,7 +18,8 @@
     "server": "tsx apps/server/src/main.ts",
     "sandbox": "tsx scripts/demo-sandbox.ts",
     "sim:depth": "tsx scripts/depth-sim.ts",
-    "simulate": "tsx scripts/simulate.ts"
+    "simulate": "tsx scripts/simulate.ts",
+    "simulate:wallet": "tsx scripts/simulate-wallet.ts"
   },
   "dependencies": {
     "@near-wallet-selector/core": "10.1.4",

@@ -38,7 +38,7 @@ export class TownPresence{
  readonly #players=new Map<string,Entry>();
  readonly #history=new Map<string,ChatMessage[]>();
  readonly #now:()=>number;readonly #o:Required<Omit<PresenceOptions,'now'>>;
- #seq=0;#sweeper?:ReturnType<typeof setInterval>;
+ #seq=0;readonly #reports:{at:number;reporter:string;from:string;messageId:string;text:string;space:string|null}[]=[];readonly #reportTimes=new Map<string,number[]>();#sweeper?:ReturnType<typeof setInterval>;
  constructor(options:PresenceOptions={}){
   this.#now=options.now??Date.now;
   this.#o={staleMs:20_000,moveMinMs:40,chatMax:160,chatBurst:5,chatWindowMs:10_000,historySize:20,historyMs:5*60_000,maxPlayers:200,maxStreamsPerPlayer:4,pingMs:15_000,...options};
@@ -99,6 +99,17 @@ export class TownPresence{
   return message;
  }
 
+ /** A player flags a chat message for the operator. Kept in memory (last 200) and logged; grants nothing and
+  * changes nothing for the reported player. At most 5 reports per reporter per minute. */
+ report(id:string,body:unknown){
+  const entry=this.#require(id);const b=(body??{}) as Record<string,unknown>;
+  if(typeof b.messageId!=='string'||b.messageId.length>40||typeof b.from!=='string'||b.from.length>128||b.from===id)throw new PresenceError('Invalid report',400);
+  const now=this.#now();const times=(this.#reportTimes.get(id)??[]).filter(t=>now-t<60_000);if(times.length>=5)throw new PresenceError('Too many reports; try again shortly',429);times.push(now);this.#reportTimes.set(id,times);
+  const text=typeof b.text==='string'?normalizeChat(b.text.slice(0,this.#o.chatMax)||'-',this.#o.chatMax):'';
+  const report={at:now,reporter:id,from:b.from,messageId:b.messageId,text,space:spaceOf(entry.player)};this.#reports.push(report);if(this.#reports.length>200)this.#reports.shift();
+  console.warn('[presence report]',JSON.stringify(report));return {ok:true};
+ }
+ reports(){return this.#reports.map(r=>({...r}));}
  /** Drops players whose clients stopped heartbeating (half-open connections, sleeping tabs). */
  sweep(){
   const now=this.#now();
@@ -132,6 +143,7 @@ export class TownPresence{
     const cleanup=()=>{clearInterval(ping);disconnect();};res.on('close',cleanup);res.on('finish',cleanup);
     return;
    }
+   if(req.method==='POST'&&url.pathname==='/api/presence/report'){const id=identityOf(req.headers.cookie);return reply(200,this.report(id,await readJson(req,1024)));}
    if(req.method==='POST'&&(url.pathname==='/api/presence/move'||url.pathname==='/api/presence/chat')){
     const id=identityOf(req.headers.cookie);const body=await readJson(req,1024);
     if(url.pathname.endsWith('/move'))return reply(this.move(id,body)?200:429,{ok:true});

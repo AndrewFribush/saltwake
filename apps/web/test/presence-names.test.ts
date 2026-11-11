@@ -21,3 +21,8 @@ test('private offers address the partner by their economy profile',()=>{
  assert.equal(economyProfile('buyer','maker'),'maker');
  assert.equal(economyProfile('wallet:alice.testnet','wallet:bob.testnet'),'wallet:bob.testnet');
 });
+import {filtered,hidden} from '../src/chat-safety';
+test('chat safety: the word filter masks listed words only when on; muted and blocked players are hidden',()=>{
+ assert.equal(filtered('what the hell, idiots!',true),'what the ••••, ••••••!');assert.equal(filtered('what the hell',false),'what the hell');assert.equal(filtered('shellfish hello',true),'shellfish hello');
+ const s={muted:['a'],blocked:['b'],filter:true};assert.ok(hidden(s,'a')&&hidden(s,'b')&&!hidden(s,'c'));
+});
