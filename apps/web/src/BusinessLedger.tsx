@@ -20,6 +20,7 @@ export function BusinessLedger({ledger}:{ledger?:Ledger}){
   {view==='Dungeons'&&<Pages items={ledger.editions} label="Your dungeons" empty="You have not opened a dungeon." render={e=><article key={e.id}><h4>{e.title} · {e.open?'open':'closed'}</h4>
    <p>Fees earned {coins(e.settledFees)} from {e.settledRuns} settled {e.settledRuns===1?'run':'runs'}{e.activeRuns?` · ${coins(e.pendingFees)} pending from ${e.activeRuns} active`:''}</p>
    <p>Placement {coins(e.placement)} · treasure cost {coins(e.knownTreasureCost)}{e.unknownTreasureItems?` (+${e.unknownTreasureItems} of unknown cost)`:''} · {e.fundedGoodsRemaining} funded goods still below</p>
+   {Object.keys(e.missingForCopy).length>0&&<p className="ledger-prompt">Restock needed: one more complete reward copy lacks {Object.entries(e.missingForCopy).map(([t,n])=>`${n} ${itemName(t)}${n>1?'s':''}`).join(' and ')}. Buy them from delvers' offers, shop shelves or the bank, then restock at the guild steward. Buying delvers' finds puts your entry fees back into their pockets.</p>}
    <p><b>Contribution: {e.contribution===null?'unknown (a treasure cost is unknown)':coins(e.contribution)}</b>{e.settledRuns<5?` · small sample (${e.settledRuns})`:''}</p></article>}/>}
   {view==='Shops'&&<Pages items={ledger.shops} label="Your shops" empty="You have no shop." render={s=><article key={s.id}><h4>{s.title} · {s.open?'open':'closed'}</h4>
    <p>Sales {coins(s.revenue)} for {s.itemsSold} {s.itemsSold===1?'item':'items'} · {s.stockItems} on the shelves</p>
