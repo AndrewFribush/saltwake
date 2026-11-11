@@ -73,12 +73,12 @@ function Pips({hp,max}:{hp:number;max:number}){
  return <span className="hp-pips">{Array.from({length:max},(_,i)=><i key={i} className={i<hp?'on':''}/>)}</span>;
 }
 
-export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:RunFx;visible:Set<string>;viewport:{x:number;y:number;columns:number;rows:number};danger:boolean;ended:boolean}){
+export function ActorLayer({s,fx,visible,viewport,danger,ended,dangerSet=new Set()}:{s:RunState;fx:RunFx;visible:Set<string>;viewport:{x:number;y:number;columns:number;rows:number};danger:boolean;ended:boolean;dangerSet?:Set<string>}){
  const enemies=s.enemies.filter(e=>e.hp>0&&visible.has(`${e.x},${e.y}`));
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
  const walking=useMoving(s.player.x,s.player.y);const look=useMyLook();
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
- return <><ArenaLayer s={s}/><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
+ return <><ArenaLayer s={s}/><OffscreenLayer s={s} visible={visible} viewport={viewport} danger={dangerSet}/><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
   {(s.blasts??[]).filter(b=>b.x>=viewport.x&&b.y>=viewport.y).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
   {fx.ghosts.map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
   {enemies.map(e=>{const flip=fx.enemyFlip.get(e.id)??(e.x>s.player.x),max=fx.maxHp.get(e.id)??e.hp,lunge=fx.enemyLunge.get(e.id),hit=fx.enemyHit.has(e.id);
@@ -134,4 +134,20 @@ export function ArenaLayer({s}:{s:RunState}){
   if(!text)return;setBanner(text);const t=setTimeout(()=>setBanner(null),2600);return()=>clearTimeout(t);},[s.roomIndex,foes,sealed]);
  if(!sealed)return null;
  return <div className={`arena-layer ${foes?'locked':'cleared'}`} aria-hidden="true">{banner&&<span key={banner} className="arena-banner">{banner}</span>}</div>;
+}
+
+/** Large floors: arrows on the board edge for seen enemies and danger outside the camera, and a small map of explored ground. */
+export function OffscreenLayer({s,visible,viewport,danger}:{s:RunState;visible:Set<string>;viewport:{x:number;y:number;columns:number;rows:number};danger:Set<string>}){
+ const W=s.room[0]?.length??0,H=s.room.length,big=W>viewport.columns||H>viewport.rows;if(!big)return null;
+ const inView=(p:Pt)=>p.x>=viewport.x&&p.x<viewport.x+viewport.columns&&p.y>=viewport.y&&p.y<viewport.y+viewport.rows;
+ const off=s.enemies.filter(e=>e.hp>0&&visible.has(`${e.x},${e.y}`)&&!inView(e));
+ const hot=new Set(off.filter(e=>[...danger].some(k=>{const [x,y]=k.split(',').map(Number);return !inView({x,y})&&Math.abs(x-e.x)+Math.abs(y-e.y)<=6;})).map(e=>e.id));
+ const pin=(p:Pt)=>{const cx=Math.min(Math.max(p.x-viewport.x+.5,.35),viewport.columns-.35)/viewport.columns*100,cy=Math.min(Math.max(p.y-viewport.y+.5,.35),viewport.rows-.35)/viewport.rows*100;
+  const ang=Math.atan2(p.y-(s.player.y),p.x-(s.player.x))*180/Math.PI;return {left:`${cx}%`,top:`${cy}%`,'--ang':`${ang}deg`} as React.CSSProperties;};
+ const explored=new Set((s.explored??[]).filter(k=>k.startsWith(`${s.roomIndex}:`)).map(k=>k.slice(k.indexOf(':')+1)));const all=!s.roguelike;
+ const cells:React.ReactNode[]=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const k=`${x},${y}`;if(!all&&!explored.has(k))continue;cells.push(<rect key={k} x={x} y={y} width="1" height="1" className={s.room[y][x]==='#'?'w':'f'}/>);}
+ return <>
+  {off.map(e=><span key={e.id} className={`offscreen ${hot.has(e.id)?'hot':''}`} style={pin(e)} title="Enemy out of view"><i/></span>)}
+  <svg className="minimap" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">{cells}<rect className="cam" x={viewport.x} y={viewport.y} width={viewport.columns} height={viewport.rows}/>{off.map(e=><rect key={e.id} className="foe" x={e.x} y={e.y} width="1" height="1"/>)}<rect className="you" x={s.player.x} y={s.player.y} width="1" height="1"/></svg>
+ </>;
 }
