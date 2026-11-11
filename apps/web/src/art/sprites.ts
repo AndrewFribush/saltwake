@@ -149,6 +149,7 @@ function plaster(seed:number){
 }
 function shingle(){return tile((x,y)=>{const row=Math.floor(y/4),by=y%4,sx=(x+(row%2?4:0))%8;if(by===3)return '#00000066';if(sx===0&&by<3)return '#00000040';if(by===0)return '#ffffff22';return null;});}
 function timber(seed:number){const n=noiseGrid(seed);return tile((x,y)=>{if(x===0||y===15)return '#5e4129';if(x===1)return '#7a5636';if((x+y===15)&&x>1&&x<15&&y>0&&y<15)return '#6b4a30';const v=n[y*16+x];return v>.92?'#d2bb8c':v<.08?'#a88f62':'#bfa676';});}
+function carpet(){return tile((x,y)=>{const d=(Math.abs(x-7.5)+Math.abs(y-7.5));if(x===0||y===0)return '#4a1f1c';if(x===1||y===1||x===15||y===15)return '#c9a35f';if(Math.round(d)===5)return '#d9b866';if(d<2)return '#2e4d5c';return (x+y)%2?'#7a2e28':'#742b26';});}
 function slate(seed:number){return flagstones(seed,['#4b5a57','#46534f','#50605a'],'#2b3533','#6c7c75');}
 
 /** CSS custom properties injected once at startup; stylesheets refer to them. */
@@ -161,6 +162,8 @@ export const textureVars:Record<string,string>={
  '--tx-water':water(6),
  '--tx-plank-a':planks(12),'--tx-plank-b':planks(17),
  '--tx-plaster':plaster(2),
+ '--tx-carpet':carpet(),
+ '--tx-floor-light':flagstones(41,['#8f8a74','#98927b','#8a846d'],'#6d6855','#aaa48c'),
  '--tx-slate':slate(13),
  '--tx-shingle':shingle(),'--tx-timber':timber(21),
  '--tx-flame':flameStrip,'--tx-coin':dataUrl(pixelSvg(coin,P)),

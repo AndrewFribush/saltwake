@@ -5,7 +5,8 @@ import {textureVars,keeperUrl,type SpriteName} from './sprites';
 
 const href=(v:string)=>textureVars[v].slice(5,-2);
 
-/** <defs> with tile patterns for the town SVG (one 40px tile each). Use fill="url(#sw-grass-a)" etc. */
+/** <defs> with tile patterns for the town SVG (one 40px tile each). skin.css maps Town.tsx's flat colours onto these
+ * patterns with attribute selectors, so Town.tsx itself stays untouched apart from including this component. */
 export function TownPatterns({cell}:{cell:number}){
  const still=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
  const tile=(id:string,v:string)=><pattern key={id} id={id} width={cell} height={cell} patternUnits="userSpaceOnUse"><image href={href(v)} width={cell} height={cell} preserveAspectRatio="none" style={{imageRendering:'pixelated'}}/></pattern>;
@@ -14,6 +15,7 @@ export function TownPatterns({cell}:{cell:number}){
   {tile('sw-road-a','--tx-road-a')}{tile('sw-road-b','--tx-road-b')}
   <pattern id="sw-water" width={cell} height={cell} patternUnits="userSpaceOnUse"><image href={href('--tx-water')} width={cell} height={cell} preserveAspectRatio="none" style={{imageRendering:'pixelated'}}/>{!still&&<animateTransform attributeName="patternTransform" type="translate" from="0 0" to={`${cell} 0`} dur="7s" repeatCount="indefinite"/>}</pattern>{tile('sw-wall','--tx-wall')}
   {tile('sw-shingle','--tx-shingle')}{tile('sw-timber','--tx-timber')}{tile('sw-slate','--tx-slate')}
+  {['794635','426366','756044','363a4f'].map(c=><pattern key={c} id={`sw-roof-${c}`} width={cell} height={cell} patternUnits="userSpaceOnUse"><rect width={cell} height={cell} fill={`#${c}`}/><image href={href('--tx-shingle')} width={cell} height={cell} preserveAspectRatio="none" style={{imageRendering:'pixelated'}}/></pattern>)}
  </defs>;
 }
 

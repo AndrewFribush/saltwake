@@ -108,6 +108,20 @@
 }
 
 /* ---------- Town ---------- */
+/* Town.tsx paints flat colours; CSS maps each colour onto a pixel pattern from art/Places.tsx (CSS beats SVG presentation attributes). */
+.harbor-map rect[fill="#3a5039"]{fill:url(#sw-grass-a);stroke:none}
+.harbor-map rect[fill="#344a35"]{fill:url(#sw-grass-b);stroke:none}
+.harbor-map rect[fill="#887c64"]{fill:url(#sw-road-a);stroke:none}
+.harbor-map rect[fill="#81755e"]{fill:url(#sw-road-b);stroke:none}
+.harbor-map rect[fill="#214954"]{fill:url(#sw-water);stroke:none}
+.harbor-map rect[fill="#214954"]+path{display:none}
+.harbor-map rect[fill="#293a35"]{fill:url(#sw-wall);stroke:none}
+.harbor-map rect[fill="#b69d71"]{fill:url(#sw-timber)}
+.harbor-map rect[fill="#6a716a"]{fill:url(#sw-slate)}
+.harbor-map path[fill="#794635"]{fill:url(#sw-roof-794635)}
+.harbor-map path[fill="#426366"]{fill:url(#sw-roof-426366)}
+.harbor-map path[fill="#756044"]{fill:url(#sw-roof-756044)}
+.harbor-map path[fill="#363a4f"]{fill:url(#sw-roof-363a4f)}
 .town-avatar{transition:transform .085s linear}
 .tile-town-grid{opacity:.3}
 .harbor-map{image-rendering:pixelated}
@@ -120,6 +134,14 @@
 .saltwake .room-board button.room-wall{background:var(--tx-plaster) center/100% 100% no-repeat;box-shadow:none}
 .saltwake .room-board button.room-fixture,.saltwake .room-board button.room-player,.saltwake .room-board button.room-exit{background-color:transparent;box-shadow:none;outline:0}
 .saltwake .room-gate .room-board button.room-tile:not(.room-wall){background:var(--tx-slate) center/100% 100% no-repeat}
+/* Per-house floors (the playtest lane colours each room; these keep its distinctions with textures). */
+.saltwake .room-world .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit){background:var(--tx-plank-a) center/100% 100% no-repeat;box-shadow:none}
+.saltwake .room-world .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-plank-b)}
+.saltwake .room-market .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-market .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-floor-light)}
+.saltwake .room-workshop .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-workshop .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-slate)}
+.saltwake .room-guild .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-guild .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-carpet)}
+.saltwake .room-gate .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-gate .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-slate)}
+.saltwake .room-world .room-board button.room-tile.room-fixture{box-shadow:inset 0 0 0 2px #c9a35f66}
 .saltwake .room-gate .room-board button.room-wall{background:var(--tx-wall) center/100% 100% no-repeat}
 .saltwake .room-board button.room-tile:not(:disabled):hover{box-shadow:inset 0 0 0 2px #f2dc9a66}
 .saltwake .room-board button.room-fixture:not(:disabled):hover{box-shadow:inset 0 0 0 2px #f2dc9a}
