@@ -100,7 +100,16 @@ const door=[
 const coin=[
  '................','.....kkkkkk.....','...kkyyyyyykk...','..kyyEEyyyyyYk..','..kyEyyYYYyyYk..','.kyyEyYyyyYyyYk.','.kyyyyYyyyyyyYk.','.kyyyyyYYYyyyYk.',
  '.kyyyyyyyyYyyYk.','.kyyyyYyyyYyyYk.','.kyyyyyYYYyyYYk.','..kyyyyyyyyYYk..','..kYyyyyyyYYYk..','...kkYYYYYYkk...','.....kkkkkk.....','................'];
-export const spriteMaps={coin,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
+const drafting=[
+ '................','................','..kkkkkkkkkkkk..','.kwwwwwwwwwwwwk.','.kwcwwwwwcccwwk.','.kwcccwwwwwcwwk.','.kwwwcwwcccwwwk.','.kwwwcccwwwwwgk.',
+ '.kkkkkkkkkkkkkgk','..kbbbbbbbbbbkk.','..kbk......kbk..','..kbk......kbk..','..kbk......kbk..','..kBk......kBk..','..kkk......kkk..','................'];
+const notice=[
+ '................','..kkkkkkkkkkkk..','..kbbbbbbbbbbk..','..kbwwwbdbwwbk..','..kbwkwbdbwkbk..','..kbwwwbbbwwbk..','..kbbbwwwwbbbk..','..kbbbwkkwbbbk..',
+ '..kbbbwwwwbbbk..','..kbbbbbbbbbbk..','..kkkkkbbkkkkk..','......kbbk......','......kbbk......','......kBBk......','.....kkkkkk.....','................'];
+const display=[
+ '..kkkkkkkkkkkk..','..kuuuuuuuuuuk..','..kucccucccuuk..','..kuyyuurruuuk..','..kkkkkkkkkkkk..','..kuuuuuuuuuuk..','..kuggukmmkuuk..','..kuggukmmkuuk..',
+ '..kkkkkkkkkkkk..','..kbbbbbbbbbbk..','..kbddddddddbk..','..kbbbbbbbbbbk..','..kBBBBBBBBBBk..','..kbk......kbk..','..kkk......kkk..','................'];
+export const spriteMaps={coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
 /** Shopkeeper: the hero drawing with a blue coat and grey hair. */
@@ -149,7 +158,7 @@ function plaster(seed:number){
 }
 function shingle(){return tile((x,y)=>{const row=Math.floor(y/4),by=y%4,sx=(x+(row%2?4:0))%8;if(by===3)return '#00000066';if(sx===0&&by<3)return '#00000040';if(by===0)return '#ffffff22';return null;});}
 function timber(seed:number){const n=noiseGrid(seed);return tile((x,y)=>{if(x===0||y===15)return '#5e4129';if(x===1)return '#7a5636';if((x+y===15)&&x>1&&x<15&&y>0&&y<15)return '#6b4a30';const v=n[y*16+x];return v>.92?'#d2bb8c':v<.08?'#a88f62':'#bfa676';});}
-function carpet(){return tile((x,y)=>{const d=(Math.abs(x-7.5)+Math.abs(y-7.5));if(x===0||y===0)return '#4a1f1c';if(x===1||y===1||x===15||y===15)return '#c9a35f';if(Math.round(d)===5)return '#d9b866';if(d<2)return '#2e4d5c';return (x+y)%2?'#7a2e28':'#742b26';});}
+function carpet(){const n=noiseGrid(77);return tile((x,y)=>{if((x+y)%8===0||(x-y+16)%8===0)return '#9a6a3a';if((x+y)%8===4&&(x-y+16)%8===4)return '#d9b866';const v=n[y*16+x];return v>.9?'#843530':v<.1?'#5e2420':(x+y)%2?'#72302a':'#6c2c27';});}
 function slate(seed:number){return flagstones(seed,['#4b5a57','#46534f','#50605a'],'#2b3533','#6c7c75');}
 
 /** CSS custom properties injected once at startup; stylesheets refer to them. */

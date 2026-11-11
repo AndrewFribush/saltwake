@@ -4,7 +4,8 @@ import {spriteUrl,textureVars,type SpriteName} from './sprites';
 export type Facing='up'|'down'|'left'|'right';
 
 // Install texture variables once so every stylesheet can use var(--tx-*).
-if(typeof document!=='undefined'){const root=document.documentElement;for(const [k,v] of Object.entries(textureVars))root.style.setProperty(k,v);}
+if(typeof document!=='undefined'){const root=document.documentElement;for(const [k,v] of Object.entries(textureVars))root.style.setProperty(k,v);
+ for(const n of ['rat','boar','sentry','crab','brute','nest','keg','crack','fountain','altar','cache','loot','stairs','spikesArmed','spikesSafe'] as SpriteName[])root.style.setProperty(`--sp-${n}`,spriteUrl(n));}
 
 export function heroFrame(facing:Facing):[SpriteName,boolean]{return facing==='up'?['heroUp',false]:facing==='left'?['heroSide',true]:facing==='right'?['heroSide',false]:['heroDown',false];}
 const href=(u:string)=>u.slice(5,-2);

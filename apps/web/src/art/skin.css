@@ -137,10 +137,10 @@
 /* Per-house floors (the playtest lane colours each room; these keep its distinctions with textures). */
 .saltwake .room-world .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit){background:var(--tx-plank-a) center/100% 100% no-repeat;box-shadow:none}
 .saltwake .room-world .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-plank-b)}
-.saltwake .room-market .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-market .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-floor-light)}
-.saltwake .room-workshop .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-workshop .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-slate)}
-.saltwake .room-guild .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-guild .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-carpet)}
-.saltwake .room-gate .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-gate .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-slate)}
+.saltwake .room-world.room-market .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-world.room-market .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-floor-light)}
+.saltwake .room-world.room-workshop .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-world.room-workshop .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-slate)}
+.saltwake .room-world.room-guild .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-world.room-guild .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-carpet)}
+.saltwake .room-world.room-gate .room-board button.room-tile:not(.room-wall):not(.room-exit),.saltwake .room-world.room-gate .room-board button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(3n){background-image:var(--tx-slate)}
 .saltwake .room-world .room-board button.room-tile.room-fixture{box-shadow:inset 0 0 0 2px #c9a35f66}
 .saltwake .room-gate .room-board button.room-wall{background:var(--tx-wall) center/100% 100% no-repeat}
 .saltwake .room-board button.room-tile:not(:disabled):hover{box-shadow:inset 0 0 0 2px #f2dc9a66}
@@ -201,3 +201,15 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .saltwake .fb-grid button.fb-cell{color:#fff3d0;text-shadow:0 1px 0 #000,0 0 3px #000;font-weight:800}
 .saltwake .interior-paint-grid button.paint-cell{background:var(--tx-plank-a) center/100% 100% no-repeat;color:#fff3d0;text-shadow:0 1px 0 #000}
 .saltwake .interior-paint-grid button.paint-cell.paint-wall{background:var(--tx-plaster) center/100% 100% no-repeat}
+
+/* ---------- Builder previews and any remaining CSS-drawn sprites use the pixel art ---------- */
+.game-sprite:is(.rat,.boar,.sentry,.crab,.brute,.nest,.spikes,.loot,.stairs){background:center/contain no-repeat;clip-path:none;border:0;box-shadow:none;transform:none;image-rendering:pixelated;color:transparent!important;font-size:0!important}
+.game-sprite:is(.rat,.boar,.sentry,.crab,.brute,.nest,.spikes)::before,.game-sprite:is(.rat,.boar,.sentry,.crab,.brute,.nest,.spikes)::after{display:none}
+.game-sprite.rat{background-image:var(--sp-rat)}.game-sprite.boar{background-image:var(--sp-boar)}.game-sprite.sentry{background-image:var(--sp-sentry)}
+.game-sprite.crab{background-image:var(--sp-crab)}.game-sprite.brute{background-image:var(--sp-brute)}.game-sprite.nest{background-image:var(--sp-nest)}
+.game-sprite.spikes{background-image:var(--sp-spikesArmed)}.game-sprite.loot{background-image:var(--sp-loot)}.game-sprite.stairs{background-image:var(--sp-stairs)}
+.depth-feature:is(.f-barrel,.f-crack,.f-fountain,.f-altar,.f-cache){background:center/contain no-repeat;outline:0;image-rendering:pixelated;font-size:0}
+.depth-feature:is(.f-barrel,.f-crack,.f-fountain,.f-altar,.f-cache)::before,.depth-feature:is(.f-barrel,.f-crack,.f-fountain,.f-altar,.f-cache)::after{display:none}
+.depth-feature.f-barrel{background-image:var(--sp-keg)}.depth-feature.f-crack{background-image:var(--sp-crack)}.depth-feature.f-fountain{background-image:var(--sp-fountain)}
+.depth-feature.f-altar{background-image:var(--sp-altar)}.depth-feature.f-cache{background-image:var(--sp-cache)}
+.fb-preview-tile{background:var(--tx-floor-a) center/100% 100%!important;image-rendering:pixelated}
