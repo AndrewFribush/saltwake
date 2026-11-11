@@ -117,6 +117,6 @@ export function WireLayer({s,viewport}:{s:RunState;viewport:{x:number;y:number;c
  if(!lines.length)return null;
  const cx=(x:number)=>x-viewport.x+.5,cy=(y:number)=>y-viewport.y+.5;
  return <svg className="wire-layer" aria-hidden="true" viewBox={`0 0 ${viewport.columns} ${viewport.rows}`} preserveAspectRatio="none">
-  {lines.map((l,i)=><g key={i} className={`wire ${l.on?'on':''}`}><path d={`M${cx(l.a.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.g.y)}`}/><circle cx={cx(l.a.x)} cy={cy(l.a.y)} r=".09"/><circle cx={cx(l.g.x)} cy={cy(l.g.y)} r=".09"/></g>)}
+  {lines.map((l,i)=><g key={i} className={`wire ${l.on?'on':''}`}><path className="wire-bg" d={`M${cx(l.a.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.g.y)}`}/><path d={`M${cx(l.a.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.g.y)}`}/><circle cx={cx(l.a.x)} cy={cy(l.a.y)} r=".09"/><circle cx={cx(l.g.x)} cy={cy(l.g.y)} r=".09"/></g>)}
  </svg>;
 }
