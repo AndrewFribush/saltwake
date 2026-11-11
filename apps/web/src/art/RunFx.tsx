@@ -4,6 +4,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import type {RunState,Enemy} from '../../../../packages/game/src/state';
 import {doorOpen} from '../../../../packages/shared/src/mechanisms';
+import {emit} from './Sound';
 import {heroFrame,Sprite,useMoving,walkFrame,type Facing} from './Sprite';
 import {tintedSprite,type SpriteName} from './sprites';
 
@@ -53,6 +54,9 @@ export function useRunFx(s:RunState):RunFx{
   if(doorFx.length){setSlams(v=>[...v,...doorFx]);const ids=new Set(doorFx.map(a=>a.id));setTimeout(()=>setSlams(v=>v.filter(x=>!ids.has(x.id))),700);if(doorFx.some(d=>d.shut)&&!reduced())setShake(n=>n+1);}
   if(now.bag>p.bag)add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:'✦',tone:'loot'});
   if((s.blasts?.length??0)>2&&hurt<=0&&!reduced())setShake(n=>n+1);
+  if(enemyHit.size)emit('hit');if(dead.length)emit('death');if(hurt>0)emit('hurt');if((s.blasts?.length??0)>0)emit('blast');
+  if(doorFx.some(d=>d.shut))emit('slam');else if(doorFx.length)emit('door');
+  if(s.tide){const left=s.tide.turns-(s.tideTurns??0);if(left===3||left<=0)emit('tide');}
   setEvents({turn:now.turn,playerLunge,playerHit:hurt>0,enemyLunge,enemyHit,enemyMoved});
   if(add.length){setFloaters(f=>[...f.slice(-8),...add]);const ids=new Set(add.map(a=>a.id));setTimeout(()=>setFloaters(f=>f.filter(x=>!ids.has(x.id))),950);}
   if(dead.length){setGhosts(g=>[...g,...dead]);const ids=new Set(dead.map(a=>a.id));setTimeout(()=>setGhosts(g=>g.filter(x=>!ids.has(x.id))),650);}
@@ -96,7 +100,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
 /** Dungeon entry: great doors swing apart at the start of a run; later floors fade in with a floor banner. */
 export function EntryCeremony({roomIndex,turn,title}:{roomIndex:number;turn:number;title:string}){
  const [show,setShow]=useState(()=>turn===0||roomIndex>0);
- useEffect(()=>{if(reduced()){setShow(false);return;}const t=setTimeout(()=>setShow(false),roomIndex===0?1400:1000);return()=>clearTimeout(t);},[]);
+ useEffect(()=>{emit(roomIndex===0&&turn===0?'open':'door');if(reduced()){setShow(false);return;}const t=setTimeout(()=>setShow(false),roomIndex===0?1400:1000);return()=>clearTimeout(t);},[]);
  if(!show)return null;
  return <div className={`entry-ceremony ${roomIndex===0&&turn===0?'doors':'descend'}`} aria-hidden="true">
   {roomIndex===0&&turn===0&&<><span className="entry-door left"/><span className="entry-door right"/></>}
