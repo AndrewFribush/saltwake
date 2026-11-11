@@ -64,4 +64,10 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Gold serif title, framed wallet picker with full-width buttons. Dev preview: `/gallery.html?arrival`.
 - Checks: typecheck, game 177, web 30, server 157/158 with `wallet-craft-http` timing out under load (passes alone), build pass.
 
-Next step: mobile pass (town map larger when idle; dungeon board centring), then pickup sparkle / low-health vignette.
+### 7. Mobile fixes and feedback polish
+- Fixed: on phones the dungeon board jumped right once it took keyboard focus (saltwake-polish's focus rule set `position:relative` on the absolutely centred board). Board is centred again (`after-dungeon-mobile.jpg`).
+- Compact chat head and lighter sign shadows on phones.
+- Pickup sparkle (✦) when something enters the bag or supplies; pulsing red vignette while health is 3 or less (static under reduced motion).
+- Checks: typecheck, game 177, web 30, server 158, build pass.
+
+Next step: interior player glide (actor overlay like the dungeon), stairs/exit glow, enemy idle variety; review mobile builder.
