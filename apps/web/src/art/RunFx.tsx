@@ -4,7 +4,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import type {RunState,Enemy} from '../../../../packages/game/src/state';
 import {heroFrame,Sprite,useMoving,walkFrame,type Facing} from './Sprite';
-import type {SpriteName} from './sprites';
+import {tintedSprite,type SpriteName} from './sprites';
 
 export const enemySprite=(e:Enemy):SpriteName=>e.minion?'rat':e.kind==='charger'?'boar':e.kind==='archer'?'sentry':e.kind==='bomber'?'crab':e.kind==='brute'?'brute':e.kind==='nest'?'nest':'rat';
 
@@ -83,6 +83,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
    <span key={`p-${s.turn}`} className={`actor-body ${fx.playerLunge?'lunge':''} ${fx.playerHit?'hit':''}`} style={lungeStyle(fx.playerLunge)}><Sprite name={hero} flip={heroFlip} className="actor-sprite frame-a"/><Sprite name={walkFrame(hero)} flip={heroFlip} className="actor-sprite frame-b"/></span>
    {danger&&!ended&&<span className="danger-badge">!</span>}
   </span>
+  {!!s.keys?.length&&<span className="key-ring" title={`Keys: ${s.keys.join(', ')}`}>{s.keys.map((k,i)=><span key={i} className="px-sprite key-chip" style={{backgroundImage:tintedSprite('key',k)}}/>)}</span>}
   {fx.floaters.map(f=><span key={f.id} className={`fx-float tone-${f.tone}`} style={at(f,viewport)}>{f.text}</span>)}
  </div>;
 }

@@ -371,3 +371,13 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .saltwake .game-shell>.player-hud::before{content:'Saltwake';display:flex;align-items:center;gap:8px;flex-shrink:0;padding:0 14px 0 44px;height:38px;background:var(--tx-crest) 2px 50%/34px 34px no-repeat;image-rendering:pixelated;font:600 22px/1 var(--sw-head);letter-spacing:.08em;color:#f3d98a;text-shadow:0 2px 0 #5a3a14,0 4px 10px #000a;border-right:1px solid #d9b86633;margin-right:4px}
 .saltwake .world-hint>span{font-family:var(--sw-head);color:#f3d98a}
 @media(max-width:700px){.saltwake .game-shell>.player-hud::before{content:'';padding:0 0 0 36px;background-size:30px 30px;border-right:0;margin-right:0}}
+
+/* ---------- v13 keys, locked doors, pressure plates ---------- */
+.feature-art.f-lock{z-index:2}
+.feature-art.f-lock .feature-sprite{inset:0}
+.feature-art.f-key .feature-sprite{inset:14%;animation:sw-bob 1.6s ease-in-out infinite;filter:drop-shadow(0 0 3px #fff6b088)}
+.feature-art.f-plate .feature-sprite{inset:4%}
+.feature-art.f-plate.on .feature-sprite{transform:translateY(6%) scale(.96);filter:brightness(1.25) drop-shadow(0 0 4px #ffe08a)}
+.key-ring{position:absolute;left:4px;top:4px;z-index:9;display:flex;gap:2px;padding:3px 5px;border-radius:3px;background:#0c1618d9;box-shadow:inset 0 0 0 1px #d9b86655}
+.key-chip{width:clamp(16px,2.2vw,26px);height:clamp(16px,2.2vw,26px)}
+@media(prefers-reduced-motion:reduce){.feature-art.f-key .feature-sprite{animation:none}}

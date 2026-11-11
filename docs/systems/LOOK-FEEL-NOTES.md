@@ -90,4 +90,10 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Creator kit / trade (CSS): Library panel and blueprint text box, guide page headings, private offers framed with an "Offered to you" ribbon, stack rows and offer panels share the skin.
 - Checks: typecheck, game 178, web 30, server 162, build pass.
 
-Next step: map the progression components (plates, levers, gates, locked doors/keys, one-way drops) onto the ready sprites when dungeon-depth lands them; re-check the playtest creator-kit screens once the published-copy Library and rehearsal end panel are on main.
+### 12. Creator-kit cards, top bar wordmark, v13 progression art
+- Guide → Components cards show the component's sprite (or item icon) next to its name, with a cost tag; Library blueprint text, clone rows and draft attribution, and the rehearsal end panel (parchment) are skinned. One small edit in ComponentReference.tsx (icon before the card title).
+- Top bar: a pixel crest and gold serif "Saltwake" wordmark at the left of the HUD (crest only on phones). CSS only.
+- v13: keys and locked doors draw in their pair colour (named metals and colours, other names get a stable hue); pressure plates press down and glow while their channel is on; a key ring in the board corner shows keys held. Levers/gates were already wired to switch/door devices.
+- Checks: typecheck, game 181, web 30, server 163, build pass.
+
+Next step: crafting juice (bubbling kettle, quality reveal), dungeon-opening ceremony, then a consistency sweep of every window at desktop and phone widths.
