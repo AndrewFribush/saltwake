@@ -10,7 +10,7 @@ impl Economy {
         random_tables: Vec<RandomTable>,
     ) -> Result<String, String> {
         let now = now_ms();
-        let valid_operating_terms = if matches!(terms.rules_version, 8 | 9 | 10 | 11) {
+        let valid_operating_terms = if matches!(terms.rules_version, 8 | 9 | 10 | 11 | 12) {
             (60_000..=3_600_000).contains(&terms.run_duration_ms.0)
                 && (1..=4).contains(&terms.max_runs)
         } else {
@@ -27,8 +27,8 @@ impl Economy {
         }
         if terms.title.trim().is_empty()
             || terms.title.len() > 80
-            || !matches!(terms.rules_version, 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11)
-            || !(if matches!(terms.rules_version, 9 | 10 | 11) { 1..=16 } else { 2..=4 }).contains(&terms.modules.len())
+            || !matches!(terms.rules_version, 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12)
+            || !(if matches!(terms.rules_version, 9 | 10 | 11 | 12) { 1..=16 } else { 2..=4 }).contains(&terms.modules.len())
             || terms.modules.iter().any(|m| {
                 if terms.rules_version >= 3 {
                     !valid_custom_module(m, if matches!(terms.rules_version, 8 | 9) { 7 } else { terms.rules_version })
@@ -45,7 +45,7 @@ impl Economy {
             || terms.closes_at_ms.0 - terms.opens_at_ms.0 > 86_400_000
             || fee.0 > 1_000_000
             || terms.sockets.len() > if terms.rules_version >= 4 { 64 } else { 16 }
-            || (matches!(terms.rules_version, 9 | 10 | 11)
+            || (matches!(terms.rules_version, 9 | 10 | 11 | 12)
                 && terms.modules.iter().filter_map(|m| custom_socket_count(m)).sum::<usize>() > 64)
             || funding.len() > 128
         {
@@ -69,6 +69,11 @@ impl Economy {
                 Enemy::None => 0,
                 Enemy::Pursuer => 2,
                 Enemy::Charger => 3,
+                _ if terms.rules_version < 12 => return Err("InvalidSocket".into()),
+                Enemy::Archer => 3,
+                Enemy::Bomber => 2,
+                Enemy::Brute => 4,
+                Enemy::Nest => 4,
             };
             cost += u64::from(socket.trap);
             if let Some(ty) = socket.reward {
@@ -76,11 +81,22 @@ impl Economy {
                 cost += 1;
             }
         }
-        if matches!(terms.rules_version, 7 | 8 | 9 | 10 | 11) && !valid_tuned_terms(&terms) {
+        if matches!(terms.rules_version, 7 | 8 | 9 | 10 | 11 | 12) && !valid_tuned_terms(&terms) {
             return Err("InvalidTerms".into());
         }
-        if matches!(terms.rules_version, 10 | 11) && !valid_device_wiring(&terms.modules, terms.rules_version) {
+        if matches!(terms.rules_version, 10 | 11 | 12) && !valid_device_wiring(&terms.modules, terms.rules_version) {
             return Err("InvalidTerms".into());
+        }
+        if terms.rules_version == 12 {
+            let mut total = 0usize;
+            for module in &terms.modules {
+                let (features, feature_cost) = depth_features(module).ok_or("InvalidTerms")?;
+                total += features;
+                cost += feature_cost;
+            }
+            if total > 128 {
+                return Err("InvalidTerms".into());
+            }
         }
         let mut table_ids = BTreeSet::new();
         let mut random_sockets = BTreeSet::new();
@@ -423,7 +439,7 @@ struct EncounterTuning {
 fn valid_tuned_terms(terms: &Terms) -> bool {
     let mut has_links = false;
     for (room, module) in terms.modules.iter().enumerate() {
-        let Some(json) = module.strip_prefix(match terms.rules_version { 10 => "custom10:", 11 => "custom11:", _ => "custom7:" }) else { return false; };
+        let Some(json) = module.strip_prefix(match terms.rules_version { 10 => "custom10:", 11 => "custom11:", 12 => "custom12:", _ => "custom7:" }) else { return false; };
         let Ok(floor) = near_sdk::serde_json::from_str::<TunedFloor>(json) else { return false; };
         has_links |= floor.links.is_some();
         if floor.tuning.len() > 16 { return false; }
@@ -451,7 +467,7 @@ fn valid_tuned_terms(terms: &Terms) -> bool {
 fn valid_custom_graph(modules: &[String]) -> bool {
     let mut edges = Vec::new();
     for module in modules {
-        let Some(json) = module.strip_prefix("custom6:").or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:")) else { return false; };
+        let Some(json) = module.strip_prefix("custom6:").or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:")).or_else(|| module.strip_prefix("custom12:")) else { return false; };
         let Ok(floor) = near_sdk::serde_json::from_str::<CustomLinks>(json) else { return false; };
         if floor.links.iter().any(|link| link.to >= modules.len()) {
             return false;
@@ -469,11 +485,11 @@ fn valid_custom_graph(modules: &[String]) -> bool {
     seen.len() == modules.len()
 }
 fn custom_socket_count(module: &str) -> Option<usize> {
- let json = module.strip_prefix("custom4:").or_else(|| module.strip_prefix("custom5:")).or_else(|| module.strip_prefix("custom6:")).or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:"))?;
+ let json = module.strip_prefix("custom4:").or_else(|| module.strip_prefix("custom5:")).or_else(|| module.strip_prefix("custom6:")).or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:")).or_else(|| module.strip_prefix("custom12:"))?;
  near_sdk::serde_json::from_str::<CustomFloor>(json).ok().map(|f| f.sockets.len())
 }
 fn valid_custom_module(module: &str, version: u8) -> bool {
-    if module.len() > if matches!(version, 7 | 10 | 11) { 4096 } else { 2048 } {
+    if module.len() > if version == 12 { 6144 } else if matches!(version, 7 | 10 | 11) { 4096 } else { 2048 } {
         return false;
     }
     let prefix = match version {
@@ -484,6 +500,7 @@ fn valid_custom_module(module: &str, version: u8) -> bool {
         7 => "custom7:",
         10 => "custom10:",
         11 => "custom11:",
+        12 => "custom12:",
         _ => return false,
     };
     let Some(json) = module.strip_prefix(prefix) else {
@@ -547,7 +564,7 @@ fn valid_custom_module(module: &str, version: u8) -> bool {
             }
         }
     }
-    if matches!(version, 10 | 11) {
+    if matches!(version, 10 | 11 | 12) {
         let Ok(devices) = near_sdk::serde_json::from_str::<DeviceFloor>(json) else { return false; };
         if devices.devices.len() > 16 { return false; }
         let mut ids = BTreeSet::new();
@@ -558,6 +575,9 @@ fn valid_custom_module(module: &str, version: u8) -> bool {
                 || floor.tiles[y].as_bytes()[x] != b'.' || !positions.insert((x, y))
             { return false; }
         }
+    }
+    if version == 12 {
+        return depth_floor_valid(json, &floor.tiles, (floor.spawn.x, floor.spawn.y), &mut positions);
     }
     let mut seen = BTreeSet::new();
     let mut queue = vec![(floor.spawn.x, floor.spawn.y)];
@@ -620,9 +640,9 @@ fn valid_device_wiring(modules: &[String], version: u8) -> bool {
     let mut count = 0;
     let mut has_extraction = false;
     for module in modules {
-        let Some(json) = module.strip_prefix(if version == 11 { "custom11:" } else { "custom10:" }) else { return false; };
+        let Some(json) = module.strip_prefix(match version { 12 => "custom12:", 11 => "custom11:", _ => "custom10:" }) else { return false; };
         let Ok(floor) = near_sdk::serde_json::from_str::<DeviceFloor>(json) else { return false; };
-        if version == 11 {
+        if version >= 11 {
             let Ok(exit) = near_sdk::serde_json::from_str::<ExitFloor>(json) else { return false; };
             has_extraction |= exit.exit_rule.extract;
             if exit.exit_rule.channel.is_some() != exit.exit_rule.value.is_some() { return false; }
@@ -640,7 +660,7 @@ fn valid_device_wiring(modules: &[String], version: u8) -> bool {
             }
         }
     }
-    (version != 11 || has_extraction) && doors.is_subset(&switches)
+    (version < 11 || has_extraction) && doors.is_subset(&switches)
 }
 
 // Exit policies are only interpreted by v11. Presence-aware deserializers reject
@@ -678,4 +698,107 @@ fn present_string<'de, D: near_sdk::serde::Deserializer<'de>>(d: D) -> Result<Op
 }
 fn present_bool<'de, D: near_sdk::serde::Deserializer<'de>>(d: D) -> Result<Option<bool>, D::Error> {
     <bool as near_sdk::serde::Deserialize>::deserialize(d).map(Some)
+}
+
+// Rules v12 depth features. Every field is required and range-checked; unknown kinds or
+// fields are rejected. Cracked walls sit on inner walls; chasms block connectivity.
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct DepthFloor {
+    features: Vec<Feature>,
+    #[serde(default, deserialize_with = "present_tide")]
+    tide: Option<Tide>,
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde", deny_unknown_fields)]
+struct Tide {
+    turns: u8,
+    damage: u8,
+}
+fn present_tide<'de, D: near_sdk::serde::Deserializer<'de>>(d: D) -> Result<Option<Tide>, D::Error> {
+    <Tide as near_sdk::serde::Deserialize>::deserialize(d).map(Some)
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde", rename_all = "snake_case")]
+enum Boon { Might, Ward, Sight }
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde", rename_all = "snake_case")]
+enum Supply { Bomb, Dart, Flash }
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde", tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum Feature {
+    Barrel { id: String, x: usize, y: usize, damage: u8 },
+    Crack { id: String, x: usize, y: usize, hp: u8 },
+    Oil { id: String, x: usize, y: usize },
+    Pit { id: String, x: usize, y: usize },
+    Fountain { id: String, x: usize, y: usize, heal: u8, charges: u8 },
+    Altar { id: String, x: usize, y: usize, #[serde(rename = "boon")] _boon: Boon, cost: u8 },
+    Cache { id: String, x: usize, y: usize, #[serde(rename = "supply")] _supply: Supply, count: u8 },
+}
+impl Feature {
+    fn place(&self) -> (&str, usize, usize) {
+        match self {
+            Self::Barrel { id, x, y, .. } | Self::Crack { id, x, y, .. } | Self::Oil { id, x, y } | Self::Pit { id, x, y }
+            | Self::Fountain { id, x, y, .. } | Self::Altar { id, x, y, .. } | Self::Cache { id, x, y, .. } => (id, *x, *y),
+        }
+    }
+    fn cost(&self) -> u64 { match self { Self::Fountain { .. } | Self::Altar { .. } | Self::Cache { .. } => 2, _ => 1 } }
+    fn valid_config(&self) -> bool {
+        match self {
+            Self::Barrel { damage, .. } => (1..=12).contains(damage),
+            Self::Crack { hp, .. } => (1..=5).contains(hp),
+            Self::Fountain { heal, charges, .. } => (1..=12).contains(heal) && (1..=3).contains(charges),
+            Self::Altar { cost, .. } => (1..=6).contains(cost),
+            Self::Cache { count, .. } => (1..=3).contains(count),
+            Self::Oil { .. } | Self::Pit { .. } => true,
+        }
+    }
+}
+fn depth_features(module: &str) -> Option<(usize, u64)> {
+    let floor = near_sdk::serde_json::from_str::<DepthFloor>(module.strip_prefix("custom12:")?).ok()?;
+    Some((floor.features.len(), floor.features.iter().map(Feature::cost).sum()))
+}
+fn depth_floor_valid(json: &str, tiles: &[String], spawn: (usize, usize), positions: &mut BTreeSet<(usize, usize)>) -> bool {
+    let Ok(floor) = near_sdk::serde_json::from_str::<DepthFloor>(json) else { return false; };
+    if floor.features.len() > 24 { return false; }
+    if let Some(t) = &floor.tide {
+        if !(5..=200).contains(&t.turns) || !(1..=6).contains(&t.damage) { return false; }
+    }
+    let height = tiles.len();
+    let width = tiles[0].len();
+    let tile = |x: usize, y: usize| tiles[y].as_bytes()[x];
+    let mut ids = BTreeSet::new();
+    let mut cracks = BTreeSet::new();
+    let mut pits = BTreeSet::new();
+    for f in &floor.features {
+        let (id, x, y) = f.place();
+        if id.is_empty() || id.len() > 32 || !ids.insert(id) || !f.valid_config() || x >= width || y >= height || !positions.insert((x, y)) {
+            return false;
+        }
+        match f {
+            Feature::Crack { .. } => {
+                if x == 0 || y == 0 || x == width - 1 || y == height - 1 || tile(x, y) != b'#'
+                    || ![(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)].iter().any(|&(a, b)| tile(a, b) == b'.') {
+                    return false;
+                }
+                cracks.insert((x, y));
+            }
+            _ => {
+                if tile(x, y) != b'.' { return false; }
+                if matches!(f, Feature::Pit { .. }) { pits.insert((x, y)); }
+            }
+        }
+    }
+    let open = |p: (usize, usize)| !pits.contains(&p) && (tile(p.0, p.1) == b'.' || cracks.contains(&p));
+    let mut seen = BTreeSet::from([spawn]);
+    let mut queue = vec![spawn];
+    while let Some((x, y)) = queue.pop() {
+        // Closed boundaries guarantee every queued cell is interior.
+        for p in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)] {
+            if open(p) && seen.insert(p) { queue.push(p); }
+        }
+    }
+    let mut count = 0;
+    for y in 0..height { for x in 0..width { if open((x, y)) { count += 1; } } }
+    seen.len() == count
 }

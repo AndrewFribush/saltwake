@@ -24,9 +24,11 @@ import {places,type PlaceId} from '../../../packages/game/src/town';
 import {catalog} from '../../../packages/shared/src/catalog';
 import {Workbench} from './Workbench';
 import {FirstSteps} from './FirstSteps';
+import {BuyInContext} from './BuyCoins';
 import {StackRows,stacksOf,countOf} from './TradeRows';
 import type {Action} from '../../../packages/game/src/actions';
 import type {RunState} from '../../../packages/game/src/state';
+const PENDING_NOTICE='Pending confirmation.';
 import type {Item,EditionTerms} from '../../../packages/shared/src/types';
 type RunView={id:string;seq:number;state:RunState;deadline:string;roomTitle:string;roomCount:number;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean;terminal:string|null;settlement:any};
 type World={shops?:Shopfront[];shopContract?:boolean;wallet?:WalletView;listings?:unknown[];npc_order?:unknown;profile:string;credits:string;items:Item[];editions:{record?:EditionRecordData;id:string;maker:string;terms:EditionTerms;fee:string;version:string;closed:boolean;active:number;status:string;bundles:number;remainingValue:number;reservedValue:number;extractedValue?:string;consumedValue?:string;bankedValue?:string;pendingConsumptionValue:number;valueBalanced:boolean|null;originalValue:string;refreshValue:string}[];runs:RunView[];operations:{id:string;status:string;reason?:string;result?:string}[]};
@@ -35,6 +37,7 @@ async function demoApi(path:string,body?:unknown){const r=await fetch('/api/'+pa
 export type WalletDemoConnection = {
  profile: string; storageScope: string; sessionControls: React.ReactNode;
  request: (path:string,body?:unknown)=>Promise<any>;
+ buyCoins?: (requestId:string,coins:number)=>Promise<void>;
  execute: (id:string,action:Command['action'])=>Promise<CommandResult>;
  craft: CraftSend;
  operationId: (requestId:string)=>Promise<string>;
@@ -55,7 +58,9 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
   drawer?.addEventListener('keydown',onKey);return()=>{covered.forEach((el,i)=>{el.inert=states[i];});drawer?.removeEventListener('keydown',onKey);if(previous?.isConnected)previous.focus({preventScroll:true});};
  },[walletOpen,personalOpen,sessionOpen,helpOpen]);
  const refresh=async()=>{const generation=worldGeneration.current;const sequence=++refreshSequence.current;const w=await api('world') as World;if(generation!==worldGeneration.current||sequence!==refreshSequence.current)return;setWorld(w);setRunId(current=>current??w.runs.find(r=>!r.terminal)?.id);const pendingKey=pendingCommandKey(w.profile);const pending=sessionStorage.getItem(pendingKey);if(pending){const id=walletConnection?await walletConnection.operationId(JSON.parse(pending).id):w.profile+'-'+JSON.parse(pending).id;if(generation!==worldGeneration.current||sequence!==refreshSequence.current)return;if(w.operations.some(o=>o.id===id&&['Applied','Rejected'].includes(o.status)))sessionStorage.removeItem(pendingKey);}
- setSelected(ids=>ids.filter(id=>w.items.some(i=>i.id===id)));};
+ setSelected(ids=>ids.filter(id=>w.items.some(i=>i.id===id)));
+ // A retried/recovered command resolves outside this component; drop its stale banner once nothing is pending.
+ if(!sessionStorage.getItem(pendingKey))setNotice(n=>n.startsWith(PENDING_NOTICE)?'':n);};
  useEffect(()=>{let stopped=false;(walletConnection?Promise.resolve():api('session',{})).then(()=>{if(!stopped)return refresh();}).catch(e=>setNotice(e.message));const timer=setInterval(()=>{if(!inflight.current&&!polling.current){polling.current=true;void refresh().catch(e=>setNotice(e.message)).finally(()=>{polling.current=false;});}},3000);return()=>{stopped=true;worldGeneration.current++;clearInterval(timer);};},[]);
  const work=async(fn:()=>Promise<unknown>)=>{if(inflight.current||childBusy)return;inflight.current=true;setBusy(true);try{await fn();await refresh();setNotice('');}catch(e){setNotice((e as Error).message);}finally{inflight.current=false;setBusy(false);}};
  const command=async(action:unknown)=>{
@@ -63,7 +68,7 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
   if(saved&&JSON.stringify(pending.action)!==JSON.stringify(action))throw Error('Retry or reconcile the earlier command before changing it.');
   sessionStorage.setItem(key,JSON.stringify(pending));const r=walletConnection?await walletConnection.execute(pending.id,pending.action):await api('command',{...pending,expectedProfile:world?.profile});
   if(r.status==='Applied'||r.status==='Rejected')sessionStorage.removeItem(key);
-  if(r.status==='Rejected'){await refresh();throw Error(r.result);}if(r.status==='Unknown'||r.status==='Pending')throw Error('Pending confirmation. Keep the same request; do not enter again.');
+  if(r.status==='Rejected'){await refresh();throw Error(r.result);}if(r.status==='Unknown'||r.status==='Pending')throw Error(PENDING_NOTICE+' Keep the same request; do not enter again.');
  };
  const loadout=planLoadout(selected.flatMap(id=>world?.items.find(i=>i.id===id)??[]));
  const suggestions=world?matchEditions(world.editions,world.profile,{...preferences,maxFee:Math.min(preferences.maxFee,Number(world.credits))},rotation):[];
@@ -84,7 +89,8 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
  const packPanel=<section className="pack-panel" aria-label="Pack for the descent"><h3>Your pack</h3><p className={loadout.weapon==='unarmed'?'pack-warn':''}>{selected.length?`${loadout.weapon==='unarmed'?'No weapon: you will fight bare-handed':`Wielding a ${loadout.weapon} (${weaponDamage[loadout.weapon]} damage)`}${loadout.armor?' · armor on':''} · bag ${loadout.bag}/6.`:'Nothing packed. You would go in bare-handed. Add gear below.'} {!loadout.valid&&loadout.reason}</p><StackRows stacks={packStacks} counts={packCounts} onCount={setPack} disabled={busy} empty="You own nothing to take. You can still enter bare-handed."/><p className="trade-note">Packed gear is lost if you die. Everything else stays safe in town.</p></section>;
  const profileNames:Record<string,string>={buyer:'The delver',maker:'The proprietor',worker:'The apprentice',worker2:'The journeyman',p2:'The mercenary',p3:'The wayfarer',p4:'The scavenger',p5:'The newcomer'};
 
- return <section className={`game-shell ${walletOpen||personalOpen?'wallet-visible':''}`}>
+ const buyIn=walletConnection?.buyCoins&&(world as any)?.buyIn?{buy:walletConnection.buyCoins,refresh}:null;
+ return <BuyInContext.Provider value={buyIn}><section className={`game-shell ${walletOpen||personalOpen?'wallet-visible':''}`}>
  <div className="player-hud"><button className="character-token" disabled={!world||busy||!!run} onClick={()=>{setPersonalOpen(!personalOpen);setWalletOpen(false);setSessionOpen(false);setHelpOpen(false);}} aria-label="Open inventory and journal" aria-expanded={personalOpen}>{world?(profileNames[world.profile]??world.profile.replace(/^wallet:/,'')):'Loading…'} <small>satchel · journal</small></button><button className="purse" disabled={!world} aria-label="Open wallet and receipts" aria-expanded={walletOpen} onClick={()=>{setWalletOpen(!walletOpen);setPersonalOpen(false);setSessionOpen(false);setHelpOpen(false);}}>Wallet · {world?.credits??'—'} <small>test coins · receipts</small>{purseDelta&&<span key={purseDelta.key} className={`purse-delta ${purseDelta.n>0n?'up':'down'}`} aria-live="polite">{purseDelta.n>0n?'+':''}{purseDelta.n.toString()}</span>}</button><div className="hud-stock">{world?.items.length??0} {world?.items.length===1?'good':'goods'} in your satchel <small>{finished.length} {finished.length===1?'expedition':'expeditions'} completed</small></div><button className="help-launch" aria-expanded={helpOpen} onClick={()=>{setHelpOpen(!helpOpen);setWalletOpen(false);setPersonalOpen(false);setSessionOpen(false);}}>Help</button><button className="session-launch" aria-expanded={sessionOpen} onClick={()=>{setSessionOpen(!sessionOpen);setWalletOpen(false);setPersonalOpen(false);setHelpOpen(false);}}>Session</button></div>
 
  <div className={`game-notice ${notice?'has-notice':''}`} role="status">{!(busy||notice)&&<p className="world-hint"><span>Saltwake</span> {run?'Plan your next move. Every turn counts.':place||shopId?'Walk to a counter · Leave house returns to town':'Walk into doors to enter · Arrow keys / WASD to walk'}</p>}{(busy||notice)&&<Reading limit={80} text={busy?'The steward is recording your action…':notice}/>}</div>
@@ -119,7 +125,7 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
 
  </Interior>}
  </>}
- </div></section>;
+ </div></section></BuyInContext.Provider>;
 }
 
 /** Plain-language account of what a settled run did to the player's goods. */

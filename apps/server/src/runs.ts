@@ -2,6 +2,7 @@ import {validPlayerAccount} from '../../../packages/shared/src/player-identity';
 import {signalValue} from '../../../packages/shared/src/mechanisms';
 import {visibleThreatTiles} from '../../../packages/game/src/telegraph';
 import {planLoadout} from '../../../packages/shared/src/equipment';
+import {who} from '../../../packages/game/src/depth';
 import {authoredLayout} from '../../../packages/game/src/authored-layout';
 import {createHash} from 'node:crypto';
 import templates from '../../../content/rooms.json';
@@ -62,7 +63,7 @@ export class Runs {
   if(this.db.get('run-terminal-seen',economic.id))throw Error('Run already terminal; local play unavailable');
   const edition=snapshot.editions.find(e=>e.id===economic.edition);if(!edition)throw Error('Missing confirmed edition');
   const state=createRun();state.items={};state.originalTownIds=[];state.reservedItemIds=[];state.player.weapon='unarmed';state.player.armor=false;
-  if(![1,2,3,4,5,6,7,8,9,10,11].includes(edition.terms.rules_version))throw Error('Unsupported rules version');
+  if(![1,2,3,4,5,6,7,8,9,10,11,12].includes(edition.terms.rules_version))throw Error('Unsupported rules version');
   const customFloors=edition.terms.rules_version>=3?edition.terms.modules.map(decodeCustomModule):undefined;
   const customRooms=customFloors?authoredLayout(customFloors,edition.terms.sockets):undefined;
   const generated=customFloors?customFloors.map((floor,index)=>({slots:floor.sockets,layout:customRooms![index]})):edition.terms.rules_version===2?fundedLayout(economic.seed,edition.terms.modules):undefined;
@@ -101,8 +102,10 @@ export class Runs {
    state.enemies=state.enemies.filter(isVisible).map(e=>({...e,intent:isVisible(e.intent)?e.intent:{x:e.x,y:e.y},lane:e.lane?.filter(isVisible)}));
    state.traps=state.traps.filter(isVisible);
    // Off-screen combat can name dormant enemies; do not disclose those IDs via logs.
-   const hiddenIds=row.state.layout!.flatMap(r=>r.enemies).filter(e=>!state.enemies.some(v=>v.id===e.id)).map(e=>e.id);
-   state.log=state.log.filter(line=>!hiddenIds.some(id=>line.includes(id)));
+   const hiddenIds=[...row.state.layout!.flatMap(r=>r.enemies),...row.state.enemies].filter(e=>!state.enemies.some(v=>v.id===e.id)).map(e=>e.id);
+   if(state.features)state.features=state.features.filter(f=>explored.has(`${state.roomIndex}:${f.x},${f.y}`));
+   const hiddenNames=[...row.state.layout!.flatMap(r=>r.enemies),...row.state.enemies].filter(e=>!state.enemies.some(v=>v.id===e.id)).map(e=>who(e)+' ');
+   state.log=state.log.filter(line=>!hiddenIds.some(id=>line.includes(id))&&!hiddenNames.some(name=>(line+' ').replace(/[.!,]/g,' ').includes(name)));
   }
   state.items=Object.fromEntries(Object.entries(state.items).filter(([,i])=>i.location.kind!=='floor'||(i.location.room===state.roomIndex&&(!state.roguelike||isVisible(i.location)))));
   state.reservedItemIds=state.reservedItemIds.filter(id=>id in state.items);

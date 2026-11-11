@@ -15,7 +15,10 @@ import {Sandbox,GenesisAccount} from 'near-sandbox';
 import {Account,JsonRpcProvider,KeyPair,type KeyPairString} from 'near-api-js';
 import {starterTownCommands} from '../packages/shared/src/starter-town';
 const players=Math.max(1,Math.min(8,Number(process.argv[2]??3)||3));
-if(existsSync('.state/wallet-sandbox.json'))throw Error('.state/wallet-sandbox.json exists: another wallet sandbox is running (or stopped uncleanly; remove the file).');
+// --tag <name> runs a second wallet sandbox beside another: .state/wallet-sandbox-<name>.json
+const tagAt=process.argv.indexOf('--tag'),tag=tagAt>0?process.argv[tagAt+1]:'';if(tag&&!/^[a-z0-9-]{1,20}$/.test(tag))throw Error('Invalid --tag');
+const configPath=tag?`.state/wallet-sandbox-${tag}.json`:'.state/wallet-sandbox.json';
+if(existsSync(configPath))throw Error(configPath+' exists: another wallet sandbox is running (or stopped uncleanly; remove the file).');
 const genesis=GenesisAccount.createDefault();const sandbox=await Sandbox.start({});
 try{
  const provider=new JsonRpcProvider({url:sandbox.rpcUrl});const account=new Account(genesis.accountId,provider,genesis.privateKey as KeyPairString);
@@ -34,9 +37,9 @@ try{
   const path=`.state/wallet-sandbox-keys/${accountId}.json`;writeFileSync(path,JSON.stringify({accountId,privateKey:key.toString()}),{mode:0o600});keyPaths.push(path);
   console.log('Player account', accountId);
  }
- writeFileSync('.state/wallet-sandbox.json',JSON.stringify({epoch:'wallet-'+randomUUID(),rpcUrl:sandbox.rpcUrl,accountId:genesis.accountId,privateKey:genesis.privateKey}),{mode:0o600,flag:'wx'});
+ writeFileSync(configPath,JSON.stringify({epoch:'wallet-'+randomUUID(),rpcUrl:sandbox.rpcUrl,accountId:genesis.accountId,privateKey:genesis.privateKey}),{mode:0o600,flag:'wx'});
  writeFileSync('.state/dev-test-signer.json',JSON.stringify({keyPaths,contractId:genesis.accountId,rpcUrl:sandbox.rpcUrl,local:true}),{mode:0o600});
- console.log(`Wallet sandbox ready. Contract ${genesis.accountId}. Start the API with --wallet-local --config .state/wallet-sandbox.json, then restart Vite so it picks up the dev signer.`);
+ console.log(`Wallet sandbox ready. Contract ${genesis.accountId}. Start the API with --wallet-local --config ${configPath}, then restart Vite so it picks up the dev signer.`);
  await new Promise<void>(resolve=>{process.once('SIGINT',resolve);process.once('SIGTERM',resolve);});
- unlinkSync('.state/wallet-sandbox.json');unlinkSync('.state/dev-test-signer.json');
+ unlinkSync(configPath);unlinkSync('.state/dev-test-signer.json');
 }finally{const child=(sandbox as unknown as {childProcess:ChildProcess}).childProcess;const timer=setTimeout(()=>{if(child.exitCode===null&&child.signalCode===null)child.kill('SIGKILL');},5000);try{await sandbox.tearDown();}finally{clearTimeout(timer);}}

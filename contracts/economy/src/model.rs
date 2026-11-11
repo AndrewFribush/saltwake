@@ -77,6 +77,11 @@ pub enum Enemy {
     None,
     Pursuer,
     Charger,
+    // Rules v12 additions; appended so stored Borsh indices of older editions are unchanged.
+    Archer,
+    Bomber,
+    Brute,
+    Nest,
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]

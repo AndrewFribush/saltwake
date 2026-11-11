@@ -1,3 +1,4 @@
+import {enemyCatalog,depthEnemyKinds,featureCatalog,featureKinds,supplyCatalog,altarBoons} from '../../shared/src/depth-components';
 /** Rules-v1–v3 encounter vocabulary. New behavior requires a versioned addition. */
 export const encounterRules={pursuer:{hp:4,damage:3},charger:{hp:6,damage:4},spikes:{damage:3}} as const;
 export const componentGuide=[
@@ -17,5 +18,12 @@ export const componentGuide=[
  {name:'Testing random drops',text:'Choose a Rehearsal drop for each pool in Pools. Every random encounter in that pool receives the chosen synthetic type. This does not simulate your finite funded draws or predict odds. Published runs receive their reserved goods from the contract.'},
  {name:'Switches and doors',text:'In Devices, place switches and doors on distinct tiles. Matching channel names connect them across floors. Channels start off. Switches toggle, set or clear them when stepped on; doors open when their channel is on or off. Closed doors block entry and sight, including incoming charges. Occupants can leave a closing door.'},
  {name:'Mechanism testing',text:'Use up to 16 devices per floor and 64 total. Every door needs a switch on its channel. Wiring checks do not prove a puzzle solvable: rehearse routes, return trips and combinations. A blocked passage arrival stays in the source room after its turn resolves.'},
- {name:'Current kit limits',text:'Two configurable enemy behaviors, timed spikes, signal switches/doors, fixed rewards and independent named random pools are available here. Tileset artwork changes appearance, not rules.'},
-] as const;
+ ...depthEnemyKinds.map(k=>({name:enemyCatalog[k].name,text:`${enemyCatalog[k].hp} health, ${enemyCatalog[k].damage} damage, alert ${enemyCatalog[k].alert}. ${enemyCatalog[k].summary} Costs ${enemyCatalog[k].cost} placement coins. Tuning sets health, damage and alert distance.`})),
+ ...featureKinds.map(k=>({name:featureCatalog[k].name,text:`${featureCatalog[k].summary} Costs ${featureCatalog[k].cost} placement coin${featureCatalog[k].cost>1?'s':''}. Place it in Features.`})),
+ {name:'Dungeon supplies',text:`Supply caches give run-only tools: ${Object.values(supplyCatalog).map(s=>`${s.name}: ${s.summary}`).join(' ')} Supplies are not goods: they cannot be funded, sold or carried home.`},
+ {name:'Blood altar boons',text:Object.entries(altarBoons).map(([k,v])=>`${k}: ${v}.`).join(' ')},
+ {name:'Shoving (depth rules)',text:'In designs using depth components, players may shove an adjacent enemy with any weapon: it moves one tile and loses its next action. Shoving into a chasm removes it. Brutes and nests cannot be shoved.'},
+ {name:'Rising tide',text:'A per-floor timer. After the chosen number of turns on that floor, the player takes fixed damage every turn until leaving. Use it to make lingering for loot a real gamble.'},
+ {name:'Rules versions',text:'Designs using only pursuers, chargers, spikes, devices and exits publish as rules v11. Any depth enemy, feature or tide publishes as rules v12. Published editions keep their rules forever.'},
+ {name:'Current kit limits',text:'Six enemy behaviors, timed spikes, seven features, a per-floor tide, signal switches/doors, fixed rewards and independent named random pools. At most 24 features per floor and 128 total. Tileset artwork changes appearance, not rules.'},
+];

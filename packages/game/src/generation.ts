@@ -6,18 +6,20 @@ import {revealIntents} from './combat';
 export function enterRoom(s:RunState,index:number):boolean{
  const r=(s.layout??rooms)[index] as import('./state').RoomLayout;if(!r)throw Error('Missing room');
  const graph=r.links!==undefined;
- const remembered=graph&&s.roomMemory?(index===s.roomIndex?{enemies:s.enemies,traps:s.traps}:s.roomMemory[index]):undefined;
+ const remembered=graph&&s.roomMemory?(index===s.roomIndex?{enemies:s.enemies,traps:s.traps,features:s.features,tiles:s.room,tideTurns:s.tideTurns}:s.roomMemory[index]):undefined;
  const enemies=structuredClone(remembered?.enemies??r.enemies) as Enemy[],traps=structuredClone(remembered?.traps??r.traps);
- const target={...s,room:r.tiles,devices:r.devices};let arrival={...r.spawn};
+ const features=r.features!==undefined?structuredClone(remembered?.features??r.features):undefined,tiles=[...(remembered?.tiles??r.tiles)];
+ const target={...s,room:tiles,devices:r.devices,features};let arrival={...r.spawn};
  if(graph&&enemies.some(e=>e.x===arrival.x&&e.y===arrival.y)){
   const queue=[arrival],seen=new Set([`${arrival.x},${arrival.y}`]);let free:typeof arrival|undefined;
   for(const p of queue){if(walkable(target,p)&&!enemies.some(e=>e.x===p.x&&e.y===p.y)){free=p;break;}for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){const x=p.x+dx,y=p.y+dy,key=`${x},${y}`;if(walkable(target,{x,y})&&!seen.has(key)){seen.add(key);queue.push({x,y});}}}
   if(!free){s.log.push('Passage blocked: no free arrival tile.');return false;}arrival=free;
  }
- if(graph&&s.roomMemory)s.roomMemory[s.roomIndex]={enemies:structuredClone(s.enemies),traps:structuredClone(s.traps)};
+ if(graph&&s.roomMemory)s.roomMemory[s.roomIndex]={enemies:structuredClone(s.enemies),traps:structuredClone(s.traps),...(s.features!==undefined?{features:structuredClone(s.features),tiles:[...s.room],tideTurns:s.tideTurns??0}:{})};
  if(r.exitRule!==undefined)s.exitRule=structuredClone(r.exitRule);else delete s.exitRule;
  if(r.devices!==undefined)s.devices=structuredClone(r.devices);else delete s.devices;
- s.roomIndex=index;s.room=[...r.tiles];s.player.x=arrival.x;s.player.y=arrival.y;s.enemies=enemies;s.traps=traps;
+ if(features!==undefined){s.depth=true;s.features=features;delete s.blasts;if(r.tide){s.tide={...r.tide};s.tideTurns=remembered?.tideTurns??0;}else{delete s.tide;delete s.tideTurns;}}else{delete s.features;delete s.tide;delete s.tideTurns;}
+ s.roomIndex=index;s.room=tiles;s.player.x=arrival.x;s.player.y=arrival.y;s.enemies=enemies;s.traps=traps;
  if(graph){s.roomMemory??={};s.connections=structuredClone(r.links!);}else delete s.connections;
  revealIntents(s);s.log.push(`Entered ${r.title}.`);return true;
 }

@@ -13,7 +13,7 @@ test('legacy metadata cannot change disclosed departure policy; malformed or uns
  const floor:CustomFloor={tiles:['#######','#.....#','#.....#','#.....#','#######'],spawn:{x:1,y:1},exit:{x:5,y:3},sockets:[],tuning:[],devices:[],exit_rule:{extract:true,require_clear:false}};
  const t={...terms(100000),rules_version:10,modules:['custom10:'+JSON.stringify(floor)],sockets:[]};
  assert.match(editionRulePages(t).find(p=>p.title.includes('departure'))!.text,/Clear all enemies/);
- assert.throws(()=>editionRulePages({...t,rules_version:12}));
+ assert.throws(()=>editionRulePages({...t,rules_version:13}));
  assert.throws(()=>editionRulePages({...t,modules:['custom11:{}']}));
 });
 test('untuned charger disclosure distinguishes charge and adjacent damage',()=>{

@@ -1,11 +1,11 @@
-import {createRun,walkable,type RunState,type RoomLayout,type Point} from './state';
+import {createRun,walkable,seeThrough,type RunState,type RoomLayout,type Point} from './state';
 import {enterRoom} from './generation';import {addItem} from './inventory';
 function random(seed:number){let n=seed>>>0;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};}
 const key=(p:Point)=>`${p.x},${p.y}`;
 export function visibleTiles(s:RunState):Set<string>{
  if(!s.roguelike)return new Set(s.room.flatMap((row,y)=>[...row].map((_,x)=>`${x},${y}`)));
  const seen=new Set<string>([key(s.player)]);const queue:(Point & {d:number})[]=[{x:s.player.x,y:s.player.y,d:0}];
- for(const p of queue){if(p.d>=4)continue;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n={x:p.x+dx,y:p.y+dy,d:p.d+1};if(!s.room[n.y]?.[n.x]||seen.has(key(n)))continue;seen.add(key(n));if(walkable(s,n))queue.push(n);}}
+ for(const p of queue){if(p.d>=4)continue;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n={x:p.x+dx,y:p.y+dy,d:p.d+1};if(!s.room[n.y]?.[n.x]||seen.has(key(n)))continue;seen.add(key(n));if(seeThrough(s,n))queue.push(n);}}
  return seen;
 }
 export function explore(s:RunState){if(s.roguelike)s.explored=[...new Set([...(s.explored??[]),...[...visibleTiles(s)].map(k=>s.roomIndex+':'+k)])];}

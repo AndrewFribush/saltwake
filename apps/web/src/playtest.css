@@ -129,3 +129,9 @@
 .coach-dots{display:flex;gap:4px;margin-bottom:3px}
 .coach-dots i{width:18px;height:4px;border-radius:2px;background:#4a5a4e}
 .coach-dots i.done{background:#9fc27a}.coach-dots i.now{background:#d0b470}
+.buy-coins{padding:8px;border:1px solid #d0b470;border-radius:4px;background:#2b3a2c;margin:6px 0;display:flex;flex-direction:column;gap:6px}
+.buy-coins h3{margin:0;font:16px Georgia;color:#e2c783}
+.buy-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.buy-row button[aria-pressed=true]{background:#d0b470!important;color:#142522!important}
+.buy-row input{width:70px}
+.buy-notice{font-size:12px;margin:0;color:#e8f0d8}
