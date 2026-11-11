@@ -1,6 +1,6 @@
 /** Town and interior art helpers: SVG patterns for the town map and furniture sprites for rooms. */
 import React from 'react';
-import {Sprite,HeroSvg,type Facing} from './Sprite';
+import {Sprite,HeroSvg,useMoving,type Facing} from './Sprite';
 import {textureVars,keeperUrl,type SpriteName} from './sprites';
 
 const href=(v:string)=>textureVars[v].slice(5,-2);
@@ -14,7 +14,7 @@ export function TownPatterns({cell}:{cell:number}){
   {tile('sw-grass-a','--tx-grass-a')}{tile('sw-grass-b','--tx-grass-b')}
   {tile('sw-road-a','--tx-road-a')}{tile('sw-road-b','--tx-road-b')}
   <pattern id="sw-water" width={cell} height={cell} patternUnits="userSpaceOnUse"><image href={href('--tx-water')} width={cell} height={cell} preserveAspectRatio="none" style={{imageRendering:'pixelated'}}/>{!still&&<animateTransform attributeName="patternTransform" type="translate" from="0 0" to={`${cell} 0`} dur="7s" repeatCount="indefinite"/>}</pattern>{tile('sw-wall','--tx-wall')}
-  {tile('sw-shingle','--tx-shingle')}{tile('sw-timber','--tx-timber')}{tile('sw-slate','--tx-slate')}
+  {tile('sw-shingle','--tx-shingle')}{tile('sw-cork','--tx-cork')}{tile('sw-timber','--tx-timber')}{tile('sw-slate','--tx-slate')}
   {['794635','426366','756044','363a4f'].map(c=><pattern key={c} id={`sw-roof-${c}`} width={cell} height={cell} patternUnits="userSpaceOnUse"><rect width={cell} height={cell} fill={`#${c}`}/><image href={href('--tx-shingle')} width={cell} height={cell} preserveAspectRatio="none" style={{imageRendering:'pixelated'}}/></pattern>)}
  </defs>;
 }
@@ -36,5 +36,6 @@ export function DoorArt(){return <Sprite name="door" className="fixture-sprite d
 
 /** The player inside a room, drawn over the tile grid so it glides between tiles. */
 export function RoomHero({x,y,facing,columns,rows}:{x:number;y:number;facing:Facing;columns:number;rows:number}){
- return <span aria-hidden="true" className="room-hero" style={{left:`${x/columns*100}%`,top:`${y/rows*100}%`,width:`${100/columns}%`,height:`${100/rows}%`}}><HeroSvg facing={facing}/></span>;
+ const walking=useMoving(x,y);
+ return <span aria-hidden="true" className="room-hero" style={{left:`${x/columns*100}%`,top:`${y/rows*100}%`,width:`${100/columns}%`,height:`${100/rows}%`}}><HeroSvg facing={facing} walking={walking}/></span>;
 }

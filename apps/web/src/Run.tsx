@@ -83,7 +83,7 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
       {feature&&<FeatureArt feature={feature} lit={lit}/>}
       {seen&&lit&&loot&&<Sprite name="loot" className="tile-thing loot-art"/>}
       {hatch&&<span aria-hidden="true" className="depth-hatch"/>}
-      {device&&<span aria-hidden="true" style={{position:'absolute',right:2,bottom:2,color:device.kind==='switch'?'#ffe08a':doorOpen(device,s.signals??{})?'#8df0c5':'#ff9696',background:'#16202b',borderRadius:3,padding:'0 3px',fontWeight:700,zIndex:2}}>{device.kind==='switch'?'⚡':doorOpen(device,s.signals??{})?'▯':'▣'}</span>}
+      {device&&<Sprite name={device.kind==='switch'?(signalValue(s.signals,device.channel)?'leverOn':'leverOff'):doorOpen(device,s.signals??{})?'gateOpen':'gateClosed'} className={`tile-thing device-art ${device.kind}`}/>}
       {(warning||!!threat)&&<span aria-hidden="true" className="threat-mark"/>}
      </button>;
     }))}
