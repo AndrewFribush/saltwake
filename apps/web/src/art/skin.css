@@ -430,3 +430,19 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .saltwake .game-stage .compact-run>aside,.saltwake .game-stage .compact-run .inventory,.saltwake .game-stage>.purse-drawer,.saltwake .game-stage>.idle-inspector,.saltwake .game-stage .room-service{overflow-y:auto;overscroll-behavior:contain}
 @media(max-width:700px){.saltwake .game-stage>.purse-drawer{bottom:0!important;max-height:calc(100% - var(--map-window) - var(--window-gap))}}
 .saltwake .game-stage:has(.practice-return) .compact-run>aside{padding-bottom:52px}
+
+/* ---------- Way-out cue, gate slams, v13 fallbacks defer to sprites ---------- */
+.saltwake .expedition .board button.tile.exit-cue{box-shadow:inset 0 0 0 3px #8df0c5,inset 0 0 16px #8df0c5aa;animation:sw-exit-cue 1.2s ease-in-out infinite alternate}
+@keyframes sw-exit-cue{from{box-shadow:inset 0 0 0 2px #8df0c5aa,inset 0 0 6px #8df0c566}to{box-shadow:inset 0 0 0 3px #8df0c5,inset 0 0 20px #8df0c5cc}}
+.tile.exit-cue .stairs-art{filter:drop-shadow(0 0 6px #8df0c5) brightness(1.2)}
+.saltwake .way-out{border-left:3px solid #8df0c5;background:linear-gradient(90deg,#16302a,transparent);border-radius:2px;font-weight:600;color:#c8f5e2}
+.saltwake .way-out::before{content:'➜ ';color:#8df0c5}
+.feature-art:is(.f-key,.f-lock,.f-plate)::before,.feature-art:is(.f-key,.f-lock,.f-plate)::after{display:none!important}
+.feature-art.f-lock{background:none!important;border:0!important}
+.fx-door{position:absolute;z-index:8;pointer-events:none}
+.fx-door i{position:absolute;bottom:10%;left:45%;width:12%;height:12%;background:#c9bc98;border-radius:2px;opacity:0;animation:sw-dust .6s ease-out forwards}
+.fx-door i:nth-child(1){--px:-160%;--py:-40%}.fx-door i:nth-child(2){--px:160%;--py:-40%}.fx-door i:nth-child(3){--px:-90%;--py:-120%}.fx-door i:nth-child(4){--px:90%;--py:-120%}.fx-door i:nth-child(5){--px:0%;--py:-170%}
+.fx-door.shut::before{content:'';position:absolute;inset:0;box-shadow:inset 0 0 0 3px #ff9a6a;animation:sw-slam .45s ease-out forwards}
+.fx-door.open i{background:#ffe9a0}
+@keyframes sw-dust{0%{opacity:.95;transform:none}100%{opacity:0;transform:translate(var(--px),var(--py)) scale(.5)}}
+@keyframes sw-slam{0%{opacity:1;transform:scale(1.15)}100%{opacity:0;transform:scale(1)}}
