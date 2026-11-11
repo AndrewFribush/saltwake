@@ -121,6 +121,13 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - `herbloot` (default, no issuance): makers refill emptied random pools with herbs/flasks; delvers resell found ingredients. Brewing still stops after day 4 (finite stock: 48 herbs + 48 flasks → ≤ 24 batches).
 - `restock` (OFF by default, proposal for Andrew): contract `operator_restock` (private, goods only, `item_issuance` view) refills the bank's herbs/flasks. 25 batches after day 5 instead of 0, but the bank absorbs coins (54 → 233). ECONOMY-TUNING.md round 4 has the numbers and the decision needed.
 
+## Round 14: moderation, durable wallet sessions, town square
+
+- Operator chat moderation, local demo only (404 in wallet/testnet mode, session required): `GET /api/moderation/reports` (reports + active time-outs), `POST /api/moderation/timeout {player, minutes 1-60}`; timed-out players get 403 on chat and still walk/trade. Session drawer → Chat moderation panel. Tests: presence-rooms, moderation.test.ts.
+- Wallet sessions persist across restarts: `WalletSessions` takes a `store`; main.ts stores SHA-256 token hashes with expiry in the epoch SQLite (`wallet-session` records; new `Store.remove`). Expired/logged-out sessions are deleted; the raw token is never stored. Test in wallet-auth.test.ts (restart with a reopened DB keeps the session; destroy and expiry remove it).
+- Town square: `GET /api/town-square` (session required, read-only) returns highlights from confirmed records: newest open dungeon, biggest haul extracted in the last 24 h (from applied settlement receipts), latest filled commission, newest building. Shown at the top of the notice board. Test: town-square.test.ts. Browser-checked on the simulated town.
+
 ## Next step
 
-Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
+Not yet done: live browser check of a wallet session surviving an API restart (unit-tested only); operator view of reports is local-demo only by design. Candidates: town-square highlights as a banner in the town itself; per-district highlights.
+

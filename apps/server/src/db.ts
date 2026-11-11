@@ -22,5 +22,6 @@ export class Store {
  get<T>(kind:string,id:string):T|undefined{const row=this.sql.prepare('SELECT value FROM records WHERE kind=? AND id=?').get(kind,id);return row?JSON.parse(row.value as string):undefined;}
  all<T>(kind:string):T[]{return this.sql.prepare('SELECT value FROM records WHERE kind=? ORDER BY rowid').all(kind).map(r=>JSON.parse(r.value as string));}
  put(kind:string,id:string,value:unknown){const encoded=JSON.stringify(value);if(Buffer.byteLength(encoded)>262144)throw Error('Record too large');this.sql.prepare('INSERT INTO records(kind,id,value) VALUES (?,?,?) ON CONFLICT(kind,id) DO UPDATE SET value=excluded.value').run(kind,id,encoded);}
+ remove(kind:string,id:string){this.sql.prepare('DELETE FROM records WHERE kind=? AND id=?').run(kind,id);}
  close(){if(!this.closed){this.sql.close();unlinkSync(this.lock);this.closed=true;}}
 }

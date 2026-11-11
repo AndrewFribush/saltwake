@@ -42,3 +42,11 @@ test('chat reports are recorded for the operator, validated and rate limited; th
  assert.throws(()=>town.report('buyer',{messageId:m.id,from:'maker'}),(e:unknown)=>e instanceof PresenceError&&e.status===429);
  assert.equal(town.player('maker')?.district,'center','the reported player is unaffected');
 });
+test('operator time-outs silence chat for N minutes and then lapse; nothing else changes',()=>{
+ let now=1_000;const town=new TownPresence({now:()=>now});const a=fakeStream();town.connect('p4',a.stream);now+=100;town.move('p4',{district:'center',x:1,y:1,facing:'down'});
+ assert.throws(()=>town.timeout('p4',0),(e:unknown)=>e instanceof PresenceError&&e.status===400);
+ town.timeout('p4',2);assert.deepEqual(town.timeouts().map(t=>t.player),['p4']);
+ assert.throws(()=>town.chat('p4','hi'),(e:unknown)=>e instanceof PresenceError&&e.status===403);
+ now+=100;assert.equal(town.move('p4',{district:'center',x:2,y:1,facing:'down'}),true,'still walks');
+ now+=2*60_000;assert.equal(town.chat('p4','back').text,'back');assert.deepEqual(town.timeouts(),[]);
+});
