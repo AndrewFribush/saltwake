@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {myLook,useMyLook,asLook} from './art/Looks';
 import {CharacterSprite} from './CharacterSprite';
+import {useSafety,safety,hidden,filtered} from './chat-safety';
 import type {DistrictId} from '../../../packages/game/src/town-districts';
 import './town-presence.css';
 
@@ -78,7 +79,8 @@ function OtherAvatar({player,cell}:{player:PresencePlayer;cell:number}){
 
 /** Renders inside the town SVG, beneath your own avatar. */
 export function PresenceAvatars({players,cell}:{players:PresencePlayer[];cell:number}){
- return <g className="presence-layer" aria-hidden="true">{players.map(p=><OtherAvatar key={p.id} player={p} cell={cell}/>)}</g>;
+ const safe=useSafety();
+ return <g className="presence-layer" aria-hidden="true">{players.filter(p=>!safe.blocked.includes(p.id)).map(p=><OtherAvatar key={p.id} player={p} cell={cell}/>)}</g>;
 }
 
 /** Small district chat overlay. Typing here never moves the character; Escape returns to the map, Enter on the map opens chat. */
@@ -87,7 +89,9 @@ export function TownChat({presence,districtName,field,disabled,onPlayer}:{presen
  useEffect(()=>{const el=field.current;if(!el)return;const onKey=(e:KeyboardEvent)=>{if(e.key==='Enter'&&e.target===el&&!disabled){e.preventDefault();setOpen(true);setTimeout(()=>input.current?.focus(),0);}};el.addEventListener('keydown',onKey);return()=>el.removeEventListener('keydown',onKey);},[field,disabled]);
  useEffect(()=>{log.current?.scrollTo({top:log.current.scrollHeight});},[presence.chat.length,manual]);
  const send=async()=>{const text=draft.trim();if(!text)return;try{await presence.say(text);setDraft('');setError('');}catch(e){setError((e as Error).message);}};
- const count=presence.others.length;
+ const count=presence.others.length;const safe=useSafety();const [menu,setMenu]=useState<string>();const [manage,setManage]=useState(false);const [reported,setReported]=useState<string[]>([]);
+ const shown=presence.chat.filter(m=>m.from===presence.you||!hidden(safe,m.from)),hiddenCount=presence.chat.length-shown.length;
+ const report=async(m:ChatMessage)=>{try{await post('report',{messageId:m.id,from:m.from,text:m.text});setReported(r=>[...r,m.id]);}catch(e){setError((e as Error).message);}setMenu(undefined);};
  // Collapsed while you are alone and nothing has been said; opens by itself when someone arrives or speaks.
  const open=manual??(wide&&(count>0||presence.chat.length>0));
  return <div className={`town-chat ${open?'open':''}`} onClick={e=>e.stopPropagation()}>
@@ -96,9 +100,14 @@ export function TownChat({presence,districtName,field,disabled,onPlayer}:{presen
   </button>
   {open&&<>
    <ol className="town-chat-log" ref={log} aria-live="polite" aria-label={`${districtName} chat`}>
-    {presence.chat.map(m=><li key={m.id} className={m.from===presence.you?'mine':''}>{onPlayer&&m.from!==presence.you&&presence.others.some(o=>o.id===m.from)?<button className="chat-name" onClick={()=>onPlayer(m.from)} title="Trade">{playerLabel(m.from)}</button>:<b>{playerLabel(m.from)}</b>} {m.text}</li>)}
+    {shown.map(m=><li key={m.id} className={m.from===presence.you?'mine':''}>{onPlayer&&m.from!==presence.you&&presence.others.some(o=>o.id===m.from)&&!safe.blocked.includes(m.from)?<button className="chat-name" onClick={()=>onPlayer(m.from)} title="Trade">{playerLabel(m.from)}</button>:<b>{playerLabel(m.from)}</b>} {filtered(m.text,safe.filter)}
+     {m.from!==presence.you&&<button className="chat-more" aria-label={`Options for ${playerLabel(m.from)}'s message`} aria-expanded={menu===m.id} onClick={()=>setMenu(menu===m.id?undefined:m.id)}>⋯</button>}
+     {menu===m.id&&<span className="chat-menu"><button onClick={()=>{safety.mute(m.from);setMenu(undefined);}}>Mute</button><button onClick={()=>{safety.block(m.from);setMenu(undefined);}}>Block</button><button disabled={reported.includes(m.id)} onClick={()=>void report(m)}>{reported.includes(m.id)?'Reported':'Report'}</button></span>}</li>)}
+    {hiddenCount>0&&<li className="empty">{hiddenCount} message{hiddenCount===1?'':'s'} from muted or blocked players hidden.</li>}
     {!presence.chat.length&&<li className="empty">Press Enter to talk to anyone nearby. Click a player to trade.</li>}
    </ol>
+   <div className="chat-safety"><label><input type="checkbox" checked={safe.filter} onChange={e=>safety.setFilter(e.target.checked)}/> Filter words</label>{(safe.muted.length>0||safe.blocked.length>0)&&<button className="link-button" onClick={()=>setManage(!manage)}>Muted ({safe.muted.length})</button>}</div>
+   {manage&&<ul className="chat-manage">{safe.muted.map(id=><li key={id}>{playerLabel(id)}{safe.blocked.includes(id)?' (blocked)':''} <button onClick={()=>safety.unmute(id)}>Unmute</button></li>)}</ul>}
    <form className="town-chat-send" onSubmit={e=>{e.preventDefault();void send();}}>
     <input ref={input} value={draft} maxLength={160} disabled={disabled||!presence.online} placeholder={`Say something in ${districtName}`} aria-label="Chat message" onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();field.current?.focus({preventScroll:true});}}}/>
     <button type="submit" disabled={disabled||!presence.online||!draft.trim()}>Say</button>
