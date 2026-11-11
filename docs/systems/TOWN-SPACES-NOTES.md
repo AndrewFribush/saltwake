@@ -116,6 +116,11 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - Town history: inline SVG charts (coins by role, runs/trades/unsold, average price paid), CSS classes for look-feel.
 - Findings (ECONOMY-TUNING.md round 3): ingredients run out by day 5 in a 30-day 20-player town (no herb/flask source); collapse recovers via free entry + commissions (delvers 0 → 51 in 14 days). Lifetime record caps (64 runs/listings/batches, 256 receipts) flagged; capacity lane owns the fix — do not touch runs.rs/market.rs/craft.rs caps or outbox capacity.
 
+## Round 13: ingredient bottleneck
+
+- `herbloot` (default, no issuance): makers refill emptied random pools with herbs/flasks; delvers resell found ingredients. Brewing still stops after day 4 (finite stock: 48 herbs + 48 flasks → ≤ 24 batches).
+- `restock` (OFF by default, proposal for Andrew): contract `operator_restock` (private, goods only, `item_issuance` view) refills the bank's herbs/flasks. 25 batches after day 5 instead of 0, but the bank absorbs coins (54 → 233). ECONOMY-TUNING.md round 4 has the numbers and the decision needed.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.

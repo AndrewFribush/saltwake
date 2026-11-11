@@ -107,12 +107,12 @@ try{
     else if(LEVERS.has('smallbatch')&&has('herb').length>=1&&has('flask').length>=1&&await brew(p,[has('herb')[0],has('flask')[0]],events)){tally.crafted++;events.push(`${p} brewed a small batch (1 tonic)`);}
     if(LEVERS.has('commission'))await fillCommissions(p,events,tally);
     w=await world(p);const tonics=w.items.filter((i:any)=>i.item_type==='tonic'||i.item_type==='fineTonic');
-    // Ask: raise after a sale since yesterday, cut (and relist) stock that sat unsold for a day; never below 3.
+    // Ask: raise after a sale since yesterday, cut (and relist) stock that sat unsold for a day; never below cost (4).
     {const now=await snapshot();const mine=(l:any)=>l.seller===p&&l.status==='active';let soldAny=false;
      for(const l of prev.listings.filter((l:any)=>l.seller===p)){const cur=now.listings.find((x:any)=>x.id===l.id);if(cur&&cur.remaining_ids.length<l.remaining_ids.length)soldAny=true;}
      const key=p+':tonic';let a=ask.get(key)??5;if(soldAny)a=Math.min(9,a+1);
      const stale=now.listings.filter((l:any)=>mine(l)&&prev.listings.some((x:any)=>x.id===l.id&&x.remaining_ids.length===l.remaining_ids.length)&&l.remaining_ids.some((id:string)=>{const it=now.items.find((i:any)=>i.id===id);return it&&(it.item_type==='tonic'||it.item_type==='fineTonic');}));
-     if(stale.length&&!soldAny)a=Math.max(3,a-1);ask.set(key,a);
+     if(stale.length&&!soldAny)a=Math.max(4,a-1);// never below ingredient cost (8 coins of inputs make 2 tonics)ask.set(key,a);
      if(LEVERS.has('prices'))for(const l of stale)if(Number(l.unit_price)>a){const r=await cmd(p,{type:'cancel_listing',listing_id:l.id});if(r.ok)events.push(`${p} took back ${l.remaining_ids.length} unsold goods priced ${l.unit_price} to reprice at ${a}`);}}
     w=await world(p);const tonics2=w.items.filter((i:any)=>i.item_type==='tonic'||i.item_type==='fineTonic');tonics.splice(0,tonics.length,...tonics2);
     if(tonics.length){const shop=(w.shops??[]).find((s:any)=>s.owner===p);const price=String(LEVERS.has('prices')?ask.get(p+':tonic')??5:4+Math.floor(rand()*3));
