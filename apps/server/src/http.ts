@@ -19,7 +19,7 @@ import {walletView} from './wallet';
 import {Runs,type SavedRun} from './runs';
 import {TownPresence,presenceIdentity} from './presence';
 import type {Command,EconomySnapshot} from '../../../packages/shared/src/types';
-export type WalletHttpConfig={walletSessions:WalletSessions;origin:string;network:string;contractId:string};
+export type WalletHttpConfig={walletSessions:WalletSessions;origin:string;network:string;contractId:string;aliases?:readonly string[]};
 export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig,options:{webOrigin?:string;pollMs?:number}={}){
  const webOrigin=wallet?.origin??options.webOrigin??'http://127.0.0.1:18930';{const u=new URL(webOrigin);if(u.origin!==webOrigin||u.protocol!=='http:'||u.hostname!=='127.0.0.1')throw Error('Web origin must be a local HTTP origin');}const webHost=new URL(webOrigin).host;
  if(wallet){if(!wallet.walletSessions.matchesConfiguration(wallet.origin,wallet.network,wallet.contractId))throw Error('Wallet authentication configuration mismatch');const origin=new URL(wallet.origin);if(origin.origin!==wallet.origin||origin.protocol!=='http:'||origin.hostname!=='127.0.0.1')throw Error('Wallet origin must match the local HTTP origin');}
@@ -48,23 +48,25 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
   res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
   const reply=(status:number,value:unknown)=>{res.statusCode=status;res.end(JSON.stringify(value));};
   try{
-   if(![webHost,'127.0.0.1:'+req.socket.localPort].includes(req.headers.host??''))return reply(403,{error:'Local host required'});
+   const aliases=wallet?.aliases??[];const alias=aliases.find(a=>new URL(a).host===req.headers.host);
+   if(![webHost,'127.0.0.1:'+req.socket.localPort].includes(req.headers.host??'')&&!alias)return reply(403,{error:'Local host required'});
    const url=new URL(req.url??'/','http://127.0.0.1:18931');
    if(wallet&&![webOrigin,'http://127.0.0.1:'+req.socket.localPort].includes(wallet.origin))return reply(403,{error:'Configured wallet origin does not match local server'});
-   if(req.method==='POST'&& !(wallet?[wallet.origin]:[webOrigin,'http://127.0.0.1:'+req.socket.localPort]).includes(req.headers.origin??''))return reply(403,{error:'Same-origin request required'});
+   if(req.method==='POST'&& !(wallet?[wallet.origin,...aliases]:[webOrigin,'http://127.0.0.1:'+req.socket.localPort]).includes(req.headers.origin??''))return reply(403,{error:'Same-origin request required'});
    if(req.method==='POST'&&req.headers['content-type']!=='application/json')return reply(415,{error:'JSON required'});
-   if(req.method==='GET'&&url.pathname==='/api/config')return reply(200,wallet?{authMode:'wallet',origin:wallet.origin,network:wallet.network,contractId:wallet.contractId}:{authMode:'demo',label:DEMO_CUSTODY_LABEL});
+   if(req.method==='GET'&&url.pathname==='/api/config')return reply(200,wallet?{authMode:'wallet',origin:alias??wallet.origin,network:wallet.network,contractId:wallet.contractId}:{authMode:'demo',label:DEMO_CUSTODY_LABEL});
    if(url.pathname.startsWith('/api/presence/'))return await presence.handle(req,res,url,presenceIdentity(identity));
    if(wallet&&req.method==='POST'&&url.pathname.startsWith('/api/wallet/')){
     const body=await bodyOf(req,8192);
     if(url.pathname==='/api/wallet/challenge'){
-     const result=wallet.walletSessions.begin(body.accountId,wallet.origin,req.headers.cookie);
+     const used=alias&&req.headers.origin===alias?alias:wallet.origin;
+     const result=wallet.walletSessions.begin(body.accountId,used,req.headers.cookie);
      const binding=JSON.parse(result.challenge.message);
-     if(binding.origin!==wallet.origin||binding.network!==wallet.network||binding.contractId!==wallet.contractId||result.challenge.recipient!==wallet.contractId)throw Error('Wallet authentication configuration mismatch');
+     if(binding.origin!==used||binding.network!==wallet.network||binding.contractId!==wallet.contractId||result.challenge.recipient!==wallet.contractId)throw Error('Wallet authentication configuration mismatch');
      res.setHeader('Set-Cookie',result.setCookie);return reply(200,{challenge:result.challenge});
     }
     if(url.pathname==='/api/wallet/verify'){
-     const result=await wallet.walletSessions.finish(req.headers.cookie,wallet.origin,body);
+     const result=await wallet.walletSessions.finish(req.headers.cookie,alias&&req.headers.origin===alias?alias:wallet.origin,body);
      res.setHeader('Set-Cookie',result.setCookies);return reply(200,{session:result.session,authMode:'wallet'});
     }
     if(url.pathname==='/api/wallet/logout'){res.setHeader('Set-Cookie',wallet.walletSessions.logout(req.headers.cookie));return reply(200,{authMode:'wallet',session:null});}

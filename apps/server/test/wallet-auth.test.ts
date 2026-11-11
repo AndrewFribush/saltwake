@@ -87,3 +87,12 @@ test('logout cancels unused and in-flight login proofs and their just-issued ses
  // A logout request captured the old challenge cookie before verification replied.
  normal.logout(cookie(d.setCookie));assert.throws(()=>normal.get(cookie(done.setCookies[1])),/UNAUTHENTICATED/);
 });
+test('local origin aliases: a second loopback origin can sign in, bound to the origin it used; never with secure cookies',async()=>{
+ const alias='http://localhost:18930';const {auth}=setup({aliases:[alias]});
+ const b=auth.begin(account,alias);assert.equal(JSON.parse(b.challenge.message).origin,alias);
+ await assert.rejects(auth.finish(cookie(b.setCookie),origin,await proof(b.challenge)),/WRONG_ORIGIN/,'cannot finish from the other origin');
+ const b2=auth.begin(account,alias);const r=await auth.finish(cookie(b2.setCookie),alias,await proof(b2.challenge));assert.equal(r.session.profileId,'wallet:alice.testnet');
+ assert.throws(()=>auth.begin(account,'http://localhost:9999'),/WRONG_ORIGIN/);
+ assert.throws(()=>setup({aliases:['http://evil.example']}),/local HTTP only/);
+ assert.throws(()=>setup({aliases:[alias],secureCookies:true}),/local/);
+});
