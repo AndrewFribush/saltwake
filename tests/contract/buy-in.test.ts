@@ -47,6 +47,9 @@ test('NEAR buy-in credits exact quoted coins, records issuance, is idempotent an
   await call(bob,'register_player');await call(bob,'buy_coins',{request_id:'buy-1',expected_coins:'3'},3n*price);
   s=await view();assert.equal(s.credits['wallet:'+bob.accountId],'3');assert.equal(s.coin_issuance.coins_issued,'13');
   assert.equal(total(s),seeded+13n);
+  // Per-player buy-in totals (for the business ledger): replays do not double count.
+  assert.deepEqual(s.buy_ins,{['wallet:'+alice.accountId]:'10',['wallet:'+bob.accountId]:'3'});
+  assert.deepEqual(await view('coin_purchases_of',{profile:'wallet:'+alice.accountId}),{coins_issued:'10',near_received:(10n*price).toString(),purchases:'1'});
   // Bought coins spend like any others: a bank purchase.
   const r=await call(alice,'execute_player',{request_id:'shop-1',action:{type:'bank_buy',item_ids:['bank-herb-0'],expected_unit_prices:['2']}});
   assert.equal(r.status,'Applied');assert.equal((await view()).credits['wallet:'+alice.accountId],'8');

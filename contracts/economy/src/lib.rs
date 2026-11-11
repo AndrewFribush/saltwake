@@ -270,6 +270,7 @@ impl Economy {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            buy_ins: self.credits.keys().filter(|p| p.starts_with("wallet:")).filter_map(|p| buyin::read_buyer(p).map(|b| (p.clone(), b.coins_issued))).collect(),
             reservations: self.listings.values().filter(|l| l.status == "active").filter_map(|l| market::reserved_buyer(&l.id).map(|b| (l.id.clone(), b))).collect(),
             shops: self.shops.values().cloned().collect(),
             credits: self
