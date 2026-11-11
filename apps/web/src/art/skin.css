@@ -285,3 +285,9 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .actor-layer.low-hp::after{content:'';position:absolute;inset:-4px;pointer-events:none;box-shadow:inset 0 0 40px 6px #b8141488;animation:sw-lowhp 1.2s ease-in-out infinite}
 @keyframes sw-lowhp{50%{box-shadow:inset 0 0 56px 10px #d81a1aaa}}
 @media(prefers-reduced-motion:reduce){.actor-layer.low-hp::after{animation:none}}
+/* Room hero glides over the grid (route steps are 90 ms). */
+.saltwake .room-board{position:relative}
+.room-hero{position:absolute;z-index:5;pointer-events:none;transition:left 90ms linear,top 90ms linear}
+.room-hero .character-sprite{width:100%;height:100%}
+.room-hero .hero-body{animation:sw-idle 1.4s steps(2) infinite}
+@media(prefers-reduced-motion:reduce){.room-hero{transition:none}.room-hero .hero-body{animation:none}}
