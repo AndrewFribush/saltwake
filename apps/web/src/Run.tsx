@@ -38,7 +38,7 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
  };
  const canShove=!!s.depth||s.rulesVersion===4&&s.player.weapon==='club';
  const click=(x:number,y:number)=>{
-  if(aiming){const err=supplyTargetError(s,aiming,{x,y},visibleTiles(s));if(err){setNotice(`${supplyCatalog[aiming].name}: ${err}.`);return;}send({type:'supply',supply:aiming,x,y});setAiming(null);return;}
+  if(aiming){const err=supplyTargetError(s,aiming,{x,y},visibleTiles(s));if(err){setNotice(`${supplyCatalog[aiming].name}: ${err}.`);return;}send({type:'supply',supply:aiming,x,y});setAiming(null);setNotice('');return;}
   const enemy=s.enemies.find(e=>e.x===x&&e.y===y);
   send(enemy?{type:shoving&&canShove?'shove':'attack',enemyId:enemy.id}:{type:'move',x,y});
  };
