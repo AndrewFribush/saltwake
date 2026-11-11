@@ -101,6 +101,10 @@ SALTWAKE_KEEP_HOST=1 SALTWAKE_API_PORT=18973 npx vite apps/web --host 127.0.0.1 
 
 Open `http://127.0.0.1:18972/?devSigner=player1.<contract>` and `http://localhost:18972/?devSigner=player2.<contract>`. Each signs in with its own message bound to the origin it used.
 
+## Commissions and small batches
+
+On the harbor notice board, **Commissions** lets any player post an escrowed order (for example 2 tonics at 6 each): the coins leave the purse into escrow, anyone who owns matching goods can deliver them and is paid from the escrow at that price, and the poster can cancel to get the unspent escrow back. Coins move only between players. At the Copper Kettle a small batch (1 herb + 1 flask → 1 tonic) is accepted alongside the full 2 + 2 → 2 recipe; recovery jobs stay full batches.
+
 ## Watch a simulated week (fast-forward)
 
 ```sh

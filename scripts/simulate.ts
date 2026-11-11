@@ -30,7 +30,7 @@ const days=Math.max(1,Math.min(30,Number(args.days)||7));let rng=Number(args.see
 const rand=()=>{rng=(rng*1103515245+12345)%2147483648;return rng/2147483648;};
 // Economy levers under test (docs/systems/ECONOMY-TUNING.md): --levers refresh,smallbatch
 // Default: all tuned player strategies on (each backed by an in-game prompt); `--levers none` reproduces the baseline.
-const LEVERS=new Set(String(args.levers||'refresh,shelfsource,bankrestock,resale').split(',').filter(l=>l&&l!=='none'));
+const LEVERS=new Set(String(args.levers||'refresh,shelfsource,bankrestock,resale,fastfee,smallbatch,commission').split(',').filter(l=>l&&l!=='none'));
 const PROFILES=['buyer','maker','p2','p3','p4','p5','worker','worker2'];
 
 const genesis=GenesisAccount.createDefault();const sandbox=await Sandbox.start({});
@@ -58,7 +58,7 @@ try{
   const world=(p:string)=>api(p,'world');
   // Coins anywhere: purses, bank, entry fees in escrow, the bank's reserved wage budget and wages reserved for active jobs, and the seeded NPC order budget.
   const supply=(s:any)=>Object.values(s.credits).reduce((n:bigint,v:any)=>n+BigInt(v),0n)+BigInt(s.bank)+s.runs.filter((r:any)=>r.status==='active').reduce((n:bigint,r:any)=>n+BigInt(r.fee),0n)
-   +BigInt(s.recovery?.budget??0)+s.batches.filter((b:any)=>b.recovery&&b.status==='active').reduce((n:bigint,b:any)=>n+BigInt(b.wage_reserved),0n)+BigInt(s.npc_order?.budget??0);
+   +BigInt(s.recovery?.budget??0)+s.batches.filter((b:any)=>b.recovery&&b.status==='active').reduce((n:bigint,b:any)=>n+BigInt(b.wage_reserved),0n)+BigInt(s.npc_order?.budget??0)+(s.commissions??[]).reduce((n:bigint,c:any)=>n+BigInt(c.escrow),0n);
   const issuance=(s:any)=>BigInt(s.coin_issuance?.coins_issued??0);
   const start=await snapshot();const baseline=supply(start)-issuance(start);
   let prev=start;
@@ -82,7 +82,11 @@ try{
      if(need.length&&cost<=Number(w.credits)){const r=await cmd(p,{type:'bank_buy',item_ids:need.map(i=>i.id),expected_unit_prices:need.map(i=>String(catalog[i.item_type as keyof typeof catalog].value))});if(r.ok)events.push(`${p} bought ${need.length} ingredients from the bank for ${cost}`);}
      w=await world(p);
     }
+    if(LEVERS.has('smallbatch')&&(has('herb').length<1||has('flask').length<1)&&Number(w.credits)>=4){const bank=w.bankItems as any[];const one=[bank.find(i=>i.item_type==='herb'),bank.find(i=>i.item_type==='flask')].filter(Boolean);
+     if(one.length===2){const r=await cmd(p,{type:'bank_buy',item_ids:one.map((i:any)=>i.id),expected_unit_prices:['2','2']});if(r.ok)events.push(`${p} bought 1 herb and 1 flask from the bank for 4`);w=await world(p);}}
     if(has('herb').length>=2&&has('flask').length>=2&&await brew(p,[...has('herb').slice(0,2),...has('flask').slice(0,2)],events))tally.crafted++;
+    else if(LEVERS.has('smallbatch')&&has('herb').length>=1&&has('flask').length>=1&&await brew(p,[has('herb')[0],has('flask')[0]],events)){tally.crafted++;events.push(`${p} brewed a small batch (1 tonic)`);}
+    if(LEVERS.has('commission'))await fillCommissions(p,events,tally);
     w=await world(p);const tonics=w.items.filter((i:any)=>i.item_type==='tonic'||i.item_type==='fineTonic');
     if(tonics.length){const shop=(w.shops??[]).find((s:any)=>s.owner===p);const price=String(4+Math.floor(rand()*3));
      const r=await cmd(p,shop?{type:'stock_shop',shop_id:shop.id,item_ids:tonics.map((i:any)=>i.id),unit_price:price}:{type:'list',item_ids:tonics.map((i:any)=>i.id),unit_price:price});
@@ -100,6 +104,7 @@ try{
     const r=await cmd(p,{type:'admit',edition_id:e.id,expected_version:e.version,expected_fee:e.fee,loadout_ids:[weapon,tonic].filter(Boolean).map((i:any)=>i.id),seed:'0'});
     if(!r.ok){events.push(`${p} was refused entry to ${e.terms.title}: ${r.result}`);continue;}
     tally.fees+=BigInt(e.fee);const outcome=await play(p,policy);tally.runs[outcome]++;events.push(`${p} (${policy}) paid ${e.fee} into ${e.terms.title} and ${outcome==='extracted'?'escaped':outcome}`);
+    if(LEVERS.has('commission'))await fillCommissions(p,events,tally);
     // Cash in finds: keep the best weapon, sell spare swords/armor/iron to the bank at half catalog value.
     {const after=await world(p);const items=after.items as any[];const keep=items.filter(i=>i.item_type==='sword')[0]??items.filter(i=>i.item_type==='club')[0];
      const spare=items.filter(i=>i!==keep&&['sword','armor','iron','club'].includes(i.item_type)).slice(0,3);const prices=spare.map(i=>String(Math.floor(catalog[i.item_type as keyof typeof catalog].value/2)));
@@ -132,17 +137,23 @@ try{
       let left=n-mine.length;const w2=await world(p);const listed=w2.listedItems as any[];
       const offers=(w2.listings as any[]).filter(l=>l.status==='active'&&l.seller!==p&&!w2.reservations?.[l.id]).flatMap(l=>listed.filter(i=>i.location.listing===l.id&&l.remaining_ids.includes(i.id)&&i.item_type===type).map(i=>({l,i}))).sort((a,b)=>Number(a.l.unit_price)-Number(b.l.unit_price));
       for(const o of offers){if(left<=0||BigInt(o.l.unit_price)>BigInt((await world(p)).credits))break;const r=await cmd(p,{type:'buy',listing_id:o.l.id,item_ids:[o.i.id],expected_unit_price:o.l.unit_price});if(r.ok){bought.push(o.i.id);funding.push(o.i.id);left--;tally.trades++;tally.tradeCoins+=BigInt(o.l.unit_price);}}
-      if(left>0&&LEVERS.has('bankrestock')){const w3=await world(p);const stock=(w3.bankItems as any[]).filter(i=>i.item_type===type).slice(0,left);const cost=stock.length*catalog[type as keyof typeof catalog].value;
+      if(left>0&&LEVERS.has('bankrestock')&&!LEVERS.has('commission')){const w3=await world(p);const stock=(w3.bankItems as any[]).filter(i=>i.item_type===type).slice(0,left);const cost=stock.length*catalog[type as keyof typeof catalog].value;
        if(stock.length&&cost<=Number(w3.credits)){const r=await cmd(p,{type:'bank_buy',item_ids:stock.map(i=>i.id),expected_unit_prices:stock.map(()=>String(catalog[type as keyof typeof catalog].value))});if(r.ok){funding.push(...stock.map(i=>i.id));left-=stock.length;events.push(`${p} bought ${stock.length} ${type} from the bank for ${cost} to restock`);}}}
-      if(left>0)events.push(`${p} wants ${left} more ${type} to restock ${e.terms.title}; none on offer`);
+      if(left>0&&LEVERS.has('commission')){const w5=await world(p);const already=((w5.commissions??[]) as any[]).some(c=>c.buyer===p&&c.status==='open'&&c.item_type===type);const price=String(catalog[type as keyof typeof catalog].value);
+       if(!already&&BigInt(price)*BigInt(left)<=BigInt(w5.credits)){const r=await cmd(p,{type:'post_commission',item_type:type,unit_price:price,quantity:left});if(r.ok)events.push(`${p} posted a commission: ${left} ${type} at ${price} each for ${e.terms.title}`);}}
+      if(left>0&&!LEVERS.has('commission'))events.push(`${p} wants ${left} more ${type} to restock ${e.terms.title}; none on offer`);
      }
      const own=funding;
      if(own.length){const r=await cmd(p,{type:'refresh',edition_id:e.id,fixed_funding:own,random_funding:[]});if(!r.ok)events.push(`${p} could not restock ${e.terms.title}: ${r.result}`);if(r.ok)events.push(`${p} restocked ${e.terms.title} with ${own.length} goods${bought.length?` (bought ${bought.length} from players' shelves)`:''}`);}
     }}
+   // Makers with idle coins commission tonics from artisans for future restocks (coins go to players, not the bank).
+   if(LEVERS.has('commission'))for(const p of ['maker','p3']){const w=await world(p);const open=((w.commissions??[]) as any[]).some(c=>c.buyer===p&&c.status==='open');
+    if(!open&&Number(w.credits)>=40){const r=await cmd(p,{type:'post_commission',item_type:'tonic',unit_price:'6',quantity:2});if(r.ok)events.push(`${p} posted a commission for 2 tonics at 6 each`);}}
    // Makers revise: cut the fee of an open dungeon nobody entered today; raise it when it was busy.
    for(const p of ['maker','p3']){const w=await world(p);for(const e of (w.editions as any[]).filter(e=>e.maker===p&&e.status==='open')){
     const entered=(await snapshot()).runs.filter((r:any)=>r.edition===e.id).length-prev.runs.filter((r:any)=>r.edition===e.id).length;
-    const fee=Number(e.fee),next=entered===0?Math.max(0,fee-1):entered>=2?fee+1:fee;
+    const broke=events.some(x=>/could not afford/.test(x));const cash=(await snapshot()).credits;const poorest=Math.min(...['buyer','p5','p2'].map(d=>Number(cash[d]??0)));
+    const fee=Number(e.fee),next=LEVERS.has('fastfee')?(entered===0&&(broke||fee>poorest)?Math.min(Math.floor(fee/2),poorest):entered>=3?fee+1:fee):entered===0?Math.max(0,fee-1):entered>=2?fee+1:fee;
     if(next!==fee){const r=await cmd(p,{type:'set_fee',edition_id:e.id,new_fee:String(next)});if(r.ok)events.push(`${p} ${next<fee?'cut':'raised'} the entry fee of ${e.terms.title} to ${next} (${entered} entries today)`);}
    }}
    const s=await snapshot();
@@ -171,6 +182,13 @@ try{
   console.log(`SIMULATION finished: ${days} days in ${Math.round((Date.now()-started)/1000)}s. History: ${historyPath}`);
  }finally{await new Promise<void>(r=>server.close(()=>r()));db.close();}
 
+ async function fillCommissions(p:string,events:string[],tally:any){
+  const w=await api(p,'world');for(const c of ((w.commissions??[]) as any[]).filter(c=>c.status==='open'&&c.buyer!==p)){
+   const have=(w.items as any[]).filter(i=>i.item_type===c.item_type).slice(0,c.quantity-c.filled);if(!have.length)continue;
+   const r=await api(p,'command',{id:randomUUID().slice(0,30),action:{type:'fill_commission',commission_id:c.id,item_ids:have.map(i=>i.id),expected_unit_price:c.unit_price}});
+   if(r.status==='Applied'){tally.trades++;tally.tradeCoins+=BigInt(c.unit_price)*BigInt(have.length);events.push(`${p} delivered ${have.length} ${c.item_type} to ${c.buyer}'s commission for ${Number(c.unit_price)*have.length}`);}
+  }
+ }
  async function recovery(p:string,events:string[]){
   const w=await api(p,'world');const bank=(w.bankItems as any[]);const inputs=[...bank.filter(i=>i.item_type==='herb').slice(0,2),...bank.filter(i=>i.item_type==='flask').slice(0,2)].map(i=>i.id);
   if(inputs.length<4)return false;const ok=await craftSteps(p,inputs,true);if(ok)events.push(`${p} took a recovery job at the Kettle`);return ok;

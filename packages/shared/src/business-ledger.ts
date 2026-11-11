@@ -1,7 +1,7 @@
 import type {CashEntry} from './business-account';
 /** Owner-only business ledger. Every figure comes from confirmed receipts or authoritative contract records;
  * anything that cannot be proven is reported as unknown, never estimated. Synthetic game coins, not real profit. */
-export type LedgerCash={category:CashEntry['category']|'wage'|'buyin';direction:'in'|'out';amount:string;count:number;label:string};
+export type LedgerCash={category:CashEntry['category']|'wage'|'buyin'|'commission';direction:'in'|'out';amount:string;count:number;label:string};
 export type LedgerGood={itemId:string;itemType:string;cost:string|null;source:string};
 export type LedgerEdition={id:string;title:string;open:boolean;placement:string;settledFees:string;pendingFees:string;knownTreasureCost:string;unknownTreasureItems:number;contribution:string|null;settledRuns:number;activeRuns:number;fundedGoodsRemaining:number;
  /** Fixed-reward goods one more complete copy still lacks (empty when a copy is ready or the dungeon has no fixed rewards). */
