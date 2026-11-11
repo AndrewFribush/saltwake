@@ -86,3 +86,14 @@ test('WASM v14 accepts clocks (cost 1, wired as switches) and keeps them out of 
   assert.equal((await call(f,'v13-still',publish(v(13,prog,'custom13:')))).status,'Applied');
  }finally{await f.sandbox.tearDown();}
 });
+
+test('WASM v14 accepts the harbour watch (cost 2) and rejects it before v14',{timeout:180000},async()=>{
+ const f=await fixture();try{
+  const t=base(Number(await f.view('clock_ms')));
+  const watch=[{id:'s0',room:0,slot:0,enemy:'patrol',trap:false,reward:null}];
+  assert.notEqual((await call(f,'v13-patrol',publish({...t,rules_version:13,sockets:watch,modules:[mod(floor(),'custom13:')]}))).status,'Applied');
+  const before=BigInt((await f.view('snapshot')).credits.maker);
+  const r=await call(f,'v14-patrol',publish({...t,rules_version:14,sockets:watch,modules:[mod(floor(),'custom14:')]}));assert.equal(r.status,'Applied',JSON.stringify(r));
+  assert.equal(before-BigInt((await f.view('snapshot')).credits.maker),4n); // base 2 + watch 2
+ }finally{await f.sandbox.tearDown();}
+});

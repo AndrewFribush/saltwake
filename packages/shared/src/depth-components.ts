@@ -3,8 +3,10 @@
 // Older rule versions never interpret any of this; their editions keep their behavior.
 import {wellFormedId} from './mechanisms';
 export const depthRulesVersion=12;
-export type EnemyKind='pursuer'|'charger'|'archer'|'bomber'|'brute'|'nest';
-export const depthEnemyKinds=['archer','bomber','brute','nest'] as const;
+export type EnemyKind='pursuer'|'charger'|'archer'|'bomber'|'brute'|'nest'|'patrol';
+export const depthEnemyKinds=['archer','bomber','brute','nest','patrol'] as const;
+/** Enemy kinds that need a later rules version than v12. */
+export const enemySince:Partial<Record<EnemyKind,number>>={patrol:14};
 export const enemyKinds=['pursuer','charger',...depthEnemyKinds] as const;
 /** Placement coins and defaults per enemy. Nest damage is the damage of the rats it hatches. */
 export const enemyCatalog:Record<EnemyKind,{name:string;hp:number;damage:number;alert:number;cost:number;summary:string}>={
@@ -13,6 +15,7 @@ export const enemyCatalog:Record<EnemyKind,{name:string;hp:number;damage:number;
  archer:{name:'Crossbow sentry',hp:3,damage:2,alert:5,cost:3,summary:'Keeps its distance. When you share a row or column within 6 tiles it aims, shows the bolt line, and fires next turn at the first creature in it. Reloads one turn.'},
  bomber:{name:'Powder crab',hp:2,damage:4,alert:5,cost:2,summary:'Scuttles toward you. Once adjacent it lights its fuse and bursts next turn, hitting every creature in the 3×3 around it. Kill it before it lights, or step clear.'},
  brute:{name:'Drowned brute',hp:10,damage:5,alert:4,cost:4,summary:'Slow: acts every other turn. Winds up a sweeping smash over the tile in front of it and both flanking tiles. Too heavy to shove.'},
+ patrol:{name:'Harbour watch',hp:5,damage:3,alert:5,cost:2,summary:'Rules v14. Walks a fixed beat back and forth along the longest straight line through where you place it, whether or not it has seen you. Its next three steps are marked. It strikes whoever stands on the tile it steps into; otherwise it ignores you. Shove it aside and it carries on from there.'},
  nest:{name:'Rat nest',hp:6,damage:1,alert:5,cost:4,summary:'Stationary. Once awake, hatches a rat every 4 turns on a marked tile (at most 3 alive, 6 total). Rats have 2 health.'},
 };
 export const ratHp=2,nestPeriod=4,nestAlive=3,nestTotal=6,archerRange=6;
@@ -126,7 +129,7 @@ export function validateProgressionNetwork(floors:readonly {features?:readonly F
 export const plateChannels=(floors:readonly {features?:readonly Feature[]}[])=>new Set(floors.flatMap(f=>(f.features??[]).flatMap(x=>x.kind==='plate'||x.kind==='clock'?[x.channel]:[])));
 /** Lowest rules version that can express a design: 11 plain, 12 depth, 13 progression, 14 timing. */
 export function requiredRulesVersion(floors:readonly {features?:readonly Feature[];tide?:unknown}[],enemies:readonly string[]):11|12|13|14{
- if(floors.some(f=>(f.features??[]).some(x=>(featureCatalog[x.kind]?.since??12)>=14)))return 14;
+ if(floors.some(f=>(f.features??[]).some(x=>(featureCatalog[x.kind]?.since??12)>=14))||enemies.some(e=>(enemySince[e as EnemyKind]??0)>=14))return 14;
  if(floors.some(f=>(f.features??[]).some(x=>(featureCatalog[x.kind]?.since??12)>=13)))return 13;
  return usesDepth(floors,enemies)?12:11;
 }

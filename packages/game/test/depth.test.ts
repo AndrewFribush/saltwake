@@ -210,3 +210,19 @@ test('v14 clocks: a timed gate opens on a cycle, only in v14 floors; the solver 
  const late=run({...f,features:[{...clock,offset:2}]},[]);late.player.x=3;late.player.y=2;
  const w=solveReach(late,{x:5,y:2},5000,20);assert.ok(w.solved);assert.ok(w.actions.some(a=>a.type==='wait'),'waits for the window');
 });
+
+test('v14 harbour watch: walks a fixed beat with marked steps, strikes only its next tile, needs rules v14',async()=>{
+ const {requiredRulesVersion}=await import('../../shared/src/depth-components');
+ const {solveReach}=await import('../src/solver');
+ assert.equal(requiredRulesVersion([floor()],['patrol']),14);assert.equal(requiredRulesVersion([floor()],['brute']),12);
+ const hall=['#########','#.......#','#.......#','#########','#########'];
+ const f=floor({tiles:hall,spawn:{x:1,y:2},exit:{x:7,y:2},sockets:[{x:4,y:1}]});
+ let s=run(f,[sock('patrol')]);const e=()=>s.enemies[0];
+ assert.deepEqual(e().lane,[{x:5,y:1},{x:6,y:1},{x:7,y:1}],'next three steps marked, even unaware');
+ const xs:number[]=[];for(let i=0;i<8;i++){s=act(s,{type:'wait'});xs.push(e().x);}
+ assert.deepEqual(xs,[5,6,7,6,5,4,3,2],'turns back at the wall');
+ assert.equal(s.player.hp,run(f,[]).player.hp,'ignores you off its beat');
+ // Stand on its beat: it strikes the tile it steps into.
+ let t=run(f,[sock('patrol')]);t.player.x=5;t.player.y=1;t.player.hp=12;t=act(t,{type:'wait'});assert.equal(t.player.hp,9);
+ assert.ok(solveReach(run(f,[sock('patrol')]),{x:7,y:2},5000,30).solved);
+});
