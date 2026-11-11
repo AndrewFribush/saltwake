@@ -25,6 +25,7 @@ export function fixtureSprite(f:{id:string;name:string;glyph:string}):SpriteName
  const n=f.name.toLowerCase();
  if(f.id==='wallet'||n.includes('account book'))return 'book';
  if(f.id==='builder'||n.includes('drafting'))return 'drafting';if(n.includes('notice'))return 'notice';if(n.includes('display'))return 'display';if(n.includes('stair'))return 'stairs';
+ if(n.includes('crate'))return 'crates';if(n==='table'||n.includes(' table'))return 'table';if(n.includes('plant'))return 'plant';if(n.includes('lamp'))return 'lamp';if(n.includes('anchor'))return 'anchor';if(n.includes('banner'))return 'banner';
  if(n.includes('bed'))return 'bed';if(n.includes('shel'))return 'shelves';if(n.includes('barrel'))return 'barrels';if(n.includes('chest'))return 'chest';
  const byGlyph:Record<string,SpriteName>={'☷':'counter','⚖':'scales','♨':'kettle','⚑':'banner','⚔':'swords','▰':'bed','▤':'shelves','▣':'chest'};
  return byGlyph[f.glyph]??(f.id==='service'?'counter':null);
