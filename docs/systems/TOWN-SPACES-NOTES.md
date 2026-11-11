@@ -24,6 +24,25 @@ Goal: towns and interiors are player-built spaces. Players create, place, reloca
 - `packages/game/test/town-spaces.test.ts`: building use round-trip, TS validation mirrors contract, dungeon entrances in `districtPlaces`.
 - Existing shop and player-authority contract tests still pass (including the "pre-identity upgrade without migration" test).
 
+## Web (player-facing)
+
+- **Build here** → placement studio: building use (Shop / Dungeon entrance + which of your open editions), district, sign, open flag, plot counter "n of 3 used". Furnish → interior builder with new **Notice** tool (readable text, or click furniture to label it) and **Stairway to your dungeon** (dungeon entrances only). Build on chain.
+- Town draws dungeon entrances with a dark roof and stair mark; sign reads Dungeon entrance / Closed entrance.
+- Inside a player building: readable notices (walk up, Enter/click), the stairway and the counter open the linked edition's offer + satchel packing; admission is the ordinary `admit` command with exact version/fee. Owners get Manage (open/close, demolish with stock check) and Edit interior (refurnish/move/relink). A demolished building's visitors step back to the street.
+- Shared rooms: presence accepts `room: shop-<n>`; visitors in the same player building see each other's avatars on the room tiles and share a room chat ("Visitors" tab). The town's single SSE stream carries it (small store in `TownPresence.tsx`, hook in `RoomPresence.tsx`).
+- Inventory → **Buildings** lists your plots (information only, no travel).
+- Starter NPC houses: the per-browser editor is relabelled **Sketch interior (only you)** so it does not pretend to be shared.
+
+## Played in the browser (Aside, local sandbox on 18980/18981)
+
+Maker placed a dungeon entrance for the starter edition with a notice "Bring a sword. The second room bites.", opened it from Manage entrance; p2 walked in, read the notice at the board, took the stairway, packed a club, paid 2 coins and the run started ("The catacombs / The candle cellars — floor 1"). No console errors.
+
+Harness quirks: each `aside repl` script is a fresh cookie jar, so a dead script keeps its demo profile leased for 30 min (restart the API to free it); switch profiles in-page via `POST /api/profile`. Local sandboxes started from this worktree have twice exited during `npm run verify` (contract tests start their own nodes); restart `npm run sandbox` + the API afterwards.
+
+Two live browsers (127.0.0.1 and localhost cookie jars, `SALTWAKE_PROXY_ORIGIN=http://127.0.0.1:18980`): the proprietor and the delver stood in the same dungeon entrance, each saw the other's avatar on the room tiles ("1 other visitor here: The proprietor") and both room-chat lines arrived; the street did not see them.
+
+More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server run inside a worktree never sees file edits; restart it after changes. Load average hit 70 with 11 sandboxes from parallel agents; `capacity` and two `economy-stress` contract tests time out under that load (also on a solo rerun) and touch no shop code. They need a rerun on a quiet machine. The detached-sandbox trick (spawn with `detached:true`) kept a sandbox alive where `npm run sandbox` in a background shell kept getting stopped.
+
 ## Next step
 
-Web UI: building-use choice + plot counter in ShopBuilder, notice/stairway tools in InteriorBuilder, readable furnishings in Interior, dungeon entrance desk (pack + admit) inside the maker's hall, demolish button, distinct dungeon-hall art in Town.
+Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
