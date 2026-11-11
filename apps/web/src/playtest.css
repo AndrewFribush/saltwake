@@ -94,7 +94,7 @@
 .saltwake .town-field .district-compass button{position:absolute;white-space:nowrap;opacity:.9}
 .town-field .district-compass .edge-n{top:4px;left:calc(14.2/24*100%)}
 .town-field .district-compass .edge-s{bottom:4px;left:calc(14.2/24*100%)}
-.town-field .district-compass .edge-w{left:4px;top:calc(6.3/16*100%)}
+.town-field .district-compass .edge-w{left:4px;top:calc(9.6/16*100%)}
 .town-field .district-compass .edge-e{right:4px;top:calc(6.3/16*100%)}
 .brush-row{display:inline-flex;gap:3px;margin-right:6px}
 .brush-row button{padding:4px 8px!important;font-size:12px}
@@ -212,3 +212,8 @@
 .route-check li.ok::before{content:'✓';color:#9fc27a}.route-check li.blocked::before{content:'✗';color:#e0806b}.route-check li.unknown::before{content:'?';color:#e2c783}
 .route-check li.blocked{color:#f0b3a3}
 .route-check .studio-row{position:static!important;height:auto!important;justify-content:space-between}
+.offer-card{margin:4px 0;display:flex;flex-direction:column;gap:3px;font-size:12px}
+.offer-card div{display:grid;grid-template-columns:62px 1fr;gap:6px}
+.offer-card dt{color:#c9b98a;font-weight:600}.offer-card dd{margin:0}.offer-card small{color:#a9b4a2}
+.danger{padding:0 6px;border-radius:8px;font-weight:700;font-size:11px}
+.danger-calm{background:#5d8a5a;color:#fff}.danger-light{background:#8aa35a;color:#142522}.danger-dangerous{background:#d0a050;color:#142522}.danger-deadly{background:#c0614f;color:#fff}
