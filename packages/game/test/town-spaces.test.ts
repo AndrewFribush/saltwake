@@ -24,3 +24,14 @@ test('dungeon entrances render as their own kind of building in the shared town'
  const shops=[{id:'shop-0',owner:'maker',title:'Hall',district:'e',x:4,y:10,interior:JSON.stringify(hall),version:'1',open:true,listing_ids:[]}];
  const place=districtPlaces('e',shops).find(p=>p.shopId==='shop-0')!;assert.equal(place.purpose,'Dungeon entrance');assert.equal(place.edition,'edition-0');
 });
+import {districtArrival,doorstepLine,ownerHue} from '../src/town-discovery';
+test('walking into a district names the player buildings standing there',()=>{
+ const hall=withBuildingUse(defaultInterior('market'),'dungeon','edition-0');
+ const shops=[{id:'shop-0',owner:'maker',title:'Hollow gate',district:'e',x:4,y:10,interior:JSON.stringify(hall),version:'1',open:true,listing_ids:[]},{id:'shop-1',owner:'p2',title:'Tonic stall',district:'e',x:16,y:10,interior:JSON.stringify(defaultInterior('market')),version:'1',open:false,listing_ids:[]}];
+ const line=districtArrival('e',shops,o=>o.toUpperCase());
+ assert.match(line,/Market Ward/);assert.match(line,/Hollow gate \(MAKER, dungeon entrance\)/);assert.match(line,/Tonic stall \(P2, closed shop\)/);
+ assert.match(districtArrival('n',shops),/Nobody has built here yet/);
+ const place=districtPlaces('e',shops).find(p=>p.shopId==='shop-0')!;assert.equal(doorstepLine(place),'Hollow gate: dungeon entrance built by maker. Walk in to visit.');
+ assert.equal(doorstepLine(districtPlaces('e',[]).find(p=>!p.shopId)!),undefined);
+ assert.equal(ownerHue('maker'),ownerHue('maker'));
+});
