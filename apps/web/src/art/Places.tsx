@@ -23,6 +23,7 @@ export function TownPatterns({cell}:{cell:number}){
 export function fixtureSprite(f:{id:string;name:string;glyph:string}):SpriteName|null{
  const n=f.name.toLowerCase();
  if(f.id==='wallet'||n.includes('account book'))return 'book';
+ if(f.id==='builder'||n.includes('drafting'))return 'drafting';if(n.includes('notice'))return 'notice';if(n.includes('display'))return 'display';if(n.includes('stair'))return 'stairs';
  if(n.includes('bed'))return 'bed';if(n.includes('shel'))return 'shelves';if(n.includes('barrel'))return 'barrels';if(n.includes('chest'))return 'chest';
  const byGlyph:Record<string,SpriteName>={'☷':'counter','⚖':'scales','♨':'kettle','⚑':'banner','⚔':'swords','▰':'bed','▤':'shelves','▣':'chest'};
  return byGlyph[f.glyph]??(f.id==='service'?'counter':null);
