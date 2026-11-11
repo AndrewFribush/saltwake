@@ -4,6 +4,7 @@ import {validateCustomFloor,floorFormat,type CustomFloor} from '../../shared/src
 import {depthReachable,featureCatalog,featureCost,enemyCost,defaultFeature,type Feature,type EnemyKind,type SupplyKind,type AltarBoon} from '../../shared/src/depth-components';
 import {defaultExitRule} from '../../shared/src/exit-rules';
 import type {CreatorPlacement} from '../../shared/src/creator-rewards';
+import type {Device} from '../../shared/src/mechanisms';
 type P={x:number;y:number};type Room={x:number;y:number;w:number;h:number};
 function rng(seed:number){let n=(seed>>>0)||1;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};}
 export type GeneratedDraft={floors:CustomFloor[];placements:CreatorPlacement[][]};
@@ -69,7 +70,7 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  if(rooms.length>3&&r()<.6)carve(center(rooms[0]),center(rooms[rooms.length-1]));
  // Hidden side room behind a cracked wall: solid rock all around except the crack.
  const features:Feature[]=[];let id=0;const fid=()=>`f${depth}-${id++}`;
- let secret:P[]=[];
+ let secret:P[]=[];const devices:Device[]=[];const ambushSockets:{p:P;placement:CreatorPlacement}[]=[];const ambush=depth>=1&&r()<(vault?.5:.35);
  for(let tries=0;tries<60&&!secret.length;tries++){
   const w=int(2,3),h=int(2,3),x=int(2,W-w-2),y=int(2,H-h-2);
   let clear=true;for(let yy=y-1;yy<=y+h;yy++)for(let xx=x-1;xx<=x+w;xx++)if(g[yy]?.[xx]!=='#')clear=false;
@@ -79,7 +80,15 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
   for(let yy=y;yy<y+h;yy++){if(g[yy][x-2]==='.')doors.push({x:x-1,y:yy});if(g[yy][x+w+1]==='.')doors.push({x:x+w,y:yy});}
   if(!doors.length)continue;
   for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){g[yy][xx]='.';secret.push({x:xx,y:yy});}
-  const door=pick(doors);if(vault){g[door.y][door.x]='.';features.push({...defaultFeature('lock',fid(),door.x,door.y),color:'brass'} as Feature);}else features.push(defaultFeature('crack',fid(),door.x,door.y));
+  const door=pick(doors);
+  if(ambush&&secret.length>=4){
+   // Ambush stash: an open gate; the first step inside slams it shut; a lever at the back reopens it.
+   g[door.y][door.x]='.';const ch=`ambush${depth}`;devices.push({id:`gate${depth}`,x:door.x,y:door.y,channel:ch,kind:'door',open_when:false});
+   const dist=(p:P)=>Math.abs(p.x-door.x)+Math.abs(p.y-door.y);const order=[...secret].sort((a,b)=>dist(a)-dist(b));
+   devices.push({id:`trip${depth}`,...order[0],channel:ch,kind:'switch',mode:'set'},{id:`lever${depth}`,...order[order.length-1],channel:ch,kind:'switch',mode:'clear'});
+   ambushSockets.push({p:order[1],placement:{enemy:depth>=2?'brute':'pursuer',trap:false,reward:'random'}});
+  }else if(vault){g[door.y][door.x]='.';features.push({...defaultFeature('lock',fid(),door.x,door.y),color:'brass'} as Feature);}
+  else features.push(defaultFeature('crack',fid(),door.x,door.y));
  }
  const tiles=g.map(row=>row.join(''));
  const secretKeys=new Set(secret.map(key));
@@ -89,7 +98,8 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  const take=(filter:(p:P)=>boolean=()=>true):P|undefined=>{const options=floorTiles.filter(p=>!used.has(key(p))&&filter(p));if(!options.length)return;const p=pick(options);used.add(key(p));return p;};
  const far=(p:P)=>Math.abs(p.x-spawn.x)+Math.abs(p.y-spawn.y)>=5;
  // Themed rooms: a keg gallery guarded by a sentry, or an oil-slicked hall with a keg at its edge.
- const themeSockets:{p:P;placement:CreatorPlacement}[]=[];
+ for(const d of devices)used.add(key(d));for(const a of ambushSockets)used.add(key(a.p));
+ const themeSockets:{p:P;placement:CreatorPlacement}[]=[...ambushSockets];
  const middle=rooms.slice(1,-1).filter(m=>m.w>=4);
  if(middle.length&&r()<.8){
   const m=pick(middle),inside=(p:P)=>tiles[p.y]?.[p.x]==='.'&&!used.has(key(p))&&!secretKeys.has(key(p));
@@ -118,7 +128,7 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  const blocked=()=>{const kegs=new Set(features.filter(f=>f.kind==='barrel'||f.kind==='pit').map(key));const asWalls=depthReachable(tiles.map((row,y)=>[...row].map((c,x)=>kegs.has(`${x},${y}`)?'#':c).join('')),spawn,features.filter(f=>f.kind==='crack'));return asWalls.missing>0;};
  for(const k of features.filter(f=>f.kind==='barrel')){if(!blocked())break;features.splice(features.indexOf(k),1);}
  const last=depth===count-1;
- const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices:[],exit_rule:{...defaultExitRule,require_clear:false},features,...(depth>0?{tide:{turns:Math.max(35,Math.round(tiles.join('').split('.').length*0.8)),damage:Math.min(3,depth)}}:{})};
+ const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices,exit_rule:{...defaultExitRule,require_clear:false},features,...(depth>0?{tide:{turns:Math.max(35,Math.round(tiles.join('').split('.').length*0.8)),damage:Math.min(3,depth)}}:{})};
  if(last)floor.exit_rule={extract:true,require_clear:false};
  return validateCustomFloor(floor,floorFormat(floor)).length?null:{floor,placements};
 }
