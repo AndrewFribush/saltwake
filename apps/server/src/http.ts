@@ -1,4 +1,5 @@
 import type {Store} from './db';
+import {existsSync,readFileSync} from 'node:fs';
 import {WalletSessions,WalletAuthError} from './wallet-auth';
 import {playerOperationId} from '../../../packages/shared/src/player-identity';
 import {commandGas,largePublicationBytes,legacyCommandBytes} from '../../../packages/shared/src/command-limits';
@@ -22,7 +23,7 @@ import {Runs,type SavedRun} from './runs';
 import {TownPresence,presenceIdentity} from './presence';
 import type {Command,EconomySnapshot} from '../../../packages/shared/src/types';
 export type WalletHttpConfig={walletSessions:WalletSessions;origin:string;network:string;contractId:string;aliases?:readonly string[]};
-export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig,options:{webOrigin?:string;pollMs?:number}={}){
+export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig,options:{webOrigin?:string;pollMs?:number;historyPath?:string}={}){
  const webOrigin=wallet?.origin??options.webOrigin??'http://127.0.0.1:18930';{const u=new URL(webOrigin);if(u.origin!==webOrigin||u.protocol!=='http:'||u.hostname!=='127.0.0.1')throw Error('Web origin must be a local HTTP origin');}const webHost=new URL(webOrigin).host;
  if(wallet){if(!wallet.walletSessions.matchesConfiguration(wallet.origin,wallet.network,wallet.contractId))throw Error('Wallet authentication configuration mismatch');const origin=new URL(wallet.origin);if(origin.origin!==wallet.origin||origin.protocol!=='http:'||origin.hostname!=='127.0.0.1')throw Error('Wallet origin must match the local HTTP origin');}
  const identity=wallet?.walletSessions??sessions;
@@ -56,6 +57,8 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
    if(wallet&&![webOrigin,'http://127.0.0.1:'+req.socket.localPort].includes(wallet.origin))return reply(403,{error:'Configured wallet origin does not match local server'});
    if(req.method==='POST'&& !(wallet?[wallet.origin,...aliases]:[webOrigin,'http://127.0.0.1:'+req.socket.localPort]).includes(req.headers.origin??''))return reply(403,{error:'Same-origin request required'});
    if(req.method==='POST'&&req.headers['content-type']!=='application/json')return reply(415,{error:'JSON required'});
+   // Simulation history written by `npm run simulate` for this storage epoch (read-only, labelled SIMULATION).
+   if(req.method==='GET'&&url.pathname==='/api/town-history'){let history:unknown={days:[]};try{if(options.historyPath&&existsSync(options.historyPath))history=JSON.parse(readFileSync(options.historyPath,'utf8'));}catch{}return reply(200,history);}
    if(req.method==='GET'&&url.pathname==='/api/config')return reply(200,wallet?{authMode:'wallet',origin:alias??wallet.origin,network:wallet.network,contractId:wallet.contractId}:{authMode:'demo',label:DEMO_CUSTODY_LABEL});
    if(url.pathname.startsWith('/api/presence/'))return await presence.handle(req,res,url,presenceIdentity(identity));
    if(wallet&&req.method==='POST'&&url.pathname.startsWith('/api/wallet/')){

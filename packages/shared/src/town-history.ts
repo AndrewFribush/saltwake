@@ -1,0 +1,4 @@
+/** Day-by-day report written by `npm run simulate`. Always labelled SIMULATION: bots, not organic activity. */
+export type DayReport={day:number;coinsInPurses:number;bank:number;issuance:number;conservationDrift:number;entryFees:number;wages:number;playerTrades:number;tradeCoins:number;bankSales:number;batchesBrewed:number;
+ runs:{extracted:number;died:number;abandoned:number};treasureValue:{extracted:number;consumed:number;banked:number};listings:Record<string,{min:number;max:number;count:number}>;unsoldItems:number;bankStock:number;absentDemand:string[];events:string[]};
+export type TownHistory={label:'SIMULATION';note:string;startedAt:string;finishedAt?:string;days:DayReport[]};

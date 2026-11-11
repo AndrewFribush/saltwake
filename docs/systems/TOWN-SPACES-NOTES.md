@@ -97,6 +97,13 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - Test: HTTP lifecycle test now checks the buyer's ledger (trade out 3, the bought tonic's cost 3, no shops, synthetic note) and the owner's (shop revenue 3 from 1 sale, complete coverage, trade in, placement out, edition open with 0 settled runs, 1 open edition committed). Browser: player1 (wallet) ledger showed +2 trade, −2 bank, −2 entry, the stall with no sales, and the same ledger from the account book in their stall.
 - Limitation: NEAR buy-ins are not itemized (the contract keeps purchases by request id, not a per-player list).
 
+## Round 10: buy-in reconciliation and the simulated week
+
+- Contract: `buy_coins` also appends a per-player total under `coin_buyer.v1:<profile>`; view `coin_purchases_of`; snapshot `buy_ins` (wallet profiles, omitted when empty). Ledger itemizes "Bought with NEAR (labelled issuance)" and shows Purse = recorded net + unexplained (0 for wallet players; demo characters' starting allocation otherwise). Needs the testnet redeploy.
+- `npm run simulate -- --days N` (`scripts/simulate.ts`): isolated sandbox + demo town, then per simulated day bots act through the real HTTP API (in-process server on the epoch's own DB) and contract: recovery jobs, bank ingredient buys, brewing, stocking shelves, buying tonics before descending, paying into dungeons and playing them with `scripts/depth-sim.ts` `choose` policies (cautious/greedy/reckless; full own run state), selling finds to the bank, merchant resale, makers adjusting fees from entries. Per-day report (purses, bank, issuance, fees, wages, trades, brews, run outcomes, treasure out, prices by type, unsold items, bank stock, dungeons with no entries, events) with a conservation check over purses + bank + escrowed fees + wage budget/reserves + NPC order budget; any drift aborts. 7 days ≈ 55 s. Written to `.state/<epoch>/town-history.json`; the sandbox stays up for `npm run server`, and the notice board's **Town history** tab (`/api/town-history`) shows it, labelled SIMULATION.
+- Observed story in a 7-day run: delvers spend down to 0 coins by day 4–5, the proprietor cuts "The drowned stair" fee 3→0 on zero entries, then raises it when two delvers return; the smugglers' hollow sells out its funded treasure; artisans stall once ingredient costs exceed their cash. Coins conserved every day.
+- Test `apps/server/test/simulate.test.ts` runs two days and checks conservation, history and that delvers played.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
