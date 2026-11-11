@@ -6,15 +6,26 @@ import type {Command} from '../../../packages/shared/src/types';
 
 export type NearAdapterConfig={network:string;contractId:string};
 type IdentityRequest={accountId:string;network:string};
-const supportedActions=new Set(['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order','create_shop','update_shop','stock_shop']);
+const supportedActions=new Set(['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order','create_shop','update_shop','stock_shop','begin_craft','begin_recovery']);
+/** Wallets offered on testnet. MyNearWallet and Meteor open a popup (no install needed); Nightly is an extension. */
+export const SUPPORTED_WALLETS=[
+ {id:'my-near-wallet',name:'MyNearWallet',note:'web wallet, no install'},
+ {id:'meteor-wallet',name:'Meteor',note:'web wallet or extension'},
+ {id:'nightly',name:'Nightly',note:'browser extension'},
+] as const;
+export type SupportedWalletId=typeof SUPPORTED_WALLETS[number]['id'];
+const walletIds=new Set<string>(SUPPORTED_WALLETS.map(w=>w.id));
 const validAccount=(value:string)=>typeof value==='string'&&/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(value)&&value.length>=2&&value.length<=64;
 function sdkBuffer(){
  // Wallet Selector 10.1.4 checks the global Buffer in its NEP-413 decorator.
  // This is the standard browser buffer polyfill, not a wallet injection shim.
  if(typeof globalThis.Buffer==='undefined')Object.defineProperty(globalThis,'Buffer',{value:Buffer,writable:true,configurable:true});
+ // Some wallet SDKs (Meteor) reference Node's `global`/`process` at import time.
+ if(typeof (globalThis as {global?:unknown}).global==='undefined')Object.defineProperty(globalThis,'global',{value:globalThis,writable:true,configurable:true});
+ if(typeof (globalThis as {process?:unknown}).process==='undefined')Object.defineProperty(globalThis,'process',{value:{env:{},browser:true,version:'',versions:{},nextTick:(fn:(...a:unknown[])=>void,...args:unknown[])=>queueMicrotask(()=>fn(...args))},writable:true,configurable:true});
 }
-/** Concrete bridge to @near-wallet-selector/core + nightly 10.1.4.
- * Never reaches into window.nightly: provider detection/permissions belong to the SDK.
+/** Bridge to @near-wallet-selector/core 10.1.4 with MyNearWallet, Meteor and Nightly.
+ * Never reaches into wallet globals: provider detection/permissions belong to the SDK.
  * SDK errors propagate as uncertain outcomes, never falsely classified as cancellation.
  * The transport must still validate the server descriptor against the original intent. */
 export class NearWalletSelectorAdapter implements InjectedWalletAdapter{
@@ -32,42 +43,45 @@ export class NearWalletSelectorAdapter implements InjectedWalletAdapter{
   this.fingerprint=this.stateFingerprint();
   const subscription=selector.store.observable.subscribe(()=>this.readState());this.cleanups.push(()=>subscription.unsubscribe());
   for(const event of ['signedIn','signedOut','accountsChanged'] as const){
-   const subscription=selector.on(event,e=>{if(e.walletId==='nightly'){this.fingerprint=this.stateFingerprint();this.changed();}});this.cleanups.push(()=>subscription.remove());
+   const subscription=selector.on(event,e=>{if(walletIds.has(e.walletId)){this.fingerprint=this.stateFingerprint();this.changed();}});this.cleanups.push(()=>subscription.remove());
   }
-  const network=selector.on('networkChanged',e=>{if(e.walletId==='nightly'){this.network=e.networkId;this.changed();}});this.cleanups.push(()=>network.remove());
+  const network=selector.on('networkChanged',e=>{if(walletIds.has(e.walletId)){this.network=e.networkId;this.changed();}});this.cleanups.push(()=>network.remove());
  }
  private stateFingerprint(){const state=this.selector.store.getState();return JSON.stringify([state.selectedWalletId,state.accounts,state.contract,this.selector.options.network]);}
  private readState(){const fingerprint=this.stateFingerprint();if(fingerprint!==this.fingerprint){this.fingerprint=fingerprint;this.changed();}}
  private changed(){this.revision++;for(const listener of this.listeners)listener(this.current());}
  private current():WalletIdentity|null{
   const state=this.selector.store.getState(),active=state.accounts.filter(a=>a.active);
-  if(this.disposed||this.network!==this.config.network||JSON.stringify(this.selector.options.network)!==this.networkOptions||state.selectedWalletId!=='nightly'||state.contract?.contractId!==this.config.contractId||active.length!==1||!validAccount(active[0].accountId))return null;
+  if(this.disposed||this.network!==this.config.network||JSON.stringify(this.selector.options.network)!==this.networkOptions||!walletIds.has(state.selectedWalletId??'')||state.contract?.contractId!==this.config.contractId||active.length!==1||!validAccount(active[0].accountId))return null;
   return {accountId:active[0].accountId,network:this.network,revision:this.revision};
  }
  identity(){this.readState();return this.current();}
+ /** Name of the connected wallet, for display only. */
+ walletName(){const id=this.selector.store.getState().selectedWalletId;return SUPPORTED_WALLETS.find(w=>w.id===id)?.name??null;}
  /** Subscribe the host's session invalidation to account/key/network/wallet changes. */
  subscribe(listener:(identity:WalletIdentity|null)=>void){this.listeners.add(listener);return ()=>this.listeners.delete(listener);}
  dispose(){if(this.disposed)return;this.disposed=true;this.cleanups.forEach(cleanup=>cleanup());this.changed();this.listeners.clear();}
  private capture(request:IdentityRequest){const id=this.identity();if(!id||id.accountId!==request.accountId||id.network!==request.network)throw Error('Wallet identity mismatch');return id;}
  private check(mark:WalletIdentity){const id=this.identity();if(!id||id.accountId!==mark.accountId||id.network!==mark.network||id.revision!==mark.revision)throw Error('Wallet identity changed during approval');}
  private async wallet(mark:WalletIdentity){
-  const wallet=await this.selector.wallet<InjectedWallet>('nightly');this.check(mark);
-  if(wallet.id!=='nightly')throw Error('Unsupported wallet provider');
+  const selected=this.selector.store.getState().selectedWalletId;if(!selected||!walletIds.has(selected))throw Error('Unsupported wallet provider');
+  const wallet=await this.selector.wallet<InjectedWallet>(selected);this.check(mark);
+  if(wallet.id!==selected)throw Error('Unsupported wallet provider');
   const accounts=await wallet.getAccounts();this.check(mark);
-  // Nightly is single-account. Also compare the public key against Selector state.
+  // Single-account use. Also compare the public key against Selector state.
   const active=this.selector.store.getState().accounts.find(a=>a.active);
-  if(accounts.length!==1||accounts[0].accountId!==mark.accountId||(active?.publicKey&&accounts[0].publicKey!==active.publicKey))throw Error('Wallet SDK account mismatch');
+  if(accounts.length!==1||accounts[0].accountId!==mark.accountId||(active?.publicKey&&accounts[0].publicKey&&accounts[0].publicKey!==active.publicKey))throw Error('Wallet SDK account mismatch');
   return wallet;
  }
- /** Explicit user action: SDK asks the installed wallet to connect; creates no keys. */
- async connect(){
-  if(this.disposed||this.network!==this.config.network||JSON.stringify(this.selector.options.network)!==this.networkOptions)throw Error('Wallet selector configuration mismatch');
-  const wallet=await this.selector.wallet<InjectedWallet>('nightly');
-  if(this.disposed||wallet.id!=='nightly'||this.network!==this.config.network||JSON.stringify(this.selector.options.network)!==this.networkOptions)throw Error('Wallet selector configuration changed');
-  await wallet.signIn({contractId:this.config.contractId});
+ /** Explicit user action: the SDK asks the chosen wallet to connect to the game contract. */
+ async connect(walletId:SupportedWalletId){
+  if(!walletIds.has(walletId)||this.disposed||this.network!==this.config.network||JSON.stringify(this.selector.options.network)!==this.networkOptions)throw Error('Wallet selector configuration mismatch');
+  const wallet=await this.selector.wallet<InjectedWallet>(walletId);
+  if(this.disposed||wallet.id!==walletId||this.network!==this.config.network||JSON.stringify(this.selector.options.network)!==this.networkOptions)throw Error('Wallet selector configuration changed');
+  await wallet.signIn({contractId:this.config.contractId,methodNames:[]});
   const identity=this.identity();if(!identity)throw Error('Wallet did not connect to the configured account/network');return identity;
  }
- async disconnect(){this.revision++;for(const listener of this.listeners)listener(null);const wallet=await this.selector.wallet<InjectedWallet>('nightly');await wallet.signOut();this.readState();}
+ async disconnect(){this.revision++;for(const listener of this.listeners)listener(null);const selected=this.selector.store.getState().selectedWalletId;if(selected){const wallet=await this.selector.wallet(selected);await wallet.signOut();}this.readState();}
  async signMessage(input:Parameters<InjectedWalletAdapter['signMessage']>[0]):Promise<WalletProof|null>{
   const mark=this.capture(input);
   if(input.recipient!==this.config.contractId||typeof input.message!=='string'||!input.message.trim()||input.nonce.length!==32)throw Error('Invalid NEP-413 request');
@@ -87,6 +101,9 @@ export class NearWalletSelectorAdapter implements InjectedWalletAdapter{
   }else if(tx.methodName==='execute_player'){
    const {request_id,action}=tx.args;
    if(Object.keys(tx.args).sort().join(',')!=='action,request_id'||typeof request_id!=='string'||!/^[A-Za-z0-9_-]{1,40}$/.test(request_id)||!action||!supportedActions.has((action as Command['action']).type)||tx.gas!==commandGas(action as Command['action']).toString())throw Error('Unsafe player transaction');
+   // Prepared crafting/recovery starts: namespaced batch, chain-time deadline, server commitment.
+   const a=action as {type:string;batch_id?:string;deadline_ms?:string;challenge_commitment?:string};
+   if((a.type==='begin_craft'||a.type==='begin_recovery')&&(!/^[a-f0-9]{64}$/.test(a.batch_id??'')||a.deadline_ms!=='0'||!/^[a-f0-9]{64}$/.test(a.challenge_commitment??'')))throw Error('Unsafe prepared craft transaction');
   }else throw Error('Unsupported wallet method');
   return tx;
  }
@@ -101,12 +118,12 @@ export class NearWalletSelectorAdapter implements InjectedWalletAdapter{
  }
 }
 
-/** Lazy production SDK initialization. Calling this may load/reconnect the installed
- * extension; signing later performs network RPC. Tests never call this against a chain.
- * Supply exact network endpoints; no implicit mainnet/testnet fallback or relayer. */
-export async function createNightlyAdapter(config:NearAdapterConfig&{networkOptions:Network}){
+/** Lazy SDK initialization. Supply exact network endpoints; no implicit mainnet fallback or relayer. */
+export async function createWalletAdapter(config:NearAdapterConfig&{networkOptions:Network}){
  if(config.networkOptions.networkId!==config.network)throw Error('Wallet selector network mismatch');
- sdkBuffer();const [{setupWalletSelector},{setupNightly}]=await Promise.all([import('@near-wallet-selector/core'),import('@near-wallet-selector/nightly')]);
- const selector=await setupWalletSelector({network:structuredClone(config.networkOptions),modules:[setupNightly()],debug:false,optimizeWalletOrder:false,randomizeWalletOrder:false});
+ sdkBuffer();
+ const [{setupWalletSelector},{setupMyNearWallet},{setupMeteorWallet},{setupNightly}]=await Promise.all([import('@near-wallet-selector/core'),import('@near-wallet-selector/my-near-wallet'),import('@near-wallet-selector/meteor-wallet'),import('@near-wallet-selector/nightly')]);
+ const selector=await setupWalletSelector({network:structuredClone(config.networkOptions),modules:[setupMyNearWallet(),setupMeteorWallet(),setupNightly()],debug:false,optimizeWalletOrder:false,randomizeWalletOrder:false});
  return new NearWalletSelectorAdapter(selector,config);
 }
+export const TESTNET_NETWORK:Network={networkId:'testnet',nodeUrl:'https://test.rpc.fastnear.com',helperUrl:'https://helper.testnet.near.org',explorerUrl:'https://testnet.nearblocks.io',indexerUrl:'https://test.api.fastnear.com/v0'};

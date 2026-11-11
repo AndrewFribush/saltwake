@@ -18,7 +18,7 @@ async function request(path:string,body?:unknown):Promise<any>{
 
 /** Opt-in host integration. App remains demo-only until its caller supplies the
  * exact public configuration and an actual wallet SDK adapter. No automatic signing. */
-export function WalletGame({config,adapter}:{config:WalletGameConfig;adapter?:InjectedWalletAdapter}){
+export function WalletGame({config,adapter,connectControls,onDisconnect}:{config:WalletGameConfig;adapter?:InjectedWalletAdapter;connectControls?:React.ReactNode;onDisconnect?:()=>void}){
  const [observed,setObserved]=useState(()=>identity(adapter));
  useEffect(()=>{
   const update=()=>setObserved(old=>{const next=identity(adapter);return identityKey(old)===identityKey(next)?old:next;});
@@ -26,10 +26,10 @@ export function WalletGame({config,adapter}:{config:WalletGameConfig;adapter?:In
  },[adapter]);
  const live=identity(adapter);
  const mark=identityKey(live)===identityKey(observed)?observed:live;
- return <WalletAccount key={JSON.stringify([config.origin,config.network,config.contractId,identityKey(mark)])} config={config} adapter={adapter} identity={mark}/>;
+ return <WalletAccount key={JSON.stringify([config.origin,config.network,config.contractId,identityKey(mark)])} config={config} adapter={adapter} identity={mark} connectControls={connectControls} onDisconnect={onDisconnect}/>;
 }
 
-function WalletAccount({config,adapter,identity:mark}:{config:WalletGameConfig;adapter?:InjectedWalletAdapter;identity:WalletIdentity|null}){
+function WalletAccount({config,adapter,identity:mark,connectControls,onDisconnect}:{config:WalletGameConfig;adapter?:InjectedWalletAdapter;identity:WalletIdentity|null;connectControls?:React.ReactNode;onDisconnect?:()=>void}){
  const [session,setSession]=useState<WalletSession|null>(null),[registered,setRegistered]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const mounted=useRef(true),epoch=useRef(0),lock=useRef(false);
  const setup=useMemo(()=>{
@@ -67,7 +67,7 @@ function WalletAccount({config,adapter,identity:mark}:{config:WalletGameConfig;a
   invalidate();setError('');setBusy(true);
   try{await transport?.logout();}catch(e){if(mounted.current)setError((e as Error).message);}finally{if(mounted.current)setBusy(false);}
  };
- if(!connected||!session||!registered)return <WalletOnboarding connected={connected} accountId={mark?.accountId} network={config.network} contractId={config.contractId} authenticated={!!session} busy={busy} error={setup.error??(error||(mark&&mark.network!==config.network?'Select the configured wallet network.':undefined))} onLogin={()=>void work(()=>transport!.login())} onRegister={()=>void work(()=>transport!.register())} onRefresh={()=>void work(()=>transport!.resume())} onLogout={()=>void logout()}/>;
+ if(!connected||!session||!registered)return <WalletOnboarding connected={connected} accountId={mark?.accountId} network={config.network} contractId={config.contractId} authenticated={!!session} busy={busy} error={setup.error??(error||(mark&&mark.network!==config.network?'Select the configured wallet network.':undefined))} onLogin={()=>void work(()=>transport!.login())} onRegister={()=>void work(()=>transport!.register())} onRefresh={()=>void work(()=>transport!.resume())} onLogout={()=>void logout()} connectControls={connectControls} onDisconnect={onDisconnect&&(()=>void logout().finally(onDisconnect))}/>;
  const version=epoch.current;
  const guard=()=>{check(version);if(session.expiresAtMs<=Date.now()){invalidate();throw Error('Wallet session expired');}};
  const guardedRequest=async(path:string,body?:unknown)=>{
@@ -83,7 +83,7 @@ function WalletAccount({config,adapter,identity:mark}:{config:WalletGameConfig;a
    return result;
   }catch(e){if((e as {status?:number}).status===401|| (e as {status?:number}).status===403)invalidate();throw e;}
  };
- const connection=createWalletGameConnection({config,session,guard,guardedRequest,transport:transport!,sessionControls:<><p style={{overflowWrap:'anywhere'}}>{session.accountId} · {config.network}</p><p>Wallet-authenticated local sandbox. Game coins are synthetic.</p><button disabled={busy} onClick={()=>void logout()}>Sign out</button></>});
+ const connection=createWalletGameConnection({config,session,guard,guardedRequest,transport:transport!,sessionControls:<><p style={{overflowWrap:'anywhere'}}>{session.accountId} · {config.network}</p><p>Wallet-authenticated on NEAR {config.network}. Game coins are synthetic.</p><button disabled={busy} onClick={()=>void logout()}>Sign out</button>{onDisconnect&&<button disabled={busy} onClick={()=>void logout().finally(onDisconnect)}>Disconnect wallet</button>}</>});
  return <Demo key={JSON.stringify([identityKey(mark),session.publicKey,session.expiresAtMs,version])} walletConnection={connection}/>;
 }
 

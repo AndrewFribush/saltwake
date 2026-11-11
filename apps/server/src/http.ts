@@ -18,7 +18,8 @@ import {walletView} from './wallet';
 import {Runs,type SavedRun} from './runs';
 import type {Command,EconomySnapshot} from '../../../packages/shared/src/types';
 export type WalletHttpConfig={walletSessions:WalletSessions;origin:string;network:string;contractId:string};
-export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig){
+export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig,options:{webOrigin?:string;pollMs?:number}={}){
+ const webOrigin=wallet?.origin??options.webOrigin??'http://127.0.0.1:18930';{const u=new URL(webOrigin);if(u.origin!==webOrigin||u.protocol!=='http:'||u.hostname!=='127.0.0.1')throw Error('Web origin must be a local HTTP origin');}const webHost=new URL(webOrigin).host;
  if(wallet){if(!wallet.walletSessions.matchesConfiguration(wallet.origin,wallet.network,wallet.contractId))throw Error('Wallet authentication configuration mismatch');const origin=new URL(wallet.origin);if(origin.origin!==wallet.origin||origin.protocol!=='http:'||origin.hostname!=='127.0.0.1')throw Error('Wallet origin must match the local HTTP origin');}
  const identity=wallet?.walletSessions??sessions;
  const craft=new Craft(box.db,box);const feedback=new Feedback(box.db);
@@ -45,10 +46,10 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
   res.setHeader('Content-Type','application/json');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
   const reply=(status:number,value:unknown)=>{res.statusCode=status;res.end(JSON.stringify(value));};
   try{
-   if(!['127.0.0.1:18930','127.0.0.1:'+req.socket.localPort].includes(req.headers.host??''))return reply(403,{error:'Local host required'});
+   if(![webHost,'127.0.0.1:'+req.socket.localPort].includes(req.headers.host??''))return reply(403,{error:'Local host required'});
    const url=new URL(req.url??'/','http://127.0.0.1:18931');
-   if(wallet&&!['http://127.0.0.1:18930','http://127.0.0.1:'+req.socket.localPort].includes(wallet.origin))return reply(403,{error:'Configured wallet origin does not match local server'});
-   if(req.method==='POST'&& !(wallet?[wallet.origin]:['http://127.0.0.1:18930','http://127.0.0.1:'+req.socket.localPort]).includes(req.headers.origin??''))return reply(403,{error:'Same-origin request required'});
+   if(wallet&&![webOrigin,'http://127.0.0.1:'+req.socket.localPort].includes(wallet.origin))return reply(403,{error:'Configured wallet origin does not match local server'});
+   if(req.method==='POST'&& !(wallet?[wallet.origin]:[webOrigin,'http://127.0.0.1:'+req.socket.localPort]).includes(req.headers.origin??''))return reply(403,{error:'Same-origin request required'});
    if(req.method==='POST'&&req.headers['content-type']!=='application/json')return reply(415,{error:'JSON required'});
    if(req.method==='GET'&&url.pathname==='/api/config')return reply(200,wallet?{authMode:'wallet',origin:wallet.origin,network:wallet.network,contractId:wallet.contractId}:{authMode:'demo',label:DEMO_CUSTODY_LABEL});
    if(wallet&&req.method==='POST'&&url.pathname.startsWith('/api/wallet/')){
@@ -115,6 +116,6 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
    reply(404,{error:'Not found'});
   }catch(e){reply(e instanceof SessionError?e.status:e instanceof WalletAuthError?(e.code==='UNAUTHENTICATED'?401:400):400,{...(wallet?{authMode:'wallet'}:{}),error:e instanceof Error?e.message:'Request failed'});}
  });
- const timer=setInterval(()=>void sync(false).catch(()=>{}),2000);timer.unref();server.on('close',()=>clearInterval(timer));return {server,sync};
+ const timer=setInterval(()=>void sync(false).catch(()=>{}),options.pollMs??2000);timer.unref();server.on('close',()=>clearInterval(timer));return {server,sync};
 }
 async function bodyOf(req:IncomingMessage,maxBytes:number){let bytes=0;const chunks:Buffer[]=[];for await(const chunk of req){bytes+=chunk.length;if(bytes>maxBytes)throw Error('Request too large');chunks.push(chunk);}const body=JSON.parse(Buffer.concat(chunks).toString('utf8'));if(!body||typeof body!=='object'||Array.isArray(body))throw Error('JSON object required');return body;}

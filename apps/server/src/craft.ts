@@ -15,9 +15,11 @@ export type CraftView = {
   seq: number; step: number; startedAtMs: number | null;
   deadlineMs: number; stepMs: number; target: {startMs: number; endMs: number};
   inputs: number[]; tier: CraftTier | null; reason: FinishReason | null; outputIds: string[];
+  /** Wallet batch prepared but not yet signed: lets the owner re-open the same approval after a lost tab. */
+  resume?: {requestId: string; inputIds: string[]};
 };
 type SavedCraft = {
-  wallet?: boolean; discovered?: boolean;
+  wallet?: boolean; discovered?: boolean; requestId?: string;
   id: string; profile: string; requestHash: string; inputIds: string[]; recovery: boolean;
   challenge: {nonce: string; stepMs: number; target: {startMs: number; endMs: number}; steps: number} | null;
   commitment: string; deadlineMs: number; beginOp: string; finishOp: string | null;
@@ -63,7 +65,7 @@ export class Craft {
       const challenge = {nonce: randomBytes(32).toString('hex'), stepMs: CRAFT_STEP_MS, target: {...CRAFT_TARGET}, steps: CRAFT_STEPS};
       const row: SavedCraft = {
         id, profile, requestHash, inputIds: [...inputIds], recovery, challenge, commitment: hash(challenge),
-        wallet: !!accountId, deadlineMs: accountId ? 0 : this.now() + CRAFT_DEADLINE_MS, beginOp: accountId ? id : 'begin-' + id, finishOp: null,
+        wallet: !!accountId, ...(accountId ? {requestId} : {}), deadlineMs: accountId ? 0 : this.now() + CRAFT_DEADLINE_MS, beginOp: accountId ? id : 'begin-' + id, finishOp: null,
         confirmed: false, finished: false, seq: 0, startedAtMs: null, inputs: [], tier: null, reason: null, outputIds: [], events: {},
       };
       // Both writes commit before a signer can see the operation; enqueue failure rolls back the challenge.
@@ -243,6 +245,7 @@ export class Craft {
       seq: row.seq, step: row.inputs.length, startedAtMs: row.startedAtMs, deadlineMs: row.deadlineMs,
       stepMs: row.challenge?.stepMs ?? 0, target: {...(row.challenge?.target ?? {startMs:0,endMs:0})}, inputs: [...row.inputs],
       tier: row.tier, reason: row.reason, outputIds: [...row.outputIds],
+      ...(row.wallet && row.requestId && !row.confirmed && op?.status !== 'Rejected' && !row.finishOp ? {resume: {requestId: row.requestId, inputIds: [...row.inputIds]}} : {}),
     };
   }
 
