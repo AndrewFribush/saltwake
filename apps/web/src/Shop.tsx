@@ -53,10 +53,12 @@ export function Shop({world, busy, command, refresh,onBusyChange}: ShopProps) {
   const supplyTotal=supplyIds.reduce((sum,id)=>sum+BigInt(sale(bankItems.find(i=>i.id===id)!.item_type)),0n);
 
   // Player offers: each listing is its own row, bought one listing at a time.
-  const offerStacks:Stack[]=listings.filter(l=>l.seller!==world.profile).flatMap(l=>{
+  const reserved=(world.reservations??{}) as Record<string,string>;
+  // Private offers are only listed for the player they were made to.
+  const offerStacks:Stack[]=listings.filter(l=>l.seller!==world.profile&&(!reserved[l.id]||reserved[l.id]===world.profile)).flatMap(l=>{
     const ids=l.remaining_ids.filter(id=>listedItems.some(i=>i.id===id&&i.location.kind==='listed'&&i.location.listing===l.id));
     const type=listedItems.find(i=>i.id===ids[0])?.item_type;
-    return type?[{key:l.id,type,ids,price:l.unit_price,note:`Offered by ${playerLabel(l.seller)}`}]:[];
+    return type?[{key:l.id,type,ids,price:l.unit_price,note:reserved[l.id]?`Offered to you by ${playerLabel(l.seller)}`:`Offered by ${playerLabel(l.seller)}`}]:[];
   });
   const offer=offerStacks.find(s=>(counts[s.key]??0)>0);
   const offerIds=offer?chosenIds([offer],counts):[];

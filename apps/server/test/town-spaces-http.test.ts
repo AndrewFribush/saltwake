@@ -18,7 +18,10 @@ test('HTTP town spaces: dungeon entrance, display shelf sale, public records, pl
   assert.equal((await cmd('shop-3',{type:'create_shop',title:'Third',district:'n',x:4,y:10,interior:JSON.stringify(defaultInterior('market')),open:false})).status,'Applied');
   assert.equal((await cmd('shop-4',{type:'create_shop',title:'Fourth',district:'w',x:14,y:10,interior:JSON.stringify(defaultInterior('market')),open:false})).result,'PlotLimit');
   assert.equal((await cmd('stock',{type:'stock_shop',shop_id:'shop-1',item_ids:['maker-tonic-0','maker-tonic-1'],unit_price:'3'})).result,'listing-0');
+  assert.equal((await cmd('private',{type:'list_for',item_ids:['maker-tonic-2'],unit_price:'3',buyer:'p2'})).result,'listing-1');
   await request('profile',{profile:'buyer'});
+  assert.deepEqual((await request('world')).reservations,{'listing-1':'p2'});
+  assert.equal((await cmd('not-for-me',{type:'buy',listing_id:'listing-1',item_ids:['maker-tonic-2'],expected_unit_price:'3'})).result,'ReservedForAnotherBuyer');
   assert.equal((await cmd('buy',{type:'buy',listing_id:'listing-0',item_ids:['maker-tonic-0'],expected_unit_price:'3'})).status,'Applied');
   const seen=await request('world');const shelves=seen.shops.find((s:any)=>s.id==='shop-1');
   assert.deepEqual(shelves.publicRecord,{sold:1,buyers:1,coverage:'complete'});assert.equal(shelves.record,undefined,'owner receipts stay with the owner');

@@ -270,6 +270,7 @@ impl Economy {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            reservations: self.listings.values().filter(|l| l.status == "active").filter_map(|l| market::reserved_buyer(&l.id).map(|b| (l.id.clone(), b))).collect(),
             shops: self.shops.values().cloned().collect(),
             credits: self
                 .credits
@@ -358,7 +359,7 @@ fn player_action_allowed(action: &Action) -> bool {
         | Action::FinalizeClose { .. } | Action::Refresh { .. } | Action::SetFee { .. }
         | Action::List { .. } | Action::CancelListing { .. } | Action::Buy { .. }
         | Action::BankBuy { .. } | Action::BankSell { .. } | Action::FillNpcOrder { .. }
-        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. }
+        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. } | Action::ListFor { .. }
         | Action::BeginCraft { .. } | Action::BeginRecovery { .. })
 }
 impl Economy {
@@ -400,6 +401,7 @@ impl Economy {
             }
         }
         // All validation is transactional, including validation rejections retained as receipts.
+        let reserve_for = if let Action::ListFor { ref buyer, .. } = command.action { Some(buyer.clone()) } else { None };
         let mut staged = self.clone();
         let outcome = if !staged.credits.contains_key(&command.actor) {
             Err("UnknownProfile".into())
@@ -413,6 +415,8 @@ impl Economy {
                     "ReceiptCapacityReserved"
                 );
                 *self = staged;
+                // Side storage is written only once the command has committed, so rejections leave nothing behind.
+                if let Some(buyer) = reserve_for { market::reserve(&result, &buyer); }
                 ("Applied", result)
             }
             Err(code) => {
@@ -458,6 +462,7 @@ impl Economy {
             Action::UpdateShop {shop_id,expected_version,title,district,x,y,interior,open} => self.save_shop(c.actor,Some(shop_id),expected_version,title,district,x,y,interior,open),
             Action::StockShop {shop_id,item_ids,unit_price} => self.stock_shop(c.actor,shop_id,item_ids,unit_price),
             Action::RemoveShop {shop_id,expected_version} => self.remove_shop(c.actor,shop_id,expected_version),
+            Action::ListFor {item_ids,unit_price,buyer} => self.list_for(c.actor,item_ids,unit_price,buyer),
             Action::BeginCraft {
                 batch_id,
                 input_ids,

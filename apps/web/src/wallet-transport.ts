@@ -21,7 +21,7 @@ export type WalletIntentStorage=Pick<Storage,'getItem'|'setItem'>;
 export type WalletPost=(path:string,body:unknown)=>Promise<unknown>;
 export type CommandResult={id:string;status:'Pending'|'Unknown'|'Applied'|'Rejected';reason?:string;result?:unknown;transaction:WalletTransaction};
 // Crafting uses the prepared challenge route before requesting transaction approval.
-const allowed=new Set(['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order','create_shop','update_shop','stock_shop','remove_shop','begin_craft','begin_recovery']);
+const allowed=new Set(['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order','create_shop','update_shop','stock_shop','remove_shop','list_for','begin_craft','begin_recovery']);
 const account=(s:unknown):s is string=>typeof s==='string'&&s.length>=2&&s.length<=64&&/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(s);
 function object(value:unknown):Record<string,any>{if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Invalid wallet response');return value;}
 function canonical(value:unknown):string{
