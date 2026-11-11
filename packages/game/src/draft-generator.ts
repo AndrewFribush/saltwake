@@ -1,7 +1,7 @@
 // Seeded starting drafts for creators (and synthetic practice). The output is an ordinary,
 // fully editable draft built only from catalog components; it is never a fixed campaign.
 import {validateCustomFloor,type CustomFloor} from '../../shared/src/custom-layout';
-import {featureCatalog,featureCost,enemyCost,defaultFeature,type Feature,type EnemyKind,type SupplyKind,type AltarBoon} from '../../shared/src/depth-components';
+import {depthReachable,featureCatalog,featureCost,enemyCost,defaultFeature,type Feature,type EnemyKind,type SupplyKind,type AltarBoon} from '../../shared/src/depth-components';
 import {defaultExitRule} from '../../shared/src/exit-rules';
 import type {CreatorPlacement} from '../../shared/src/creator-rewards';
 type P={x:number;y:number};type Room={x:number;y:number;w:number;h:number};
@@ -113,8 +113,11 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  for(let i=0;i<enemies;i++){const p=take(far);if(!p)break;sockets.push(p);const kind=pick(pool[Math.min(depth,2)]);placements.push({enemy:kind==='nest'&&placements.some(q=>q.enemy==='nest')?'pursuer':kind,trap:false,reward:i<1+depth?'random':null});}
  for(let i=0;i<int(0,1+depth)&&sockets.length<16;i++){const p=take(far);if(!p)break;sockets.push(p);placements.push({enemy:'none',trap:true,reward:null});}
  if(secret.length&&sockets.length<16){const s=secret.find(p=>!used.has(key(p)));if(s){used.add(key(s));sockets.push(s);placements.push({enemy:'none',trap:false,reward:'random'});}}
+ // Kegs must never be the only way through: drop any keg whose tile is needed to reach other floor.
+ const blocked=()=>{const kegs=new Set(features.filter(f=>f.kind==='barrel'||f.kind==='pit').map(key));const asWalls=depthReachable(tiles.map((row,y)=>[...row].map((c,x)=>kegs.has(`${x},${y}`)?'#':c).join('')),spawn,features.filter(f=>f.kind==='crack'));return asWalls.missing>0;};
+ for(const k of features.filter(f=>f.kind==='barrel')){if(!blocked())break;features.splice(features.indexOf(k),1);}
  const last=depth===count-1;
- const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices:[],exit_rule:{...defaultExitRule,require_clear:false},features,...(depth>0?{tide:{turns:Math.max(25,Math.round(tiles.join('').split('.').length*0.45)-depth*5),damage:Math.min(3,depth)}}:{})};
+ const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices:[],exit_rule:{...defaultExitRule,require_clear:false},features,...(depth>0?{tide:{turns:Math.max(35,Math.round(tiles.join('').split('.').length*0.8)),damage:Math.min(3,depth)}}:{})};
  if(last)floor.exit_rule={extract:true,require_clear:false};
  return validateCustomFloor(floor,'depth').length?null:{floor,placements};
 }

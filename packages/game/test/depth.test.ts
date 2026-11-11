@@ -108,3 +108,9 @@ test('generator presets stay affordable and fit-my-budget picks the largest that
  assert.equal(fitBudget(5,1000,100)?.preset,'large');
  assert.equal(fitBudget(5,4,0),null);
 });
+
+test('balance harness: careful play survives Small; reckless play on Large usually dies',async()=>{
+ const {simulate}=await import('../../../scripts/depth-sim');
+ const small=Array.from({length:12},(_,i)=>simulate(i+1,'small','cautious'));assert.ok(small.filter(r=>r.status==='died').length<=1);
+ const large=Array.from({length:12},(_,i)=>simulate(i+1,'large','reckless'));assert.ok(large.filter(r=>r.status==='died').length>=8);
+});
