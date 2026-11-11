@@ -169,3 +169,11 @@
 .revision-insight{font-size:12px;padding:6px 8px;margin-bottom:6px;border-left:3px solid #c0614f;background:#2e2a26}
 .revision-insight b{color:#e2c783}.revision-insight p{margin:3px 0}
 .fb-cell[data-deaths]::after,.fb-cell[data-escapes]::after,.fb-cell[data-quits]::after{font-size:13px;padding:1px 5px}
+.insight-funnel{font-family:ui-monospace,monospace;font-size:11px;color:#e8e0c8}
+.insight-loot{margin:2px 0;padding-left:16px;font-size:11px}
+.insight-suggest{color:#f0d79a;font-style:italic}
+/* The gate's dungeon list pager is a different control from an offer's details pager. */
+.dungeon-list>.page-controls{border-top:2px solid #d0b470;padding-top:6px;margin-top:6px}
+.dungeon-list>.page-controls button{font-weight:700}
+.offer-details .page-controls{font-size:11px;opacity:.9}
+.offer-details .page-controls button{padding:2px 6px!important;font-size:11px;background:transparent!important;border-style:dashed!important}
