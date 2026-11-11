@@ -581,3 +581,35 @@ html[data-first-visit] .saltwake .town-field .place-sign,html[data-first-visit] 
 @keyframes sw-cursor{50%{box-shadow:inset 0 0 0 2px #f3d98a,inset 0 0 0 4px #2a1d0c}}
 .saltwake .fb-cell.fb-unreachable::before{background:repeating-linear-gradient(135deg,#ff4a2a55 0 3px,transparent 3px 8px);box-shadow:inset 0 0 0 1px #ff7a4855}
 @media(prefers-reduced-motion:reduce){.saltwake .fb-cell.fb-cursor{animation:none}}
+
+/* ---------- Economy pieces (town lane): commissions, restock prompts, bank-out notice ---------- */
+.saltwake .commission-post{border:0;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:inset 0 0 0 1px #d9b86640,0 0 0 1px #070d0e,0 3px 0 #000a;padding:8px 10px;margin:10px 4px}
+.saltwake .commission-post legend{font-family:var(--sw-head);color:#f3d98a;font-size:15px;padding:0 4px;text-shadow:0 1px 0 #000}
+.saltwake .commission-post label{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--sw-paper)}
+.saltwake .commission-board .board-entry h4{text-transform:none;letter-spacing:0}
+.saltwake .commission-board .board-entry h4::before{content:'';display:inline-block;width:18px;height:18px;margin-right:6px;vertical-align:-3px;background:var(--tx-coin) center/contain no-repeat;image-rendering:pixelated}
+.saltwake .ledger-prompt{display:inline-block;margin:4px 0;padding:2px 8px;border:2px solid #b8281c;border-radius:2px;color:#8a2a18!important;font-weight:700;transform:rotate(-.6deg);background:#f4e4c4}
+.saltwake .ledger-prompt::before{content:'⚑ ';color:#b8281c}
+.saltwake .trade-guidance{border-left:3px solid #e8a23c;background:linear-gradient(90deg,#3a2a12,transparent);padding:4px 8px;border-radius:2px;color:#f6dca0}
+
+/* ---------- Readability and accessibility ---------- */
+/* Telegraphs never rely on colour alone: each threat kind has its own hatch direction and a corner glyph. */
+.threat-mark::after{content:'!';position:absolute;right:2px;top:1px;font:900 clamp(9px,1.3vw,14px)/1 system-ui;color:#fff;text-shadow:0 0 2px #000,0 1px 0 #000}
+.tile.warn-bolt>.threat-mark{background:repeating-linear-gradient(0deg,#ffd75e55 0 3px,transparent 3px 8px)}
+.tile.warn-bolt>.threat-mark::after{content:'➶'}
+.tile.warn-blast>.threat-mark{background:repeating-linear-gradient(45deg,#ff2e2e55 0 3px,transparent 3px 7px),repeating-linear-gradient(-45deg,#ff2e2e55 0 3px,transparent 3px 7px)}
+.tile.warn-blast>.threat-mark::after{content:'✸'}
+.tile.warn-smash>.threat-mark{background:repeating-linear-gradient(90deg,#ff9a3c55 0 3px,transparent 3px 8px)}
+.tile.warn-smash>.threat-mark::after{content:'↻'}
+.saltwake .expedition .board button.tile.exit-cue::after{content:'⇲';position:absolute;left:3px;top:1px;z-index:4;font:900 clamp(9px,1.3vw,14px)/1 system-ui;color:#c8f5e2;text-shadow:0 0 2px #000}
+/* Visible focus on every interactive element, including skinned buttons whose shadows would hide a ring. */
+.saltwake :is(button,a,input,select,textarea,summary,[tabindex]:not([tabindex="-1"])):focus-visible{outline:3px solid #ffe5a6!important;outline-offset:2px!important}
+.saltwake .place-sign:focus-visible{outline:3px solid #ffe5a6!important;outline-offset:2px}
+.saltwake .sound-ctl .sound-volume:focus-visible{outline:3px solid #ffe5a6;outline-offset:2px}
+/* Phones: keep small labels legible. */
+@media(max-width:700px){
+ .saltwake .room-tile small{font-size:9px}
+ .saltwake .hp-pips i{height:5px}
+ .saltwake :is(.studio-hint,.trade-note,.legend,.ledger-row small){font-size:12px}
+ .saltwake .key-chip{width:18px;height:18px}
+}

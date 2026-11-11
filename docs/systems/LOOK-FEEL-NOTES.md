@@ -145,4 +145,12 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Builder power tools (playtest lane): Area & stamps panel framed with a serif legend, chosen stamp pressed brass, stamp and floor previews in the wall/floor palette; floor overview cards with hover lift, gold current, green drop target; selection tint, blinking keyboard cursor, red hatch for cut-off floor.
 - Checks: typecheck, game 187, web 31, server 168, build pass. Sound verified to start without errors; audio itself needs a listener with speakers.
 
-Next step: tune sound levels with a human listener; polish as lanes land UI.
+### 20. Economy pieces and an accessibility pass
+- Commissions (town lane): posting form framed on the cork board with a serif legend; open commissions are pinned notes with a coin mark. Ledger "Restock needed" prompts are red stamps with a flag; the market's "bank is out of …" guidance is an amber notice.
+- Colour-blind safe telegraphs: each threat kind now has its own hatch direction and a corner glyph as well as its colour: generic danger diagonal + "!", crossbow bolt horizontal lines + "➶", blast cross-hatch + "✸", brute sweep vertical lines + "↻"; the way-out tile gets "⇲" next to its green pulse (`gallery-colourblind-telegraphs.jpg`).
+- Contrast (WCAG ratio, computed): parchment ink 10.0, muted ink 4.86, green ink 5.86, red ink 6.29, inked numbers 6.85; panel text 12.2, muted panel text 8.9, HUD small text 6.5, brass headings 11.2, primary button text 6.4, board buttons 9.3, signboard subtitles 9.0. All at or above 4.5:1.
+- Focus: a 3 px light ring on every focusable control (buttons, links, inputs, selects, summaries, focusable regions), forced above the button bevels; the volume slider and signboards included.
+- Phones: room fixture labels, hints, legends and ledger notes raised to readable sizes; slightly larger health pips and key chips.
+- Checks: typecheck, game 187, web 31, server 168, build pass.
+
+Next step: keep styling new UI from other lanes; sound level tuning with a listener.
