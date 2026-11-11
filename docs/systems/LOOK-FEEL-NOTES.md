@@ -124,4 +124,10 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Not on main yet: the playtest revise-edition badges/results banner and the town lane's Town history view. I will skin them when they land.
 - Checks: typecheck, game 181, web 31, server 166, build pass.
 
-Next step: revise-edition death/escape badges and results banner; Town history timeline.
+### 17. Revision badges, results banner, Town history
+- Revise-edition map marks: death counts are dark-red pills with a pixel skull, escapes green pills with a pixel arrow, quits grey; death cells get a red inner glow. The "Revising …" results banner is a parchment note with a red rule. (CSS; skull/escape sprites via `--sp-*`.) Checked by marking cells in the builder (`after-revision-badges.jpg`).
+- Town history (notice board, after `npm run simulate -- --days 7`): a red SIMULATION stamp, then days as parchment cards on a brass timeline with dots; events fold under a dotted rule (`after-town-history.jpg`).
+- Sweep of the latest merges: the coach's "What does each piece do?" link reads as a link on parchment; no other unstyled windows found.
+- Checks: typecheck, game 181, web 31, server 168, build pass.
+
+Next step: polish as lanes land UI.
