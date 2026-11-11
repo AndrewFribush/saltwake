@@ -74,4 +74,9 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - The player in rooms is drawn by `RoomHero` (art/Places.tsx) over the tile grid and glides 90 ms per step like the town avatar; tiles no longer draw the hero. Two-line change in Interior.tsx.
 - Checks: typecheck, game 178, web 30, build pass; server 161/162 after rebuilding the stale local WASM (`npm run build:contract`; town-spaces contract changes), `wallet-craft-http` times out under load and passes alone.
 
-Next step: stairs/exit glow, enemy idle variety; review the mobile builder.
+### 9. Exits, idle pacing, phone builder
+- Stairs and passages glow softly; rats idle fast, brutes slow, sentries hold still, nests breathe; hit flashes keep priority over idle loops.
+- Phone builder: inspector content scrolls inside its window instead of spilling under the Undo/Redo/Play bar (`after-builder-mobile.jpg`).
+- Checks: typecheck, game 178, web 30, server 162, build pass.
+
+Next step: polish pass on town-spaces player buildings (owner banner art, plot outline), crafting scene and shop counters; consider a short hero walk cycle (2 frames).
