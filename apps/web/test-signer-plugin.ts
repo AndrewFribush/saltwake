@@ -25,9 +25,13 @@ export function testSignerPlugin():Plugin|null{
  const contractId=process.env.SALTWAKE_TEST_SIGNER_CONTRACT??file.contractId;
  if(!keyPaths.length||!contractId)return null;
  const rpcUrl:string=process.env.SALTWAKE_TEST_SIGNER_RPC??file.rpcUrl??'https://test.rpc.fastnear.com';
- if(!['https://test.rpc.fastnear.com','https://rpc.testnet.near.org'].includes(rpcUrl))throw Error('Test signer RPC must be a public testnet RPC');
+ // local:true (written by scripts/wallet-sandbox.ts) signs only against a loopback sandbox RPC, never testnet.
+ const local=file.local===true&&!process.env.SALTWAKE_TEST_SIGNER;
+ if(local){const u=new URL(rpcUrl);if(u.hostname!=='127.0.0.1'&&u.hostname!=='localhost')throw Error('Local test signer requires a loopback sandbox RPC');}
+ else if(!['https://test.rpc.fastnear.com','https://rpc.testnet.near.org'].includes(rpcUrl))throw Error('Test signer RPC must be a public testnet RPC');
+ const network=local?'localnet':'testnet';
  const keys=keyPaths.map(p=>JSON.parse(readFileSync(p,'utf8')) as Key);
- if(keys.some(k=>!k.accountId.endsWith('.testnet'))||!contractId.endsWith('.testnet'))throw Error('Test signer is testnet-only');
+ if(!local&&(keys.some(k=>!k.accountId.endsWith('.testnet'))||!contractId.endsWith('.testnet')))throw Error('Test signer is testnet-only');
  const body=async(req:IncomingMessage)=>{let s='';for await(const c of req)s+=c;if(s.length>65536)throw Error('too large');return JSON.parse(s);};
  return {name:'saltwake-test-signer',apply:'serve',configureServer(server){
   server.middlewares.use('/__test-signer',async(req:IncomingMessage,res:ServerResponse)=>{
@@ -37,7 +41,7 @@ export function testSignerPlugin():Plugin|null{
     if(!key)return reply(400,{error:'unknown test signer account'});
     const {Account,JsonRpcProvider,KeyPair,KeyPairSigner,actions}=await import('near-api-js');
     const provider=new JsonRpcProvider({url:rpcUrl});
-    if(req.method==='GET'&&req.url==='/account')return reply(200,{accountId:key.accountId,network:'testnet',contractId,accounts:keys.map(k=>k.accountId)});
+    if(req.method==='GET'&&req.url==='/account')return reply(200,{accountId:key.accountId,network,contractId,accounts:keys.map(k=>k.accountId)});
     if(req.method!=='POST'||req.headers.origin!==`http://${req.headers.host}`)return reply(403,{error:'same-origin POST required'});
     const input=await body(req);
     if(req.url==='/sign-message'){
