@@ -7,10 +7,11 @@ import {JsonRpcProvider,KeyPairSigner} from 'near-api-js';
 import {DemoSessions} from './auth';
 import {WalletSessions} from './wallet-auth';
 import {checkTestnetApproval} from './testnet-approval';
+import {cachedRead} from './rpc-cache';
 import {Store} from './db';import {Outbox} from './outbox';import {NearChain} from './chain';import {Runs} from './runs';import {httpServer} from './http';
 import type {EconomySnapshot} from '../../../packages/shared/src/types';
 // Local sandbox: operator-controlled demo profiles. Testnet: wallet sign-in only, no demo profiles.
-const {values:args}=parseArgs({options:{testnet:{type:'boolean',default:false},config:{type:'string'},approval:{type:'string',default:'.state/testnet-runtime-approval.json'},port:{type:'string',default:process.env.SALTWAKE_API_PORT??'18931'},'web-origin':{type:'string',default:'http://127.0.0.1:18930'}}});
+const {values:args}=parseArgs({options:{testnet:{type:'boolean',default:false},config:{type:'string'},approval:{type:'string',default:'.state/testnet-runtime-approval.json'},port:{type:'string',default:process.env.SALTWAKE_API_PORT??'18931'},'web-origin':{type:'string',default:'http://127.0.0.1:18930'},'rpc-cache-ms':{type:'string',default:'5000'}}});
 const testnet=args.testnet!;const port=Number(args.port);if(!Number.isSafeInteger(port)||port<1024||port>65535)throw Error('Invalid --port');
 const webOrigin=args['web-origin']!;{const u=new URL(webOrigin);if(u.origin!==webOrigin||u.protocol!=='http:'||u.hostname!=='127.0.0.1')throw Error('--web-origin must be http://127.0.0.1:<port>');}
 const config=JSON.parse(readFileSync(args.config??(testnet?'.state/testnet.json':'.state/sandbox.json'),'utf8'));
@@ -34,12 +35,17 @@ const provider=new JsonRpcProvider({url:config.rpcUrl});
 const db=new Store('.state/'+config.epoch+'/server.sqlite');const chain=new NearChain(provider,KeyPairSigner.fromSecretKey(config.privateKey),config.accountId,config.accountId);
 const bounded=bounds?new BoundedChain(chain,db,bounds.budgetId,bounds.limit,bounds.expiresAt):undefined;
 const readSnapshot=async()=>{const s=await provider.callFunction<EconomySnapshot>({contractId:config.accountId,method:'snapshot',args:{},blockQuery:{finality:'final'}});if(!s)throw Error('No chain snapshot');return s;};
-// Testnet: a full snapshot view takes seconds on public RPCs. Serve the latest read while it is
-// under 5s old and refresh it in the background, so requests do not stack multi-second reads.
-// Operation receipts are always read fresh; cost observations use fresh reads too.
-let latest:{at:number;value:EconomySnapshot}|undefined,inflight:Promise<EconomySnapshot>|undefined;
-const refresh=()=>inflight??=readSnapshot().then(value=>{latest={at:Date.now(),value};return value;}).finally(()=>{inflight=undefined;});
-const snapshot=testnet?async()=>{const age=latest?Date.now()-latest.at:Infinity;if(age<5000){if(age>1500)void refresh().catch(()=>{});return latest!.value;}return refresh();}:readSnapshot;
+// Testnet: a full snapshot view takes seconds on public RPCs, and every client poll asks for a reconcile pass.
+// Snapshot and contract clock reads are cached for --rpc-cache-ms (default 5000; raise it when the public RPC
+// returns -429). Operation receipts are always read fresh; cost observations use fresh reads too.
+const cacheMs=Number(args['rpc-cache-ms']);if(!Number.isSafeInteger(cacheMs)||cacheMs<1000||cacheMs>60000)throw Error('--rpc-cache-ms must be 1000..60000');
+const snapshot=testnet?cachedRead(readSnapshot,cacheMs,cacheMs*0.3):readSnapshot;
+if(testnet){
+ const clock=chain.clock.bind(chain);chain.clock=cachedRead(clock,cacheMs,cacheMs*0.6);
+ // Every reconcile pass re-reads the receipt of each op still awaiting a player signature; reuse a read for half the window.
+ const receipt=chain.receipt.bind(chain),receipts=new Map<string,ReturnType<typeof cachedRead<Awaited<ReturnType<typeof receipt>>>>>();
+ chain.receipt=id=>{let read=receipts.get(id);if(!read)receipts.set(id,read=cachedRead(()=>receipt(id),cacheMs/2,cacheMs/2));return read();};
+}
 const box=new Outbox(db,bounded??chain,new CostJournal(db,readSnapshot));const runs=new Runs(db,box);
 const demo=new DemoSessions({profiles:config.profiles??['buyer','maker','p2','p3','p4','p5'],secureCookies:false});
 const wallet=testnet?{origin:webOrigin,network:'testnet',contractId:config.accountId,walletSessions:new WalletSessions({origin:webOrigin,network:'testnet',contractId:config.accountId,provider,secureCookies:false,sessionMs:3600000})}:undefined;

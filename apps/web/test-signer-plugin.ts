@@ -2,26 +2,42 @@
  * automated browser where wallet popups need a human. Active only when the dev server
  * is started with SALTWAKE_TEST_SIGNER=<key json> and SALTWAKE_TEST_SIGNER_CONTRACT=<contract>
  * (or the equivalent .state/dev-test-signer.json).
+ * Several players: {"keyPaths":[...]} in that file. A browser picks one with ?devSigner=<account> (kept in its
+ * sessionStorage and sent as X-Test-Signer); without it the first key is used. Two browser contexts can then play
+ * as two players against the same origin and API.
+ * "rpcUrl" (optional) moves the signer to the other public testnet RPC, so its sends do not compete with the API
+ * server's polling for one endpoint's rate limit.
  * The key stays in this Node process; the browser only receives signatures and tx hashes.
  * Testnet RPC only, zero-deposit calls to the one configured contract only. */
 import type {Plugin} from 'vite';
 import {existsSync,readFileSync} from 'node:fs';
 import type {IncomingMessage,ServerResponse} from 'node:http';
+type Key={accountId:string;privateKey:string};
+/** Picks the key for a request: the X-Test-Signer account if configured, else the first key. Unknown accounts are refused. */
+export function pickTestSignerKey(keys:Key[],requested:string|string[]|undefined):Key|null{
+ if(requested===undefined||requested==='')return keys[0]??null;
+ return typeof requested==='string'?keys.find(k=>k.accountId===requested)??null:null;
+}
 export function testSignerPlugin():Plugin|null{
  // Or a git-ignored .state/dev-test-signer.json {"keyPath","contractId"} (read at dev-server start).
  const file=existsSync('.state/dev-test-signer.json')?JSON.parse(readFileSync('.state/dev-test-signer.json','utf8')):{};
- const keyPath=process.env.SALTWAKE_TEST_SIGNER??file.keyPath,contractId=process.env.SALTWAKE_TEST_SIGNER_CONTRACT??file.contractId;
- if(!keyPath||!contractId)return null;
- const key=JSON.parse(readFileSync(keyPath,'utf8')) as {accountId:string;privateKey:string};
- if(!key.accountId.endsWith('.testnet')||!contractId.endsWith('.testnet'))throw Error('Test signer is testnet-only');
+ const keyPaths:string[]=process.env.SALTWAKE_TEST_SIGNER?[process.env.SALTWAKE_TEST_SIGNER]:file.keyPaths??(file.keyPath?[file.keyPath]:[]);
+ const contractId=process.env.SALTWAKE_TEST_SIGNER_CONTRACT??file.contractId;
+ if(!keyPaths.length||!contractId)return null;
+ const rpcUrl:string=process.env.SALTWAKE_TEST_SIGNER_RPC??file.rpcUrl??'https://test.rpc.fastnear.com';
+ if(!['https://test.rpc.fastnear.com','https://rpc.testnet.near.org'].includes(rpcUrl))throw Error('Test signer RPC must be a public testnet RPC');
+ const keys=keyPaths.map(p=>JSON.parse(readFileSync(p,'utf8')) as Key);
+ if(keys.some(k=>!k.accountId.endsWith('.testnet'))||!contractId.endsWith('.testnet'))throw Error('Test signer is testnet-only');
  const body=async(req:IncomingMessage)=>{let s='';for await(const c of req)s+=c;if(s.length>65536)throw Error('too large');return JSON.parse(s);};
  return {name:'saltwake-test-signer',apply:'serve',configureServer(server){
   server.middlewares.use('/__test-signer',async(req:IncomingMessage,res:ServerResponse)=>{
    const reply=(status:number,value:unknown)=>{res.statusCode=status;res.setHeader('Content-Type','application/json');res.end(JSON.stringify(value));};
    try{
+    const key=pickTestSignerKey(keys,req.headers['x-test-signer']);
+    if(!key)return reply(400,{error:'unknown test signer account'});
     const {Account,JsonRpcProvider,KeyPair,KeyPairSigner,actions}=await import('near-api-js');
-    const provider=new JsonRpcProvider({url:'https://test.rpc.fastnear.com'});
-    if(req.method==='GET'&&req.url==='/account')return reply(200,{accountId:key.accountId,network:'testnet',contractId});
+    const provider=new JsonRpcProvider({url:rpcUrl});
+    if(req.method==='GET'&&req.url==='/account')return reply(200,{accountId:key.accountId,network:'testnet',contractId,accounts:keys.map(k=>k.accountId)});
     if(req.method!=='POST'||req.headers.origin!==`http://${req.headers.host}`)return reply(403,{error:'same-origin POST required'});
     const input=await body(req);
     if(req.url==='/sign-message'){
