@@ -17,6 +17,6 @@ export function ExpeditionOffer({edition:e,packed,disabled,onAdmit}:{edition:Off
  {view==='Rules & hazards'&&<Pages items={pages} label="Dungeon rule pages" render={p=><><h4>{p.title}</h4><Reading text={p.text} limit={190}/></>}/>}
  {view==='Track record'&&<EditionRecord record={e.record}/>}
  {error&&<Reading text={error}/>}
- <button className="primary" disabled={disabled||!!error} onClick={onAdmit}>Pay {e.fee} coins &amp; descend</button>
+ <button className="primary" disabled={disabled||!!error} onClick={onAdmit}>{e.fee==='0'?'Descend · free entry':<>Pay {e.fee} {e.fee==='1'?'coin':'coins'} &amp; descend</>}</button>
  </div></article>;
 }
