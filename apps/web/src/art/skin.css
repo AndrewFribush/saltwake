@@ -676,3 +676,20 @@ main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
 .saltwake .look-swatch{width:44px;height:44px;padding:2px!important;background:var(--tx-floor-a) center/100% 100%!important;image-rendering:pixelated}
 .saltwake .look-swatch .px-sprite{width:100%;height:100%}
 .saltwake .look-swatch[aria-pressed=true]{box-shadow:0 0 0 2px #f3d98a,0 0 10px #e8c56a88!important}
+
+/* ---------- Passages: drops go down a hatch, others climb stairs ---------- */
+.stairs-art.passage.down::after{content:'↓'}
+.stairs-art.passage.up::after{content:'↑'}
+.stairs-art.passage.down{filter:drop-shadow(0 0 3px #ffe9a066)}
+
+/* ---------- Adventurer offer card (playtest lane) ---------- */
+.saltwake .offer-card{background:var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border-radius:2px;box-shadow:inset 0 0 0 1px #b89a5e,0 2px 0 #0008;padding:8px 10px;font-size:13px}
+.saltwake .offer-card dt{color:#6b3a14;font-family:var(--sw-head)}
+.saltwake .offer-card :is(dd,small,p){color:#3a2a18}
+.saltwake .danger{display:inline-flex;align-items:center;gap:4px;padding:1px 8px 1px 4px;border-radius:9px;box-shadow:inset 0 0 0 1px #0005}
+.saltwake .danger::before{display:inline-grid;place-items:center;width:14px;height:14px;border-radius:50%;background:#0003;font-size:10px}
+.saltwake .danger-calm::before{content:'○'}.saltwake .danger-light::before{content:'◔'}.saltwake .danger-dangerous::before{content:'◑'}.saltwake .danger-deadly::before{content:'☠'}
+.saltwake .danger-calm{background:#3f7a38;color:#fff}.saltwake .danger-light{background:#8a9a3a;color:#141a08}.saltwake .danger-dangerous{background:#c88a2a;color:#1a1004}.saltwake .danger-deadly{background:#a8281c;color:#fff}
+.saltwake .interior-paint-grid .paint-cell>.fixture-sprite{position:absolute;inset:8%;width:auto;height:auto}
+.saltwake .interior-paint-grid .paint-cell>.fixture-keeper{position:absolute;inset:-2% 14% 30%;width:auto;height:auto}
+.saltwake .interior-paint-grid .paint-cell>.fixture-sprite.with-keeper{inset:34% 4% 10%}

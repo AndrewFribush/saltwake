@@ -178,4 +178,11 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Shared with other players: the presence move message carries `look` (0-15). The server validates it as a small integer and relays it; it grants nothing and is not stored. Other players' avatars use their look; avatars without one keep the old per-id hue tint. Server change: 3 lines in apps/server/src/presence.ts plus a test (valid look relayed, out-of-range and non-integer rejected, omitted stays omitted).
 - Checks: typecheck, game 188, web 31, server 169, build pass.
 
+### 26. Two-player look check, decor furniture, offer card, drops
+- Two live sessions (127.0.0.1 and localhost cookie jars, `SALTWAKE_PROXY_ORIGIN=http://127.0.0.1:18990`): the delver picked Kelp green and the proprietor Dusk violet; each saw the other in their chosen colours, with name labels (`two-players-a.jpg`, `two-players-b.jpg`). Known limit: an avatar standing right under a building signboard is partly hidden by the sign (signs are HTML above the SVG map).
+- Decor furniture: six cosmetic pieces in the interior builder palette (stacked crates, table, potted plant, standing lamp, wall banner, old anchor), each with a pixel sprite; the builder's paint grid now shows furniture sprites instead of glyphs. Small edits in InteriorBuilder.tsx (tool list, furniture names, labels, sprite in the paint cell). Pieces use the existing `decor-*` fixture format, so saved layouts validate unchanged (`decor-builder.jpg`, `decor-room.jpg`).
+- Adventurer offer card (playtest): parchment card; danger tag has a shape as well as colour (○ calm, ◔ light, ◑ dangerous, ☠ deadly).
+- Passages: links deeper draw as a drop hatch with ↓, links back up as stairs with ↑ (one line in Run.tsx).
+- Checks: typecheck, game 193, web 31, server 169, build pass.
+
 Next step: keep styling new UI from other lanes.
