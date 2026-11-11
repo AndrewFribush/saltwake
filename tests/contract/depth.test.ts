@@ -37,3 +37,19 @@ test('WASM v12 validates depth features, charges component costs and keeps new e
   assert.equal(v11.status,'Applied');
  }finally{await f.sandbox.tearDown();}
 });
+
+test('WASM v13 accepts keys, locks and plates (with costs) and keeps them out of v12',{timeout:180000},async()=>{
+ const f=await fixture();try{
+  const t=base(Number(await f.view('clock_ms')));
+  const prog=[{id:'k',x:3,y:3,kind:'key',color:'brass'},{id:'l',x:4,y:4,kind:'lock',color:'brass'},{id:'p',x:2,y:6,kind:'plate',channel:'gate'}];
+  const gate={id:'g',x:8,y:6,kind:'door',channel:'gate',open_when:true};
+  const v13=(features:unknown[],devices:unknown[]=[gate])=>({...t,rules_version:13,modules:[mod(floor({features,devices}),'custom13:')]});
+  assert.notEqual((await call(f,'v12-key',publish({...t,modules:[mod(floor({features:prog,devices:[gate]}))]}))).status,'Applied');
+  assert.notEqual((await call(f,'v13-lock-only',publish(v13([prog[1]],[])))).status,'Applied');
+  assert.notEqual((await call(f,'v13-bad-colour',publish(v13([{...prog[0],color:'9x'},prog[1],prog[2]])))).status,'Applied');
+  assert.notEqual((await call(f,'v13-unwired-door',publish(v13([prog[0],prog[1]])))).status,'Applied');
+  const before=BigInt((await f.view('snapshot')).credits.maker);
+  const r=await call(f,'v13-ok',publish(v13(prog)));assert.equal(r.status,'Applied',JSON.stringify(r));
+  assert.equal(before-BigInt((await f.view('snapshot')).credits.maker),9n); // base 2 + brute 4 + key, lock, plate
+ }finally{await f.sandbox.tearDown();}
+});

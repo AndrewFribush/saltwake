@@ -50,3 +50,9 @@
 .run-summary h2{margin:0 0 6px}
 .run-summary ul{margin:6px 0 0;padding-left:18px}
 .run-summary li{margin:3px 0}
+/* Rules v13 progression features (simple shapes; look-feel may reskin). */
+.depth-feature.f-key:before,.depth-under.f-key:before{content:'';position:absolute;width:30%;height:30%;left:22%;top:30%;border:3px solid #f0c75e;border-radius:50%}
+.depth-feature.f-key:after{content:'';position:absolute;left:48%;top:42%;width:32%;height:4px;background:#f0c75e;box-shadow:6px 4px 0 -1px #f0c75e}
+.depth-feature.f-lock{background:repeating-linear-gradient(90deg,#5b3d22 0 6px,#6f4b2a 6px 11px);border:2px solid #2b1a0e}
+.depth-feature.f-lock:after{content:'';position:absolute;width:24%;height:28%;left:38%;top:36%;background:#f0c75e;border-radius:3px 3px 1px 1px;box-shadow:inset 0 -5px #8a6a22}
+.depth-feature.f-plate:before,.depth-under.f-plate:before{content:'';position:absolute;inset:22%;background:#8b8f86;border:2px solid #4c5049;border-radius:3px;box-shadow:inset 0 -3px #5f635b}

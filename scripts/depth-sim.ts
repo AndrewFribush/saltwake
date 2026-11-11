@@ -20,7 +20,8 @@ const carried=(s:RunState)=>Object.values(s.items).filter(i=>i.origin==='dungeon
 /** Breadth-first step toward the nearest goal tile, avoiding marked danger; cracks count as passable (bumped open). */
 function stepToward(s:RunState,goals:Set<string>,avoid:Set<string>,bumpKegs:boolean):Point|null{
  const explored=new Set((s.explored??[]).filter(k=>k.startsWith(s.roomIndex+':')).map(k=>k.slice(k.indexOf(':')+1)));
- const passable=(p:Point)=>(walkable(s,p)||!!featureAt(s,p,'crack')||bumpKegs&&!!featureAt(s,p,'barrel'))&&explored.has(key(p));
+ const lock=(p:Point)=>{const f=featureAt(s,p,'lock');return f?.kind==='lock'&&!!s.keys?.includes(f.color);};
+ const passable=(p:Point)=>(walkable(s,p)||!!featureAt(s,p,'crack')||lock(p)||bumpKegs&&!!featureAt(s,p,'barrel'))&&explored.has(key(p));
  const prev=new Map<string,string|null>([[key(s.player),null]]);const q:Point[]=[s.player];
  for(const p of q){
   if(goals.has(key(p))&&key(p)!==key(s.player)){let k=key(p);while(prev.get(k)!==key(s.player)&&prev.get(k)!==null)k=prev.get(k)!;const [x,y]=k.split(',').map(Number);return {x,y};}
@@ -64,7 +65,7 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
  else if(wantsOut||policy==='reckless'){for(const k of frontier(s))goals.add(k);}
  else{
   for(const i of Object.values(s.items))if(i.location.kind==='floor'&&i.location.room===s.roomIndex&&s.explored?.includes(`${s.roomIndex}:${i.location.x},${i.location.y}`))goals.add(`${i.location.x},${i.location.y}`);
-  for(const f of s.features??[])if(!f.spent&&(f.kind==='cache'||f.kind==='crack'||(f.kind==='fountain'&&s.player.hp<9))&&s.explored?.includes(`${s.roomIndex}:${f.x},${f.y}`))goals.add(key(f));
+  for(const f of s.features??[])if(!f.spent&&(f.kind==='cache'||f.kind==='crack'||f.kind==='key'||(f.kind==='lock'&&s.keys?.includes(f.color))||(f.kind==='fountain'&&s.player.hp<9))&&s.explored?.includes(`${s.roomIndex}:${f.x},${f.y}`))goals.add(key(f));
   if(!goals.size)for(const k of frontier(s))goals.add(k);
   if(!goals.size)goals.add(key(exit));
  }

@@ -7,7 +7,7 @@ import {catalog} from '../../shared/src/catalog';
 import type {ItemType} from '../../shared/src/types';
 import {encounterRules} from './component-catalog';
 import {validateFloorGraph,validateCustomFloor,floorFormat,type CustomFloor} from '../../shared/src/custom-layout';
-import {enemyCatalog,enemyKinds,validateDepthNetwork,type EnemyKind} from '../../shared/src/depth-components';
+import {enemyCatalog,enemyKinds,validateDepthNetwork,validateProgressionNetwork,plateChannels,type EnemyKind} from '../../shared/src/depth-components';
 import type {Socket} from '../../shared/src/types';
 import type {RoomLayout} from './state';
 /** Shared by creator rehearsal and authoritative play. Contains no item creation. */
@@ -15,7 +15,7 @@ export function authoredLayout(floors:readonly CustomFloor[],sockets:readonly So
  const budgetErrors=authoringBudgetErrors(floors);if(budgetErrors.length)throw Error(budgetErrors.join('; '));
  for(const floor of floors){const errors=validateCustomFloor(floor,floorFormat(floor));if(errors.length)throw Error(errors.join('; '));}
  const depth=floors.some(f=>f.features!==undefined);if(depth&&floors.some(f=>f.features===undefined))throw Error('Every depth floor must declare its features.');
- const graphErrors=[...validateDepthNetwork(floors),...validateFloorGraph(floors),...validateMechanismNetwork(floors),...validateExitNetwork(floors)];if(graphErrors.length)throw Error(graphErrors.join('; '));
+ const plates=plateChannels(floors);const graphErrors=[...validateDepthNetwork(floors),...validateProgressionNetwork(floors),...validateFloorGraph(floors),...validateMechanismNetwork(floors,plates),...validateExitNetwork(floors,plates)];if(graphErrors.length)throw Error(graphErrors.join('; '));
  const ids=new Set<string>(),positions=new Set<string>();
  for(const s of sockets){const key=`${s.room}:${s.slot}`;
   if(!s.id||ids.has(s.id)||positions.has(key)||!Number.isInteger(s.room)||!Number.isInteger(s.slot)||!floors[s.room]?.sockets[s.slot]||!(depth?['none',...enemyKinds]:['none','pursuer','charger']).includes(s.enemy)||typeof s.trap!=='boolean')throw Error('Invalid authored encounter');
