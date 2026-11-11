@@ -5,7 +5,9 @@ import {townSize,townStart,type PlaceId,type TownPoint} from '../../../packages/
 import {districts,districtPlaces,districtPath,districtStep,neighbor,type DistrictId} from '../../../packages/game/src/town-districts';
 import './tiles.css';
 import {townTerrain} from './town-terrain';
-import {districtArrival,doorstepLine,ownerHue} from '../../../packages/game/src/town-discovery';
+import {districtArrival,doorstepLine,ownerHue,suggestPlot} from '../../../packages/game/src/town-discovery';
+import {markDone} from './FirstSteps';
+import {landRules} from '../../../packages/shared/src/land';
 import {atNoticeBoard,boardEntries,directionsTo,noticeBoard,type BoardEntry} from '../../../packages/game/src/town-board';
 import {TownBoard} from './TownBoard';
 import {PresenceAvatars,TownChat,useTownPresence,useRoomPresence,setRoomCrowd,playerLabel,type Facing} from './TownPresence';
@@ -20,7 +22,9 @@ export function Town({onEnter,disabled=false,openings,stock,children,shops=[],on
  const saved=readSpot(trade?.world?.profile);const [district,setDistrict]=useState<DistrictId>(saved?.district??'center');const places=districtPlaces(district,shops);const districtInfo=districts.find(d=>d.id===district)!;
  const [position,setPosition]=useState(()=>saved?{x:saved.x,y:saved.y}:spawnPoint(trade?.world?.profile));
  useEffect(()=>{const p=trade?.world?.profile;if(!p)return;try{sessionStorage.setItem('saltwake.town-spot.'+p,JSON.stringify({district,x:position.x,y:position.y}));}catch{}},[district,position.x,position.y,trade?.world?.profile]);const [route,setRoute]=useState<TownPoint[]>([]);const [message,setMessage]=useState('The tide is out. The catacombs are open to anyone with the coin and the nerve.');
- const [boardOpen,setBoardOpen]=useState(false);const [waypoint,setWaypoint]=useState<BoardEntry>();
+ const [boardOpen,setBoardOpen]=useState(false);
+ const me=trade?.world?.profile as string|undefined;const [tourSeen,setTourSeen]=useState(()=>{try{return !!me&&localStorage.getItem(`saltwake.done.${me}.plot-tour`)==='1';}catch{return false;}});
+ const plotTour=!!onBuild&&!!me&&!tourSeen&&!shops.some(s=>s.owner===me)?suggestPlot(district,shops,position):undefined;const [waypoint,setWaypoint]=useState<BoardEntry>();
  const [facing,setFacing]=useState<Facing>('down');const room=useRoomPresence();const presence=useTownPresence(disabled?room.here:{district,x:position.x,y:position.y,facing});
  useEffect(()=>{if(disabled&&room.here)setRoomCrowd({others:presence.others,chat:presence.chat,say:presence.say,you:presence.you});},[disabled,room.here,presence.others,presence.chat,presence.you]);const [tradeWith,setTradeWith]=useState<string>();const partner=presence.others.find(o=>o.id===tradeWith);
  const field=useRef<HTMLDivElement>(null);const near=places.find(b=>Math.abs(b.door.x-position.x)+Math.abs(b.door.y-position.y)<=1);
@@ -63,6 +67,7 @@ export function Town({onEnter,disabled=false,openings,stock,children,shops=[],on
     {route.filter((_,i)=>i%2===0).map(p=><circle key={`${p.x}-${p.y}`} cx={p.x*cell+20} cy={p.y*cell+20} r="3" fill="#e3cb8e" opacity=".65"/>)}
     {district===noticeBoard.district&&<g className="notice-board" aria-hidden="true" transform={`translate(${noticeBoard.x*cell} ${noticeBoard.y*cell})`}><path d="M12 38V22M28 38V22" stroke="#4a3624" strokeWidth="4"/><rect x="3" y="4" width="34" height="20" rx="2" fill="#a67c4e" stroke="#4a3624" strokeWidth="3"/><path d="M8 10h11M8 15h17M22 9h9v9h-9z" stroke="#f1e2bf" strokeWidth="2" fill="none"/></g>}
     {waypoint&&waypoint.district===district&&<g className="waypoint-pin" aria-hidden="true" transform={`translate(${waypoint.door.x*cell+20} ${waypoint.door.y*cell+4})`}><path d="M0 0c-9-12-9-22 0-24 9 2 9 12 0 24z" fill="#e3cb8e" stroke="#2a241d" strokeWidth="2"/><circle cy="-15" r="4" fill="#2a241d"/></g>}
+    {plotTour&&<g className="plot-tour" aria-hidden="true"><rect x={plotTour.x*cell+2} y={plotTour.y*cell+2} width={3*cell-4} height={2*cell-4} rx="4" fill="#e3cb8e22" stroke="#e3cb8e" strokeWidth="3" strokeDasharray="8 6"/><text x={plotTour.x*cell+1.5*cell} y={plotTour.y*cell+cell+5} textAnchor="middle" fill="#f3e6c4" fontSize="13">free plot</text></g>}
     <PresenceAvatars players={presence.others} cell={cell}/>
     <g className="town-avatar" transform={`translate(${x} ${y})`}><CharacterSprite x={-22} y={-22} width={44} height={46}/></g>
    </svg>
@@ -71,6 +76,7 @@ export function Town({onEnter,disabled=false,openings,stock,children,shops=[],on
    <div className="district-compass" aria-label="Neighboring districts">{[{dx:0,dy:-1,label:'↑',point:{x:12,y:0}},{dx:1,dy:0,label:'→',point:{x:23,y:8}},{dx:0,dy:1,label:'↓',point:{x:12,y:15}},{dx:-1,dy:0,label:'←',point:{x:0,y:8}}].map(({dx,dy,label,point})=>{const n=neighbor(district,dx,dy);return n&&<button key={label} className={`edge-${dy<0?'n':dy>0?'s':dx<0?'w':'e'}`} disabled={disabled} onClick={()=>towardEdge(point,dx,dy)}>{label} {n.name}</button>;})}</div>
    <TownChat presence={presence} districtName={districtInfo.name} field={field} disabled={disabled} onPlayer={trade?setTradeWith:undefined}/>
    {trade&&tradeWith&&!disabled&&<PlayerTrade partner={tradeWith} distance={partner?Math.abs(partner.x-position.x)+Math.abs(partner.y-position.y):null} trade={trade} announce={presence.say} onApproach={()=>{if(partner)setRoute(districtPath(district,position,{x:partner.x,y:partner.y},shops));field.current?.focus({preventScroll:true});}} onClose={()=>{setTradeWith(undefined);field.current?.focus({preventScroll:true});}}/>}
+   {plotTour&&!disabled&&!boardOpen&&<div className="plot-tour-hint" role="note"><b>Claim a plot.</b> Land in Saltwake is built by players. The dashed patch is free: press <b>Build here</b> above the map to put a shop or the entrance to your own dungeon there. You can hold {landRules.maxPlotsPerOwner} plots. <button onClick={()=>{if(me)markDone(me,'plot-tour');setTourSeen(true);field.current?.focus({preventScroll:true});}}>Got it</button></div>}
    {boardOpen&&!disabled&&<TownBoard entries={boardEntries(shops,trade?.world?.editions??[],trade?.world?.listings??[])} directions={e=>directionsTo(district,e)} marked={waypoint?.shopId} onMark={setWaypoint} onClose={()=>{setBoardOpen(false);field.current?.focus({preventScroll:true});}}/>}
    {children}
   </div>

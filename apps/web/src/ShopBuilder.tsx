@@ -7,6 +7,7 @@ import {districtPlaces,districts,type DistrictId} from '../../../packages/game/s
 import {landRules,plotsOwned} from '../../../packages/shared/src/land';
 import type {Shopfront} from '../../../packages/shared/src/types';
 import {townTerrain} from './town-terrain';
+import {footprintBlocked} from '../../../packages/game/src/town-discovery';
 export type BuildableEdition={id:string;maker:string;closed:boolean;status:string;terms:{title:string}};
 export function ShopBuilder({district:initialDistrict,shops,existing,command,refresh,onClose,onBusyChange,profile,editions=[]}:{district:DistrictId;shops:Shopfront[];existing?:Shopfront;command:(action:any)=>Promise<void>;refresh:()=>Promise<void>;onClose:()=>void;onBusyChange:(busy:boolean)=>void;profile?:string;editions?:BuildableEdition[]}){
  const [district,setDistrict]=useState<DistrictId>(existing?.district as DistrictId??initialDistrict);
@@ -18,7 +19,7 @@ export function ShopBuilder({district:initialDistrict,shops,existing,command,ref
  const chooseUse=(next:BuildingKind,edition?:string)=>{const layout=withBuildingUse(initial,next,next==='dungeon'?edition??initial.edition??mine[0]?.id:undefined);setInitial(layout);const e=editions.find(e=>e.id===layout.edition);if(next==='dungeon'&&e&&(title==='My shop'||!title.trim()))setTitle(`${e.terms.title} entrance`.slice(0,80));if(next==='dungeon'&&!existing)setOpen(true);if(next==='shop'&&/ entrance$/.test(title))setTitle('My shop');};
  const used=profile?plotsOwned(shops,profile):0,atLimit=!existing&&used>=landRules.maxPlotsPerOwner;
  const buildings=districtPlaces(district,shops.filter(s=>s.id!==existing?.id));
- const blocked=point.x<4||point.x>19||point.y<1||point.y>11||buildings.some(b=>point.x<=b.x+b.width&&point.x+3>=b.x&&point.y<=b.y+b.height&&point.y+2>=b.y)||(point.x<=12&&point.x+3>12&&point.y<=9&&point.y+2>9);
+ const blocked=footprintBlocked(district,shops,point.x,point.y,existing?.id);
  const badLink=kind==='dungeon'&&(!linked||linked.maker!==profile||linked.closed);
  const invalid=blocked||atLimit||badLink||!title.trim()||new TextEncoder().encode(title).length>80;
  const noun=kind==='dungeon'?'entrance':'shop';

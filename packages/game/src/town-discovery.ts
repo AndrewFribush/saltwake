@@ -14,3 +14,14 @@ export function doorstepLine(place:{name:string;keeper:string;purpose:string;sho
 }
 /** Stable hue per owner, so a player's buildings share a banner colour across the town. */
 export function ownerHue(owner:string){let h=0;for(const c of owner)h=(h*31+c.charCodeAt(0))>>>0;return h%360;}
+/** Mirrors the contract's placement rule (shops.rs save_shop): bounds, one-tile clearance, and the reserved spawn road. */
+export function footprintBlocked(id:DistrictId,shops:readonly Shopfront[],x:number,y:number,ignore?:string){
+ const buildings=districtPlaces(id,shops.filter(s=>s.id!==ignore));
+ return x<4||x>19||y<1||y>11||buildings.some(b=>x<=b.x+b.width&&x+3>=b.x&&y<=b.y+b.height&&y+2>=b.y)||(x<=12&&x+3>12&&y<=9&&y+2>9);
+}
+/** The free 3×2 plot nearest to where the player stands, if any: used to point at land in the world, not to place anything. */
+export function suggestPlot(id:DistrictId,shops:readonly Shopfront[],from:{x:number;y:number}){
+ let best:{x:number;y:number}|undefined,dist=Infinity;
+ for(let y=1;y<=11;y++)for(let x=4;x<=19;x++){if(footprintBlocked(id,shops,x,y))continue;const d=Math.abs(x+1-from.x)+Math.abs(y+1-from.y);if(d<dist){dist=d;best={x,y};}}
+ return best;
+}

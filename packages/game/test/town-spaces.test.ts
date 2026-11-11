@@ -42,3 +42,10 @@ test('display shelves are valid decor and spread real stock over the shelves',()
  const a=displayAssignments([{id:'s1'},{id:'s2'}],['x','y','z']);assert.deepEqual([...a.entries()],[['s1',['x','z']],['s2',['y']]]);
  assert.equal(displayAssignments([],['x']).size,0);
 });
+import {footprintBlocked,suggestPlot} from '../src/town-discovery';
+test('the claim-a-plot hint points at land the contract would accept',()=>{
+ const p=suggestPlot('center',[],{x:12,y:9})!;assert.ok(p);assert.equal(footprintBlocked('center',[],p.x,p.y),false);
+ assert.ok(footprintBlocked('center',[],5,2),'starter inn');assert.ok(footprintBlocked('center',[],11,8),'spawn road');assert.ok(footprintBlocked('e',[],3,5),'west of x=4');
+ const taken=[{id:'shop-0',owner:'m',title:'t',district:'center',x:p.x,y:p.y,interior:'{}',version:'1',open:true,listing_ids:[]}];
+ const q=suggestPlot('center',taken,{x:12,y:9})!;assert.notDeepEqual(q,p);assert.equal(footprintBlocked('center',taken,q.x,q.y),false);
+});
