@@ -1,3 +1,4 @@
+mod buyin;
 mod craft;
 mod shops;
 mod editions;
@@ -280,6 +281,7 @@ impl Economy {
             npc_order: self.npc_order.clone(),
             batches: self.batches.values().cloned().collect(),
             recovery: self.recovery.clone(),
+            coin_issuance: buyin::read_issuance(),
             bank_prices: [
                 ItemType::Club,
                 ItemType::Sword,
@@ -298,6 +300,9 @@ impl Economy {
             })
             .collect(),
         }
+    }
+    pub fn land_rules(&self) -> shops::LandRules {
+        shops::land_rules()
     }
     pub fn rules(&self) -> Rules {
         Rules {
@@ -350,7 +355,7 @@ fn player_action_allowed(action: &Action) -> bool {
         | Action::FinalizeClose { .. } | Action::Refresh { .. } | Action::SetFee { .. }
         | Action::List { .. } | Action::CancelListing { .. } | Action::Buy { .. }
         | Action::BankBuy { .. } | Action::BankSell { .. } | Action::FillNpcOrder { .. }
-        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. }
+        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. }
         | Action::BeginCraft { .. } | Action::BeginRecovery { .. })
 }
 impl Economy {
@@ -449,6 +454,7 @@ impl Economy {
             Action::CreateShop {title,district,x,y,interior,open} => self.save_shop(c.actor,None,U64(0),title,district,x,y,interior,open),
             Action::UpdateShop {shop_id,expected_version,title,district,x,y,interior,open} => self.save_shop(c.actor,Some(shop_id),expected_version,title,district,x,y,interior,open),
             Action::StockShop {shop_id,item_ids,unit_price} => self.stock_shop(c.actor,shop_id,item_ids,unit_price),
+            Action::RemoveShop {shop_id,expected_version} => self.remove_shop(c.actor,shop_id,expected_version),
             Action::BeginCraft {
                 batch_id,
                 input_ids,

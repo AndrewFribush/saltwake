@@ -78,6 +78,7 @@ test('the tide floods a floor after its turn budget',()=>{
  let s=run(floor({tide:{turns:5,damage:2}}),[]);
  for(let i=0;i<5;i++)s=act(s,{type:'wait'});assert.equal(s.player.hp,12);
  s=act(s,{type:'wait'});assert.equal(s.player.hp,10);
+ while(s.status==='active')s=act(s,{type:'wait'});assert.equal(s.killedBy,'the rising tide');
 });
 
 test('bombs need a visible target within range; darts need a line',()=>{

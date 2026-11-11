@@ -1,13 +1,23 @@
-import React,{useEffect,useRef,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {CharacterSprite} from './CharacterSprite';
 import type {DistrictId} from '../../../packages/game/src/town-districts';
 import './town-presence.css';
 
 /** Other players in your district, plus district chat. Social only: nothing here touches the economy. */
 export type Facing='up'|'down'|'left'|'right';
-export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing};
+export type PresencePlayer={id:string;district:DistrictId|null;x:number;y:number;facing:Facing;room?:string};
 export type ChatMessage={id:string;from:string;text:string;at:number};
-export type Here={district:DistrictId;x:number;y:number;facing:Facing}|null;
+export type Here={district:DistrictId;x:number;y:number;facing:Facing;room?:string}|null;
+const spaceOf=(p:{district:DistrictId|null;room?:string}|null|undefined)=>p?.district?(p.room??p.district):null;
+/** Shared rooms: a player building's interior publishes where you stand; the town's single presence stream carries it
+ * and hands back who else is in that room. Social only, like the rest of presence. */
+type RoomState={here:Here;others:PresencePlayer[];chat:ChatMessage[];say?:(text:string)=>Promise<void>;you?:string};
+let roomState:RoomState={here:null,others:[],chat:[]};const roomListeners=new Set<()=>void>();
+const setRoom=(next:Partial<RoomState>)=>{roomState={...roomState,...next};roomListeners.forEach(l=>l());};
+const subscribeRoom=(l:()=>void)=>{roomListeners.add(l);return()=>{roomListeners.delete(l);};};
+export const setRoomPresence=(here:Here)=>setRoom(here?{here}:{here:null,others:[],chat:[]});
+export const setRoomCrowd=(crowd:Pick<RoomState,'others'|'chat'|'say'|'you'>)=>{if(crowd.others!==roomState.others||crowd.chat!==roomState.chat||crowd.you!==roomState.you)setRoom(crowd);};
+export function useRoomPresence(){return useSyncExternalStore(subscribeRoom,()=>roomState);}
 
 const MOVE_EVERY_MS=80,HEARTBEAT_MS=5_000;
 export {playerLabel} from './presence-names';
@@ -30,8 +40,8 @@ export function useTownPresence(here:Here){
   const on=(name:string,fn:(data:any)=>void)=>source.addEventListener(name,e=>fn(JSON.parse((e as MessageEvent).data)));
   // A (re)connect resets server state; resend where we stand right away.
   on('hello',d=>{setYou(d.you);setOnline(true);setOthers({});ready.current=true;clearTimeout(pending.current);flush();});
-  on('snapshot',d=>{if(d.district!==latest.current?.district)return;setOthers(Object.fromEntries(d.players.map((p:PresencePlayer)=>[p.id,p])));setChat(d.chat);});
-  const upsert=(d:{player:PresencePlayer})=>{if(d.player.district===latest.current?.district)setOthers(o=>({...o,[d.player.id]:d.player}));};
+  on('snapshot',d=>{if(spaceOf(d)!==spaceOf(latest.current))return;setOthers(Object.fromEntries(d.players.map((p:PresencePlayer)=>[p.id,p])));setChat(d.chat);});
+  const upsert=(d:{player:PresencePlayer})=>{if(spaceOf(d.player)===spaceOf(latest.current))setOthers(o=>({...o,[d.player.id]:d.player}));};
   on('join',upsert);on('move',upsert);
   on('leave',d=>setOthers(o=>{const {[d.id]:_,...rest}=o;return rest;}));
   on('chat',m=>setChat(c=>[...c,m].slice(-40)));
@@ -39,11 +49,12 @@ export function useTownPresence(here:Here){
   const beat=setInterval(()=>{if(ready.current)flush();},HEARTBEAT_MS);
   return()=>{source.close();clearInterval(beat);clearTimeout(pending.current);ready.current=false;};
  },[]);
- useEffect(()=>{schedule();},[here?.district,here?.x,here?.y,here?.facing,here===null]);
+ useEffect(()=>{schedule();},[here?.district,here?.room,here?.x,here?.y,here?.facing,here===null]);
  // Leaving a district clears its crowd and chat immediately; the snapshot refills them.
- useEffect(()=>{setOthers({});setChat([]);},[here?.district,here===null]);
+ useEffect(()=>{setOthers({});setChat([]);},[here?.district,here?.room,here===null]);
  const say=async(text:string)=>{await post('chat',{text});};
- return {you,others:Object.values(others),chat,online,say};
+ const list=useMemo(()=>Object.values(others),[others]);
+ return {you,others:list,chat,online,say};
 }
 
 function OtherAvatar({player,cell}:{player:PresencePlayer;cell:number}){
@@ -62,11 +73,13 @@ export function PresenceAvatars({players,cell}:{players:PresencePlayer[];cell:nu
 
 /** Small district chat overlay. Typing here never moves the character; Escape returns to the map, Enter on the map opens chat. */
 export function TownChat({presence,districtName,field,disabled,onPlayer}:{presence:ReturnType<typeof useTownPresence>;districtName:string;field:React.RefObject<HTMLDivElement|null>;disabled:boolean;onPlayer?:(id:string)=>void}){
- const [draft,setDraft]=useState('');const [error,setError]=useState('');const [open,setOpen]=useState(()=>typeof matchMedia!=='function'||matchMedia('(min-width: 700px)').matches);const input=useRef<HTMLInputElement>(null);const log=useRef<HTMLOListElement>(null);
+ const [draft,setDraft]=useState('');const [error,setError]=useState('');const [manual,setOpen]=useState<boolean|null>(null);const wide=typeof matchMedia!=='function'||matchMedia('(min-width: 700px)').matches;const input=useRef<HTMLInputElement>(null);const log=useRef<HTMLOListElement>(null);
  useEffect(()=>{const el=field.current;if(!el)return;const onKey=(e:KeyboardEvent)=>{if(e.key==='Enter'&&e.target===el&&!disabled){e.preventDefault();setOpen(true);setTimeout(()=>input.current?.focus(),0);}};el.addEventListener('keydown',onKey);return()=>el.removeEventListener('keydown',onKey);},[field,disabled]);
- useEffect(()=>{log.current?.scrollTo({top:log.current.scrollHeight});},[presence.chat.length,open]);
+ useEffect(()=>{log.current?.scrollTo({top:log.current.scrollHeight});},[presence.chat.length,manual]);
  const send=async()=>{const text=draft.trim();if(!text)return;try{await presence.say(text);setDraft('');setError('');}catch(e){setError((e as Error).message);}};
  const count=presence.others.length;
+ // Collapsed while you are alone and nothing has been said; opens by itself when someone arrives or speaks.
+ const open=manual??(wide&&(count>0||presence.chat.length>0));
  return <div className={`town-chat ${open?'open':''}`} onClick={e=>e.stopPropagation()}>
   <button className="town-chat-head" onClick={()=>setOpen(!open)} aria-expanded={open} title={presence.others.map(p=>playerLabel(p.id)).join(', ')||undefined}>
    <span className={`presence-dot ${presence.online?'on':''}`} aria-hidden="true"/>{presence.online?(count?`${count} other${count===1?'':'s'} in ${districtName}`:`Alone in ${districtName}`):'Reconnecting…'}

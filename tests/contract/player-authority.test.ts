@@ -146,7 +146,8 @@ test('WASM pre-identity populated upgrade preserves snapshots, hashes and receip
   const deadline_ms=String(BigInt(await f.view('clock_ms'))+600000n);
   await old('legacy-craft',{actor:'maker',action:{type:'begin_craft',batch_id:'old-craft',input_ids:inputs('maker'),challenge_commitment:commitment,deadline_ms}});
   await old('legacy-recovery',{actor:'worker',action:{type:'begin_recovery',batch_id:'old-recovery',bank_input_ids:inputs('bank'),challenge_commitment:commitment,deadline_ms}});
-  const before=await f.view();await f.operator.deployContract(readFileSync(wasm));assert.deepEqual(await f.view(),before);
+  // The upgraded code reports the buy-in issuance line (stored outside contract state) at zero; nothing else changes.
+  const before={...await f.view(),coin_issuance:{coins_issued:'0',near_received:'0',purchases:'0'}};await f.operator.deployContract(readFileSync(wasm));assert.deepEqual(await f.view(),before);
   for(const {id,command,receipt} of records){assert.deepEqual(await f.view('operation',{op_id:id}),receipt);assert.equal(await f.view('command_hash',{command}),commandHash(command));assert.deepEqual(await f.execute(id,command),receipt);}
   assert.deepEqual(await f.view(),before);
   const profile=await f.register();assert.deepEqual(await f.view(),{...before,credits:{...before.credits,[profile]:'0'}});

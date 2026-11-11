@@ -7,7 +7,7 @@ const action:Command['action']={type:'bank_buy',item_ids:['item-1'],expected_uni
 function setup(storage?:Pick<Storage,'getItem'|'setItem'>){
  let now=1000,identity:WalletIdentity|null={accountId:'alice.testnet',network:'sandbox',revision:0};
  let session={accountId:'alice.testnet',profileId:'wallet:alice.testnet',publicKey:'ed25519:abc',expiresAtMs:900000};
- const calls:{path:string;body:any}[]=[],transactions:WalletTransaction[]=[],messages:any[]=[];
+ const calls:{path:string;body:any}[]=[],transactions:any[]=[],messages:any[]=[];
  let applied=false,mutate:(path:string,value:any)=>any=(_p,v)=>v;
  const proof={accountId:'alice.testnet',publicKey:'ed25519:abc',signature:'A'.repeat(86)+'=='};
  const adapter:InjectedWalletAdapter={identity:()=>identity,signMessage:async input=>{messages.push(input);return proof;},approveTransaction:async input=>{transactions.push(structuredClone(input.transaction));applied=true;return {status:'submitted',accountId:input.accountId,network:input.network};}};

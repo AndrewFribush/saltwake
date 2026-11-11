@@ -41,4 +41,8 @@ Verify: typecheck, game 168, web 29, server and build pass; contract suite 81/82
 
 Note for anyone running a local sandbox next to `npm run verify`: in this session the local sandbox process exited each time the contract suite ran. Restart it (and the API) after verify.
 
+### 3. Merge of build/dungeon-loop
+- Kept the dungeon-depth run summary, turn log and telegraph colour scheme: the threat overlay now takes its colour from the tile's `warn-*` class (bolt gold, blast red, brute sweep orange; other danger coral). Town keeps `townTerrain` and dungeon-hall roofs with the new textures; Interior keeps builder/notice fixtures, room overlay and idle hints with the new furniture/door art and player facing.
+- Checks after merge: typecheck, game 171, web 30, server 157, build pass.
+
 Next step: shopkeepers behind counters, water animation, builder grid textures; mobile pass (map window larger when idle in town; dungeon board centring in the real layout); then more feedback polish (pickup sparkle, stairs glow, low-health vignette).

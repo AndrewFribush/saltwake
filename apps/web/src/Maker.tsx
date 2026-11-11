@@ -16,7 +16,7 @@ export type MakerProps = {
 type EditionView = {
   randomTables?:RandomTable[];id: string; maker: string; terms: EditionTerms; fee: string;
   costs?:EditionCostReport;
-  version: string; closed: boolean; active: number;placementPaid?:string;settledRevenue?:number;pendingFees?:number;completedRuns?:number;feedback?:Record<string,number>;
+  record?:import('../../../packages/shared/src/edition-record').EditionRecord;bundles?:number;remainingValue?:number;status?:string;version: string; closed: boolean; active: number;placementPaid?:string;settledRevenue?:number;pendingFees?:number;completedRuns?:number;feedback?:Record<string,number>;
 };
 
 /** Parent supplies the authenticated command wrapper and current world snapshot. */
@@ -65,12 +65,13 @@ export function Maker({world, busy, selected, command, refresh,onBusyChange}: Ma
       const fundingAction=replenishmentAction(edition,pool,ids,items,world.profile);
       return <article key={edition.id}>
         <h3>{edition.terms.title}</h3>
-        {view!=='Accounts'&&view!=='Account rules'&&<p>{edition.id} · Version {edition.version} · Entry {edition.fee} credits · {edition.active} active runs</p>}
+        {view==='Manage'&&(()=>{const r=edition.record;return <div className="maker-headline"><p><b>{r?.attempts??0}</b> {r?.attempts===1?'delver has':'delvers have'} entered{r&&r.attempts>0?`: ${r.extracted} escaped, ${r.died} died${r.abandoned?`, ${r.abandoned} gave up`:''}${r.active?`, ${r.active} still inside`:''}`:'.'}</p><p>You earned <b>{edition.settledRevenue??0} coins</b> in entry fees{edition.pendingFees?` (+${edition.pendingFees} held until runs finish)`:''}.</p><p>{edition.status==='open'?`Open · ${edition.bundles??0} funded ${edition.bundles===1?'attempt':'attempts'} left · treasure worth ${edition.remainingValue??0} below.`:edition.closed?'Closed. Leftover treasure went to the bank.':edition.status==='depleted'?'Every funded attempt has been used, so no one can enter. Add treasure under Edition view → Stock to reopen.':edition.status==='scheduled'?'Scheduled: opens soon.':`Status: ${edition.status??'unknown'}.`}</p></div>;})()}
+        {view!=='Accounts'&&view!=='Account rules'&&<p className="maker-meta">Version {edition.version} · Entry {edition.fee} coins · {edition.active} active {edition.active===1?'run':'runs'}</p>}
         {view==='Accounts'&&<>{edition.costs?<><p>Settled fees {edition.costs.settledFees} · Pending {edition.costs.pendingFees} coins.</p><p>Placement {edition.costs.placementCost} · Known treasure cost {edition.costs.knownTreasureCost} · {edition.costs.unknownTreasureItems} goods with unknown cost.</p><p>Recorded contribution: {edition.costs.contribution===null?'Unknown':edition.costs.contribution+' coins'}. See Account rules for coverage.</p></>:<p>Cost observations unavailable.</p>}</>}
         {view==='Account rules'&&<Reading limit={150} text="Contribution is settled fees minus placement and all committed treasure costs. Pending fees are not income. Unknown treasure costs make contribution unknown. Closure leftovers go to the bank; they are never refunded. This excludes your time and external costs. Old funding is unknown until supported by an observation; catalog values are not purchase costs."/>}
         {view==='Results'&&<><p>Settled entry fees: {edition.settledRevenue??0} · Pending fee escrow: {edition.pendingFees??0} · Placement paid: {edition.placementPaid??'unknown'} · Finished attempts: {edition.completedRuns??0}. These figures exclude the acquisition cost of funded goods and are not net profit.</p><p>Player feedback: {Object.entries(edition.feedback??{}).map(([choice,n])=>`${choice}: ${n}`).join(' · ')||'None'}</p></>}
         {view!=='Accounts'&&view!=='Account rules'&&<p>{edition.closed ? 'Closed' : pastCutoff ? 'Cutoff reached' : 'Accepting changes'} · Cutoff {Number.isFinite(cutoff) ? new Date(cutoff).toLocaleString() : 'unavailable'}</p>}
-        {view==='Manage'&&<><label>New entry fee (0–1,000,000 credits) <input type="number" min="0" max="1000000" step="1"
+        {view==='Manage'&&<><label>New entry fee (coins) <input type="number" min="0" max="1000000" step="1"
           value={fee} disabled={disabled || !open}
           onChange={event => setFees(previous => ({...previous, [edition.id]: event.target.value}))} /></label>{' '}
         <button type="button" disabled={disabled || !open || !validFee}

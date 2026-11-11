@@ -1,5 +1,6 @@
 import type {Shopfront} from '../../shared/src/types';
-export type TownBuilding={id:string;name:string;keeper:string;purpose:string;x:number;y:number;width:number;height:number;door:{x:number;y:number};shopId?:string};
+import {readBuildingUse} from './town-spaces';
+export type TownBuilding={id:string;name:string;keeper:string;purpose:string;x:number;y:number;width:number;height:number;door:{x:number;y:number};shopId?:string;edition?:string};
 import {places,townSize,townWalkable,type TownPoint,type PlaceId} from './town';
 export type DistrictId='nw'|'n'|'ne'|'w'|'center'|'e'|'sw'|'s'|'se';
 export const districts:{id:DistrictId;name:string;x:number;y:number;service?:PlaceId}[]=[
@@ -19,7 +20,7 @@ function starterPlaces(id:DistrictId){
  const original=places.find(p=>p.id===service)!;
  return [{...original,x:10,y:4,door:{x:12,y:6}}];
 }
-export function districtPlaces(id:DistrictId,shops:readonly Shopfront[]=[]):TownBuilding[]{return [...starterPlaces(id),...shops.filter(s=>s.district===id).map(s=>({id:s.id,shopId:s.id,name:s.title,keeper:s.owner,purpose:s.open?'Player shop':'Closed shop',x:s.x,y:s.y,width:3,height:2,door:{x:s.x+1,y:s.y+1}}))];}
+export function districtPlaces(id:DistrictId,shops:readonly Shopfront[]=[]):TownBuilding[]{return [...starterPlaces(id),...shops.filter(s=>s.district===id).map(s=>{const use=readBuildingUse(s.interior);return {id:s.id,shopId:s.id,name:s.title,keeper:s.owner,purpose:use.kind==='dungeon'?(s.open?'Dungeon entrance':'Closed entrance'):s.open?'Player shop':'Closed shop',x:s.x,y:s.y,width:3,height:2,door:{x:s.x+1,y:s.y+1},...(use.kind==='dungeon'?{edition:use.edition}:{})};})];}
 export function neighbor(id:DistrictId,dx:number,dy:number){const d=districts.find(d=>d.id===id)!;return districts.find(n=>n.x===d.x+dx&&n.y===d.y+dy);}
 export function districtWalkable(id:DistrictId,p:TownPoint,shops:readonly Shopfront[]=[]){
  if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||p.x<0||p.x>=24||p.y<0||p.y>=16)return false;

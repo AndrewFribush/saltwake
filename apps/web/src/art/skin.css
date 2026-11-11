@@ -25,8 +25,12 @@
 .stairs-art.passage::after{content:'⇅';position:absolute;right:4%;top:2%;font:700 clamp(9px,1.4vw,15px)/1 system-ui;color:#ffe9a8;text-shadow:0 1px 0 #000}
 
 /* Telegraphed danger: always above floor art and features, below creatures. */
-.threat-mark{position:absolute;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(135deg,#ff4a2a66 0 3px,transparent 3px 8px);box-shadow:inset 0 0 0 2px #ff7a48,inset 0 0 14px #ff2a1a99;animation:sw-threat 1s ease-in-out infinite}
-@keyframes sw-threat{50%{box-shadow:inset 0 0 0 3px #ffb070,inset 0 0 18px #ff3a1ab0}}
+.threat-mark{--tc:#ff7058;position:absolute;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--tc) 42%,transparent) 0 3px,transparent 3px 8px);box-shadow:inset 0 0 0 2px var(--tc),inset 0 0 14px color-mix(in srgb,var(--tc) 60%,transparent);animation:sw-threat 1s ease-in-out infinite}
+/* Threat colours follow the dungeon rules' scheme: bolt lines gold, blast zones red, brute sweeps orange. */
+.tile.warn-bolt>.threat-mark{--tc:#ffd75e}
+.tile.warn-blast>.threat-mark{--tc:#ff2e2e;background:repeating-linear-gradient(135deg,#ff2e2e66 0 4px,transparent 4px 7px)}
+.tile.warn-smash>.threat-mark{--tc:#ff9a3c}
+@keyframes sw-threat{50%{box-shadow:inset 0 0 0 3px var(--tc),inset 0 0 20px var(--tc)}}
 
 /* Features */
 .feature-art{position:absolute;inset:0;z-index:1;pointer-events:none}

@@ -35,7 +35,7 @@ const adapter:InjectedWalletAdapter={identity:()=>({accountId,network:'testnet',
  approveTransaction:async ({transaction:tx})=>{
   assert.equal(tx.receiverId,config.contractId);
   const out=await player.signAndSendTransaction({receiverId:tx.receiverId,actions:[(await import('near-api-js')).actions.functionCall(tx.methodName,tx.args,BigInt(tx.gas),0n)],waitUntil:'FINAL'});
-  const label=tx.methodName==='register_player'?'register_player':String((tx.args.action as any).type);hashes[label]=out.transaction.hash;console.log('player tx',label,out.transaction.hash);
+  const label=tx.methodName==='register_player'?'register_player':String(((tx.args as any).action as any)?.type??tx.methodName);hashes[label]=out.transaction.hash;console.log('player tx',label,out.transaction.hash);
   return {status:'submitted',accountId,network:'testnet',transactionHash:out.transaction.hash};
  }};
 const journal=new Map<string,string>();
