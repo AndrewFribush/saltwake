@@ -42,7 +42,7 @@ export type Listing={id:string;seller:string;item_ids:string[];remaining_ids:str
 export type NpcOrder={id:string;item_type:ItemType;unit_price:string;remaining:number;budget:string;seeded_demo_demand:boolean};
 export type BankPrice={item_type:ItemType;sale_price:string;buyback_price:string};
 export type Shopfront={id:string;owner:string;title:string;district:string;x:number;y:number;interior:string;version:string;open:boolean;listing_ids:string[]};
-export type EconomySnapshot={shops?:Shopfront[];credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState};
+export type EconomySnapshot={shops?:Shopfront[];credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState;coin_issuance?:{coins_issued:string;near_received:string;purchases:string}};
 
 export type CraftTier='normal'|'fine';
 export type FinishReason='completed'|'expired';

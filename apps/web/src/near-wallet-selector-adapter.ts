@@ -1,6 +1,7 @@
 import {Buffer} from 'buffer';
+import {isExactBuyIn} from '../../../packages/shared/src/buy-in';
 import type {WalletSelector,Network,InjectedWallet} from '@near-wallet-selector/core';
-import type {InjectedWalletAdapter,WalletIdentity,WalletProof,WalletTransaction} from './wallet-transport';
+import type {InjectedWalletAdapter,WalletIdentity,WalletProof,WalletTransaction,WalletCall} from './wallet-transport';
 import {commandGas} from '../../../packages/shared/src/command-limits';
 import type {Command} from '../../../packages/shared/src/types';
 
@@ -93,8 +94,10 @@ export class NearWalletSelectorAdapter implements InjectedWalletAdapter{
   if(signed.accountId!==mark.accountId||!/^ed25519:[1-9A-HJ-NP-Za-km-z]+$/.test(signed.publicKey)||! /^[A-Za-z0-9+/]{86}==$/.test(signed.signature))throw Error('Wallet signed-message binding mismatch');
   return {accountId:signed.accountId,publicKey:signed.publicKey,signature:signed.signature};
  }
- private validateTransaction(input:WalletTransaction){
+ private validateTransaction(input:WalletCall){
   const tx=structuredClone(input);
+  // NEAR buy-in is the one deposit-bearing call: exact shape and deposit = coins × published price.
+  if(tx.methodName==='buy_coins'){if(!isExactBuyIn(tx,this.config.contractId))throw Error('Unsafe buy-in transaction');return tx;}
   if(Object.keys(tx).sort().join(',')!=='args,deposit,gas,methodName,receiverId'||tx.receiverId!==this.config.contractId||tx.deposit!=='0'||!tx.args||Array.isArray(tx.args))throw Error('Unsafe wallet transaction');
   if(tx.methodName==='register_player'){
    if(Object.keys(tx.args).length||tx.gas!=='100000000000000')throw Error('Unsafe registration transaction');
@@ -112,7 +115,7 @@ export class NearWalletSelectorAdapter implements InjectedWalletAdapter{
   const {actionCreators}=await import('@near-wallet-selector/core');this.check(mark);
   const wallet=await this.wallet(mark);this.check(mark);
   // 10.x takes real NEAR Action objects, not the older {type, params} format.
-  const outcome=await wallet.signAndSendTransaction({signerId:mark.accountId,receiverId:tx.receiverId,actions:[actionCreators.functionCall(tx.methodName,tx.args,BigInt(tx.gas),0n)]});this.check(mark);
+  const outcome=await wallet.signAndSendTransaction({signerId:mark.accountId,receiverId:tx.receiverId,actions:[actionCreators.functionCall(tx.methodName,tx.args,BigInt(tx.gas),BigInt(tx.deposit))]});this.check(mark);
   if(!outcome||outcome.transaction.signer_id!==mark.accountId||outcome.transaction.receiver_id!==tx.receiverId||!outcome.transaction.hash)throw Error('Wallet transaction outcome missing or mismatched; synchronize original request');
   return {status:'submitted',accountId:mark.accountId,network:mark.network,transactionHash:outcome.transaction.hash};
  }

@@ -10,6 +10,7 @@
  * The key stays in this Node process; the browser only receives signatures and tx hashes.
  * Testnet RPC only, zero-deposit calls to the one configured contract only. */
 import type {Plugin} from 'vite';
+import {isExactBuyIn} from '../../packages/shared/src/buy-in';
 import {existsSync,readFileSync} from 'node:fs';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 type Key={accountId:string;privateKey:string};
@@ -50,9 +51,11 @@ export function testSignerPlugin():Plugin|null{
      return reply(200,{accountId:key.accountId,publicKey:proof.publicKey.toString(),signature:Buffer.from(proof.signature).toString('base64')});
     }
     if(req.url==='/send'){
-     if(input.receiverId!==contractId||input.deposit!=='0'||!['register_player','execute_player'].includes(input.methodName))return reply(400,{error:'only zero-deposit game calls are signed'});
+     // Zero-deposit game calls only, except the NEAR buy-in with its exact quoted deposit.
+     const buyIn=input.methodName==='buy_coins'&&isExactBuyIn(input,contractId);
+     if(input.receiverId!==contractId||!buyIn&&(input.deposit!=='0'||!['register_player','execute_player'].includes(input.methodName)))return reply(400,{error:'only zero-deposit game calls (or an exact buy-in) are signed'});
      // Public RPC rate limits: retrying is safe because game calls are idempotent per request id.
-     let out:any;for(let attempt=0;;attempt++){try{out=await new Account(key.accountId,provider,key.privateKey as any).signAndSendTransaction({receiverId:contractId,actions:[actions.functionCall(input.methodName,input.args,BigInt(input.gas),0n)],waitUntil:'FINAL'});break;}catch(e){if(attempt>=5||!/429|Rate limit/i.test(String((e as Error).message)))throw e;await new Promise(r=>setTimeout(r,500*2**attempt));}}
+     let out:any;for(let attempt=0;;attempt++){try{out=await new Account(key.accountId,provider,key.privateKey as any).signAndSendTransaction({receiverId:contractId,actions:[actions.functionCall(input.methodName,input.args,BigInt(input.gas),buyIn?BigInt(input.deposit):0n)],waitUntil:'FINAL'});break;}catch(e){if(attempt>=5||!/429|Rate limit/i.test(String((e as Error).message)))throw e;await new Promise(r=>setTimeout(r,500*2**attempt));}}
      console.log('[test-signer]',input.methodName,input.args?.action?.type??'',out.transaction.hash);
      return reply(200,{hash:out.transaction.hash});
     }

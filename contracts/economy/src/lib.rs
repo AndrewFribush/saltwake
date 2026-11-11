@@ -1,3 +1,4 @@
+mod buyin;
 mod craft;
 mod shops;
 mod editions;
@@ -280,6 +281,7 @@ impl Economy {
             npc_order: self.npc_order.clone(),
             batches: self.batches.values().cloned().collect(),
             recovery: self.recovery.clone(),
+            coin_issuance: buyin::read_issuance(),
             bank_prices: [
                 ItemType::Club,
                 ItemType::Sword,

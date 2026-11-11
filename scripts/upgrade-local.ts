@@ -17,6 +17,9 @@ try{
  const before=await snapshot();if(!before)throw Error('Existing economy state is required.');
  const account=new Account(config.accountId,provider,config.privateKey as KeyPairString);
  await account.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));
- const after=await snapshot();assert.deepEqual(after,before,'Local upgrade changed economy snapshot');
+ // The buy-in issuance line is a new snapshot field (stored outside contract state); a code upgrade adds it at zero.
+ const strip=(v:any)=>{const {coin_issuance,...rest}=v??{};return rest;};
+ const after=await snapshot();assert.deepEqual(strip(after),strip(before),'Local upgrade changed economy snapshot');
+ assert.equal((after as any)?.coin_issuance?.coins_issued??'0',(before as any)?.coin_issuance?.coins_issued??'0','Local upgrade changed coin issuance');
  console.log(`Local contract upgraded; unchanged snapshot: ${before.items.length} items, ${before.editions.length} editions, ${before.runs.length} runs. No initialization performed.`);
 }finally{db.close();}

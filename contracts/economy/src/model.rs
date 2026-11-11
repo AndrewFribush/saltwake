@@ -333,6 +333,7 @@ pub struct Snapshot {
     pub bank_prices: Vec<BankPrice>,
     pub batches: Vec<CraftBatch>,
     pub recovery: RecoveryState,
+    pub coin_issuance: crate::buyin::CoinIssuance,
 }
 
 #[near(serializers=[borsh,json])]
