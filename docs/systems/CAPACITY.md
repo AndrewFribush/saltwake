@@ -9,8 +9,8 @@ Before this change the contract capped records over the whole life of a world an
 64 runs, 64 listings, 64 craft batches, 32 editions and 256 receipts in total. A public world stopped
 admitting runs after its 64th run, stopped listing after its 64th listing, and stopped accepting any
 operation after its 256th receipt. The server outbox mirrored the 256-receipt lifetime cap, and the
-server's craft store capped 64 craft requests in total. `init_simulation` raising the receipt cap was a
-stopgap for long simulations, not a fix.
+server's craft store capped 64 craft requests in total. `init_simulation` multiplying those caps
+(`capacity_scale.v1`) was a stopgap for long simulations, not a fix.
 
 ## Design
 
@@ -41,9 +41,24 @@ history. Pruning is safe because terminal records are immutable and nothing live
 - A finished batch can be pruned while its `crafted-<id>-<n>` outputs live on. `BeginCraft` refuses a
   batch id whose outputs still exist (`BatchExists`), so a reused id can never collide with live goods
   and strand its inputs in `crafting`.
-- Items are not pruned and need no cap: nothing issues goods at runtime except recipes, and a recipe
-  consumes two issued materials for each output, so the item map is bounded by initial issuance
-  (at most initial items plus half the initial herbs and flasks).
+- Items are not pruned and need no cap: goods enter only at init, through `operator_restock` (explicit
+  operator issuance, off unless the contract account calls it, counted by `item_issuance`), and through
+  recipes, which consume two issued materials per output. The item map is bounded by total issuance
+  (initial plus restocked goods, plus half of all herbs and flasks issued); consumed goods stay recorded.
+- Commissions: open commissions hold escrow and are never pruned; only filled or cancelled ones beyond
+  the newest 32 are. Retired editions stay on the retired list until the edition itself is pruned.
+- Every command, including the newer ones (shops 19-22, private offers 23, retire 24, commissions 25-27),
+  goes through the same receipt path, so the window and replay protection cover all of them.
+
+### `capacity_scale.v1`
+
+The town lane's scale (1 on every normal world, 32 from `init_simulation`) multiplied the lifetime caps.
+Active caps and pruning make that redundant, and scaling the active caps or the recent receipt tier would
+only grow the main state that every call loads. The scale is kept, under the same key, and now multiplies
+only the tombstone slots of the receipt window (4,096 x scale), so a simulation world gets a wider
+throughput window with an unchanged main state. `receipt_capacity` reports the recent tier (256);
+`capacity.receipts.tombstone_capacity` reports the window. `receipt_cap.v1` (set by simulation seeds before
+the scale existed, and by the local capacity test seed) still sets the recent tier when present.
 
 ### Receipts: exactly-once without unbounded storage
 
@@ -89,11 +104,15 @@ both tiers. Each call forgets at most four tombstones that are past the minimum 
   That is safe because at upgrade time the contract has forgotten nothing: every old receipt is still in
   the recent tier and only starts its 72 hours when it becomes a tombstone.
 
+- **G5, wallet clients never resend late.** The web client saves an interrupted wallet request in
+  `sessionStorage` and retries it under the same request id. Saved requests now carry their creation
+  time, and one older than 12 hours (or saved before this guard) is dropped with a notice instead of
+  being resent (`apps/web/src/pending-command.ts`).
+
 What is not guaranteed: after its tombstone is forgotten (72 hours or later), an op id is unknown again,
-and a brand-new transaction carrying it would execute. The operator outbox cannot produce one (G3).
-Wallet-signed player requests are signed by the player; the web client keeps an interrupted request in
-`sessionStorage` and retries it with the same id until it resolves, so a tab left open for more than
-three days with an unresolved request is the remaining case. Every action that moves specific goods
+and a brand-new transaction carrying it would execute. Neither the operator outbox (G3) nor the web
+client (G5) produces one; a player hand-crafting a wallet transaction with an old request id is the
+remaining case, and it only repeats that player's own action. Every action that moves specific goods
 (buy, sell, list, publish, settle, finish) also fails naturally on replay because the goods have moved;
 admissions and commission posts are the actions that would repeat.
 
@@ -132,7 +151,7 @@ action added; the last index is still 27, `CancelCommission`). New storage keys 
 initialised lazily: the receipt order from the existing map, the listing and commission counters from
 the largest existing number. Closed editions beyond the kept 16 are pruned at the first applied command
 after the upgrade. `tests/contract/capacity-upgrade.test.ts` deploys the pre-capacity build
-(`tests/fixtures/economy-pre-capacity.wasm`, commit 8f4c96a), upgrades in place and checks that the
+(`tests/fixtures/economy-pre-capacity.wasm`, built from main at 0a3f96a), upgrades in place and checks that the
 snapshot is unchanged, old receipts replay, and new listing, commission and run ids continue past the old ones.
 
 ## Storage bound
@@ -206,6 +225,11 @@ grows with lifetime totals.
 - Under machine load (other lanes' sandboxes running) some existing contract tests time out in
   `sandbox_fast_forward` (a 30-second client abort); each was rerun alone and passed. `S17 support
   exhaustion` takes the same 65 s on this build and on the pre-capacity build when run alone.
+
+- After merging main at 0a3f96a: `npm run verify` typecheck, contract build, game (198) and web (32)
+  tests pass; contract tests 90 pass with 4 load timeouts (closure, settlement, two S17 stress tests),
+  each passing when rerun alone; server tests 181 pass; web build passes. The 30-day simulation above
+  was run before this merge.
 
 ## Next step
 
