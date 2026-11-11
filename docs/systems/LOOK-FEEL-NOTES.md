@@ -51,4 +51,12 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Per-house floors keep the playtest lane's distinctions with textures: inn planks, market pale flagstones, workshop and gatehouse slate, guild carpet. Fixtures keep a faint gold ring.
 - Checks after merge with build/dungeon-loop 0364ad8: typecheck, game 176, web 30, server 157, build pass.
 
-Next step: skin the builder/trade UI and player buildings (owner banners, notice board, display shelves); mobile pass (map window larger when idle in town; dungeon board centring in the real layout); then more feedback polish (pickup sparkle, stairs glow, low-health vignette).
+### 5. Shared surfaces from the other lanes (CSS only)
+- Harbor notice board: cork board with pinned parchment notes; room notices are paper notes; display shelves get wooden shelf lines; room chat and trade panels share the panel frame.
+- Run summary is a parchment expedition report (gains green, losses red); the turn log is a ledger with the newest line highlighted; threat overlays hide once the run has ended.
+- First steps reads as a quest log (current step brass); builder step strip sits in a recessed track, the coach is a parchment note; selects and inputs share the skin.
+- Builder previews (`.game-sprite.*`, `.depth-feature.*` CSS drawings) now show the pixel sprites via `--sp-*` variables, so the construction kit and play use the same art.
+- New sprites: drafting table, notice board, display shelf (interior fixtures map by name).
+- Checks: typecheck, game 177, web 30, server 158, build pass.
+
+Next step: wallet onboarding title screen (pixel harbor scene, step indicator), mobile pass, then pickup sparkle / low-health vignette.
