@@ -152,3 +152,21 @@ Playing Saltwake as a stranger on a local sandbox (web 18970, API 18971), fixing
 - Check lists funding problems ("Funding: Random pool creator-loot needs at least 1 goods…").
 
 Verified on a fresh generated preset: Check now reports the shortfall, one click fills the pool, and Check and Open then show ready.
+
+## Round 9: richer maker feedback, and safer paying at the gate
+
+**Built:**
+- Run marks now carry which floors each run visited and what happened to each funded reward it was assigned: taken out, left behind, used up, or back in the pool after a death.
+- `packages/shared/src/edition-insight.ts` turns those marks into:
+  - a per-floor funnel (entered → reached floor N, deaths there → escaped);
+  - top killers;
+  - loot per reward spot: funded / taken / left / used / back in pool;
+  - suggestion lines, e.g. "Most delvers die to the charger on floor 1 before reaching any treasure", "Nearly everyone escapes with the treasure", "Delvers escape but leave the treasure", "Few delvers reach floor N", and "Only N runs so far".
+- The revision banner shows all of this. The steward's headline shows the main suggestion.
+
+**Played:** "Tonic cellar" (a charger and a fine-tonic reward). One delver died to the charger, and one took the tonic and escaped. The revision view read: "Entered 2 → floor 1: 2 (1 died) → escaped 1 · Floor 1 · Fine tonic: funded 2 · 1 taken · 1 back in the pool after a death · Only 2 runs so far: wait for more before big changes."
+
+**Gate bug (from the dungeon lane):** the dungeon list and each offer's rules both used "Next →", so a scripted click paid into the wrong dungeon. Now:
+- The list says "← Previous dungeon / Dungeon 1 of 3 / Next dungeon →" and sits under a gold divider.
+- An offer's rules use "‹ Back / More rules ›", and long text uses "More ›".
+- The pay button names the dungeon: "Pay 1 coin & enter Rat warren".

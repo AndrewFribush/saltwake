@@ -127,6 +127,9 @@ async function bodyOf(req:IncomingMessage,maxBytes:number){let bytes=0;const chu
 /** Where finished runs of an edition ended, for its maker's revision view: floor, tile, outcome, killer and turn.
  * Only runs this server hosted; positions inside the maker's own dungeon reveal nothing about other players' goods. */
 function runMarks(db:Store,editionId:string){
- return db.all<SavedRun>('run').filter(r=>r.economic.edition===editionId&&r.terminal&&r.terminal!=='void').slice(-200).map(r=>({floor:r.state.roomIndex,x:r.state.player.x,y:r.state.player.y,outcome:r.terminal!,turn:r.state.turn,...(r.state.killedBy?{killer:r.state.killedBy}:{}),...(r.terminal==='died'&&!r.state.killedBy?{killer:lastHitter(r.state.log)}:{})}));
+ return db.all<SavedRun>('run').filter(r=>r.economic.edition===editionId&&r.terminal&&r.terminal!=='void').slice(-200).map(r=>({floor:r.state.roomIndex,x:r.state.player.x,y:r.state.player.y,outcome:r.terminal!,turn:r.state.turn,floors:visitedFloors(r),loot:runLoot(r),...(r.state.killedBy?{killer:r.state.killedBy}:{}),...(r.terminal==='died'&&!r.state.killedBy?{killer:lastHitter(r.state.log)}:{})}));
 }
 function lastHitter(log:string[]){for(let i=log.length-1;i>=0;i--){const m=/^(.+?) (?:strikes|hits|bites|smashes)/.exec(log[i]);if(m&&!m[1].startsWith('You'))return m[1];}return undefined;}
+function visitedFloors(r:SavedRun){const floors=new Set<number>([0,r.state.roomIndex]);for(const k of r.state.explored??[]){const n=Number(k.split(':')[0]);if(Number.isInteger(n))floors.add(n);}return [...floors].sort((a,b)=>a-b);}
+/** What became of each funded reward this run was assigned: carried out, left on the floor, used up, or lost when the delver fell. */
+function runLoot(r:SavedRun){return r.economic.assignments.map(a=>{const item=r.state.items[a.item_id];const kind=item?.location.kind;const fate=kind==='consumed'?'used':r.terminal==='extracted'&&kind&&kind!=='floor'?'taken':r.terminal==='extracted'?'left':'lost';return {socket:a.socket,item_type:item?.type??'unknown',fate};});}
