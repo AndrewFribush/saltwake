@@ -97,7 +97,7 @@ test('blueprints and rule pages carry depth designs; plain designs stay v11',()=
 });
 
 test('generated drafts are valid for many seeds and practice runs start',()=>{
- for(let seed=1;seed<=40;seed++){const d=generateDraft(seed);for(const f of d.floors)assert.deepEqual(validateCustomFloor(f,'depth'),[]);}
+ for(let seed=1;seed<=40;seed++){const d=generateDraft(seed,{vaults:true});for(const f of d.floors)assert.deepEqual(validateCustomFloor(f,f.features?.some(x=>x.kind==='lock')?'keys':'depth'),[]);}
  assert.equal(depthPractice(3).status,'active');
 });
 
@@ -113,4 +113,22 @@ test('balance harness: careful play survives Small; reckless play on Large usual
  const {simulate}=await import('../../../scripts/depth-sim');
  const small=Array.from({length:12},(_,i)=>simulate(i+1,'small','cautious'));assert.ok(small.filter(r=>r.status==='died').length<=1);
  const large=Array.from({length:12},(_,i)=>simulate(i+1,'large','reckless'));assert.ok(large.filter(r=>r.status==='died').length>=8);
+});
+
+test('v13 keys open matching locks once; plates hold gates open while occupied',()=>{
+ const pocket=['###########','#.......#.#','#.......#.#','#.......###',...Array(2).fill('#.........#'),'###########'];
+ // A lock seals the pocket instead of a crack is invalid (lock must be on floor); use a floor doorway.
+ const room=['###########','#......#..#','#......#..#','#.........#',...Array(2).fill('#.........#'),'###########'];
+ const f=floor({tiles:room,features:[{id:'k',x:3,y:5,kind:'key',color:'brass'},{id:'l',x:7,y:3,kind:'lock',color:'brass'},{id:'p',x:2,y:1,kind:'plate',channel:'gate'}],devices:[{id:'g',x:5,y:1,kind:'door',channel:'gate',open_when:true}]});
+ assert.deepEqual(validateCustomFloor(f,'keys'),[]);
+ assert.ok(validateCustomFloor(f,'depth').length,'v12 rejects progression features');
+ assert.ok(validateCustomFloor(floor({tiles:pocket,features:[{id:'l',x:8,y:1,kind:'lock',color:'brass'}]}),'keys').length,'locks sit on floor');
+ assert.ok(encodeCustomModule(f,'keys').startsWith('custom13:'));
+ let s=run(f,[]);
+ assert.equal(act(s,{type:'move',x:2,y:1}).signals?.gate,true);
+ const off=act(act(s,{type:'move',x:2,y:1}),{type:'move',x:3,y:1});assert.equal(off.signals?.gate,false);
+ s.player.x=6;s.player.y=3;assert.equal(act(s,{type:'move',x:7,y:3}),s,'locked without a key');
+ s.player.x=3;s.player.y=4;s=act(s,{type:'move',x:3,y:5});assert.deepEqual(s.keys,['brass']);
+ s.player.x=6;s.player.y=3;s=act(s,{type:'move',x:7,y:3});assert.equal(s.features!.find(x=>x.id==='l')!.spent,true);assert.deepEqual(s.keys,[]);
+ s=act(s,{type:'move',x:7,y:3});assert.equal(s.player.x,7);
 });

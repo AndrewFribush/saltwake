@@ -79,6 +79,28 @@ Reading: Small is survivable for careful play (2% deaths) and still nicks reckle
 - Readable enemy names in every rule version: log lines and attack buttons now say "pursuer #0" (authored dungeons) or "pursuer (sword)" (older socket IDs) instead of raw IDs. Rules are unchanged; only text.
 - Floor-one sentries softened: crossbow sentry alert distance 6 → 5. Harness, 60 seeds, cautious bot: deaths Small 2%, Medium 5%, Large 13%, with no sentry deaths on Small or Medium (Medium had 4 before); spikes and pursuers now cause most careful-play deaths.
 
+## Rules v13: keys, locked doors, pressure plates
+
+- **Key** (colour): step on it to pick it up; keys persist across floors for the run. **Locked door** (colour): blocks movement and sight; bump it holding a matching key to unlock it for good (the key is used). Every lock colour needs a key of that colour somewhere in the dungeon (shared validation and contract). Locks count as passable for reachability, like cracked walls. **Pressure plate** (channel): the channel is on while any creature stands on it. Plates count as signal sources for door and exit wiring, so a gate can be held open by luring an enemy onto its plate. Levers/gates and one-way passages already exist (switches + doors in v10, directed connections in v6), so v13 adds only what was missing.
+- Versioning: `custom13:` modules, rules_version 13 (v12 rejects these kinds, older editions unchanged). Builder publishes the lowest version that can express a design (11, 12 or 13). Costs: 1 coin each. Contract: schema, colour/channel names, lock-key network, plate wiring, costs; **needs a testnet redeploy like v12**.
+- Builder: Features panel lists Key ⚷, Locked door ⊠ and Pressure plate ▭ with explanations and a text field for colour/channel; simple CSS art on map and board; run status shows keys held.
+- Generator: Medium and Large put a locked vault (brass lock + key elsewhere) on deeper floors in place of the cracked-wall stash (45/50 Large drafts have one). Harness bots collect keys and open locks.
+- Tests: game (keys/locks/plates, v12 rejection), contract (v13 acceptance, costs, rejections), server (paid run: key opens a vault, funded tonic extracts).
+
+Harness after v13, 60 seeds:
+```
+Saltwake depth simulation · 60 seeds per preset × policy · kit club
+small  cautious died   2% out  97% stalled   2% · loot out 0.75 + drunk 0.07 of 1.0 funded · turns 33 · floor 1.0 · tide 0 · causes pursuer 1
+small  greedy   died   2% out  95% stalled   3% · loot out 0.85 + drunk 0.10 of 1.0 funded · turns 46 · floor 1.0 · tide 0 · causes pursuer 1
+small  reckless died   5% out  93% stalled   2% · loot out 0.20 + drunk 0.02 of 1.0 funded · turns 26 · floor 1.0 · tide 0 · causes powder crab (blast) 2, Keg (blast) 1
+medium cautious died   5% out  92% stalled   3% · loot out 0.65 + drunk 0.13 of 2.0 funded · turns 54 · floor 1.1 · tide 0 · causes charger 1, Spikes 1, pursuer 1
+medium greedy   died  27% out  72% stalled   2% · loot out 0.53 + drunk 0.78 of 2.0 funded · turns 79 · floor 1.8 · tide 1 · causes charger 8, pursuer 5, Spikes 1, rat 1
+medium reckless died  78% out  22% stalled   0% · loot out 0.02 + drunk 0.10 of 2.0 funded · turns 31 · floor 1.8 · tide 0 · causes charger 12, pursuer 10, powder crab (blast) 9, sentry 8
+large  cautious died  15% out  78% stalled   7% · loot out 0.65 + drunk 0.13 of 8.3 funded · turns 76 · floor 1.0 · tide 0 · causes Spikes 4, pursuer 3, sentry 2
+large  greedy   died  52% out  42% stalled   7% · loot out 0.40 + drunk 2.22 of 8.3 funded · turns 135 · floor 2.1 · tide 2 · causes pursuer 7, sentry 6, charger 4, Spikes 4
+large  reckless died  98% out   2% stalled   0% · loot out 0.00 + drunk 0.23 of 8.3 funded · turns 36 · floor 1.8 · tide 1 · causes pursuer 15, sentry 15, charger 9, Keg (blast) 8
+```
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
@@ -86,4 +108,4 @@ Reading: Small is survivable for careful play (2% deaths) and still nicks reckle
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** rules v13 progression components (keys and locked doors, pressure plates driving gates) with builder, contract, rehearsal, paid play and harness coverage.
+**Next step:** a puzzle-vault generator theme (plate-held gate guarding treasure), and a browser pass placing keys/locks/plates by hand.
