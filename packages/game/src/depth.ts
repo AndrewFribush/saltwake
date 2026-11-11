@@ -142,6 +142,13 @@ export function shoveTarget(s:RunState,e:Enemy):{to:Point;fall:boolean}|null{
 export function planDepthEnemy(s:RunState,e:Enemy,distances:Map<string,number>):boolean{
  const key=(p:Point)=>`${p.x},${p.y}`;e.aim=false;
  if(e.stunned){e.intent={x:e.x,y:e.y};e.lane=[];return true;}
+ if(e.kind==='patrol'){
+  // Fixed beat: one step along its axis, turning back at walls, kegs, closed gates and other enemies.
+  const blocked=(p:Point)=>!walkable(s,p)||s.enemies.some(o=>o.id!==e.id&&o.hp>0&&same(o,p));let d=e.dir??{x:1,y:0};
+  if(blocked({x:e.x+d.x,y:e.y+d.y})){d={x:-d.x,y:-d.y};}e.dir=d;const next={x:e.x+d.x,y:e.y+d.y};
+  if(blocked(next)){e.intent={x:e.x,y:e.y};e.lane=[];return true;}
+  e.intent=next;e.lane=[];let p=next;for(let i=0;i<3&&!blocked(p);i++){e.lane.push(p);p={x:p.x+d.x,y:p.y+d.y};}return true;
+ }
  if(e.kind==='nest'){e.intent={x:e.x,y:e.y};e.hatch=(e.timer??nestPeriod)<=1?hatchTile(s,e):undefined;return true;}
  if(e.kind==='bomber'){if(e.primed||chebyshev(e,s.player)<=1){e.primed=true;e.intent={x:e.x,y:e.y};e.lane=square(e).filter(p=>s.room[p.y]?.[p.x]==='.');return true;}return false;}
  if(e.kind==='brute'){
@@ -173,6 +180,11 @@ export function actDepthEnemy(ctx:Ctx,e:Enemy):boolean{
  const s=ctx.s;
  if(e.stunned){e.stunned--;return true;}
  if(e.kind==='nest')return true;
+ if(e.kind==='patrol'){
+  if(same(e.intent,s.player)){ctx.hitPlayer(e.damage??3,who(e));return true;}
+  if(walkable(s,e.intent)&&!s.enemies.some(o=>o.id!==e.id&&o.hp>0&&same(o,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
+  return true;
+ }
  if(e.kind==='bomber'&&e.primed){explodeBomber(ctx,e);return true;}
  if(e.kind==='archer'&&e.aim&&e.lane?.length){s.log.push(`${who(e)} fires.`);strikeLine(ctx,e.lane,e.damage??3,who(e));e.aim=false;e.recovering=true;return true;}
  if(e.kind==='brute'){

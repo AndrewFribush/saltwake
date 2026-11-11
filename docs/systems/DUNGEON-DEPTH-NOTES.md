@@ -215,4 +215,10 @@ large  greedy   died  53% out  40% stalled   7% · loot out 0.42 + drunk 1.87 of
 large  reckless died  98% out   0% stalled   2% · loot out 0.00 + drunk 0.13 of 9.3 funded · turns 44 · floor 2.1 · tide 1 · arena 10/28 (died 9) · timed 0/5 · lure 0/16 · causes charger 14, sentry 11, pursuer 10, powder crab (blast) 10
 ```
 
-**Next step:** patrolling enemies with telegraphed routes (v14 enemy kind with a shown back-and-forth lane), then more maker vocabulary; keep running the demo-town test after generator changes (the Large showcase in scripts/demo-town.ts is owned by the playtest lane).
+## Rules v14: harbour watch (patrolling enemy)
+
+- New enemy kind `patrol` ("Harbour watch", 5 health, 3 damage, 2 coins, rules v14; v14 extended since it is not deployed anywhere public). It walks a fixed beat back and forth along the longer straight open run through where it is placed, whether or not it has seen you; turns back at walls, kegs, closed gates and other enemies. Its next three steps are marked (lane), so the danger is telegraphed; it strikes only whoever is on the tile it steps into and otherwise ignores you. Shoved aside, it carries on from there. Decision: time your crossing, or shove it off line.
+- Shared: EnemyKind/Socket type, `enemySince` (patrol → 14) feeding `requiredRulesVersion`, protocol enemy index 7 (matches the contract enum, appended so stored Borsh indices are unchanged). Play: plan/act in depth.ts, exempt from alert gating, telegraph text. Builder: appears in the Encounters enemy list automatically (from the catalog). Contract: `Enemy::Patrol` appended, rejected before v14, cost 2. Tests: game (beat, reversal, marked steps, strike only on its next tile, solver finds a route past it) and contract (v13 rejects, v14 charges base 2 + 2).
+- Not yet: the generator does not place harbour watches; no dedicated sprite (uses the generic enemy art); harness bots already treat its marked lane as danger.
+
+**Next step:** generator theme with harbour watches guarding corridors (Large, v14) plus harness numbers; a look-feel sprite for the watch and the tide clock; testnet redeploy for v14 (coordinator).

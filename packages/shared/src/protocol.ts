@@ -13,7 +13,7 @@ export function encodeCommand(c:Command):Uint8Array{
  if(a.type==='debit'){byte(0);u64(a.amount);}
  else if((a.type==='publish'||a.type==='publish_random')){
   byte(a.type==='publish'?1:6);const t=a.terms;str(t.title);byte(t.rules_version);strings(t.modules);u32(t.sockets.length);
-  for(const s of t.sockets){str(s.id);byte(s.room);byte(s.slot);byte(['none','pursuer','charger','archer','bomber','brute','nest'].indexOf(s.enemy));bool(s.trap);byte(s.reward===null?0:1);if(s.reward!==null)byte(['club','sword','armor','herb','iron','flask','tonic','fineTonic'].indexOf(s.reward));}
+  for(const s of t.sockets){str(s.id);byte(s.room);byte(s.slot);byte(['none','pursuer','charger','archer','bomber','brute','nest','patrol'].indexOf(s.enemy));bool(s.trap);byte(s.reward===null?0:1);if(s.reward!==null)byte(['club','sword','armor','herb','iron','flask','tonic','fineTonic'].indexOf(s.reward));}
   u64(t.opens_at_ms);u64(t.closes_at_ms);bool(t.no_reward);str(t.difficulty_tag);str(t.style_tag);u64(t.run_duration_ms);byte(t.max_runs);u64(a.fee);if(a.type==='publish')strings(a.funding);else{strings(a.fixed_funding);u32(a.random_tables.length);for(const t of a.random_tables){str(t.table_id);strings(t.socket_ids);strings(t.item_ids);}}
  }else if(a.type==='settle'||a.type==='void'){
   byte(a.type==='settle'?3:4);str(a.run_id);if(a.type==='settle')byte(['extracted','died','abandoned','expired'].indexOf(a.outcome));else str(a.reason);

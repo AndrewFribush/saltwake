@@ -8,7 +8,7 @@ export function resolveEnemies(s:RunState,guard:boolean){
  for(const e of [...s.enemies].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)){
   if(s.player.hp<=0)break;
   if(e.hp<=0)continue;
-  if(s.roguelike&&!e.alerted){if(distance(e,s.player)>(e.alertRadius??5))continue;e.alerted=true;}
+  if(s.roguelike&&!e.alerted&&e.kind!=='patrol'){if(distance(e,s.player)>(e.alertRadius??5))continue;e.alerted=true;}
   if(e.recovering){e.recovering=false;continue;}
   if(e.kind!==undefined&&e.kind!=='pursuer'&&e.kind!=='charger'||e.stunned){if(actDepthEnemy(ctx,e))continue;}
   // Displacement cannot teleport an enemy onto its old committed action.
@@ -50,7 +50,7 @@ export function revealIntents(s:RunState){
  for(let i=0;i<queue.length;i++)for(const next of neighbors(queue[i]))if(walkable(s,next)&&!distances.has(key(next))){distances.set(key(next),distances.get(key(queue[i]))!+1);queue.push(next);}
  for(const e of s.enemies){
   e.lane=[];
-  if(s.roguelike&&!e.alerted&&distance(e,s.player)>(e.alertRadius??5)){e.intent={x:e.x,y:e.y};continue;}
+  if(s.roguelike&&!e.alerted&&e.kind!=='patrol'&&distance(e,s.player)>(e.alertRadius??5)){e.intent={x:e.x,y:e.y};continue;}
   if(e.recovering){e.intent={x:e.x,y:e.y};continue;}
   if((e.kind!==undefined&&e.kind!=='pursuer'&&e.kind!=='charger'||e.stunned)&&planDepthEnemy(s,e,distances))continue;
   if(e.kind==='charger'&&(e.x===s.player.x||e.y===s.player.y)){

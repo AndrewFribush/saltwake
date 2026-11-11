@@ -5,7 +5,7 @@ export type ItemLocation =
  | {kind:'reserved';run:string;socket:string;source_pool:string}|{kind:'loadout';run:string;profile:string}
  | {kind:'crafting';batch:string;source_owner:string}|{kind:'bank'}|{kind:'consumed';operation:string};
 export type Item={id:string;item_type:ItemType;location:ItemLocation};
-export type Socket={readonly id:string;readonly room:number;readonly slot:number;readonly enemy:'none'|'pursuer'|'charger'|'archer'|'bomber'|'brute'|'nest';readonly trap:boolean;readonly reward:ItemType|null};
+export type Socket={readonly id:string;readonly room:number;readonly slot:number;readonly enemy:'none'|'pursuer'|'charger'|'archer'|'bomber'|'brute'|'nest'|'patrol';readonly trap:boolean;readonly reward:ItemType|null};
 export type EditionTerms={readonly title:string;readonly rules_version:number;readonly modules:readonly string[];readonly sockets:readonly Socket[];readonly opens_at_ms:string;readonly closes_at_ms:string;readonly no_reward:boolean;readonly difficulty_tag:string;readonly style_tag:string;readonly run_duration_ms:string;readonly max_runs:number};
 export type RandomTable={readonly table_id:string;readonly socket_ids:readonly string[];readonly item_ids:readonly string[]};
 export type RandomFunding={readonly table_id:string;readonly item_ids:readonly string[]};

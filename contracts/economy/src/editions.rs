@@ -74,6 +74,8 @@ impl Economy {
                 Enemy::Bomber => 2,
                 Enemy::Brute => 4,
                 Enemy::Nest => 4,
+                Enemy::Patrol if terms.rules_version < 14 => return Err("InvalidSocket".into()),
+                Enemy::Patrol => 2,
             };
             cost += u64::from(socket.trap);
             if let Some(ty) = socket.reward {
