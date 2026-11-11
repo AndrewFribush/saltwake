@@ -333,6 +333,9 @@ pub struct Snapshot {
     /// Active listings reserved for one buyer. Omitted when empty so older snapshots compare equal.
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty", default)]
     pub reservations: std::collections::BTreeMap<String, String>,
+    /// Coins each player bought with NEAR (labelled issuance). Omitted when empty.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty", default)]
+    pub buy_ins: std::collections::BTreeMap<String, U64>,
     pub shops: Vec<Shopfront>,
     pub credits: std::collections::BTreeMap<String, U64>,
     pub bank: U64,

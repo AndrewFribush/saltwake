@@ -33,6 +33,11 @@ pub struct CoinPurchase {
     pub replay: bool,
 }
 
+/// Per-player buy-in totals (append-only, own storage key per profile) so a player's ledger can itemize coins bought with NEAR.
+fn buyer_key(profile: &str) -> Vec<u8> { format!("coin_buyer.v1:{profile}").into_bytes() }
+pub fn read_buyer(profile: &str) -> Option<CoinIssuance> {
+    env::storage_read(&buyer_key(profile)).map(|b| borsh::from_slice(&b).expect("Corrupt buyer record"))
+}
 pub fn read_issuance() -> CoinIssuance {
     env::storage_read(ISSUANCE_KEY)
         .map(|b| borsh::from_slice(&b).expect("Corrupt issuance record"))
@@ -51,6 +56,7 @@ impl Economy {
             issuance: read_issuance(),
         }
     }
+    pub fn coin_purchases_of(&self, profile: String) -> CoinIssuance { read_buyer(&profile).unwrap_or_default() }
     pub fn coin_purchase(&self, account_id: AccountId, request_id: String) -> Option<U64> {
         let op_id = buy_operation_key(&account_id, &request_id);
         env::storage_read(&purchase_key(&op_id)).map(|b| borsh::from_slice::<U64>(&b).expect("Corrupt purchase"))
@@ -84,6 +90,11 @@ impl Economy {
         issuance.purchases = U64(issuance.purchases.0 + 1);
         env::storage_write(ISSUANCE_KEY, &borsh::to_vec(&issuance).unwrap());
         env::storage_write(&purchase_key(&op_id), &borsh::to_vec(&U64(coins)).unwrap());
+        let mut mine = read_buyer(&profile).unwrap_or_default();
+        mine.coins_issued = U64(mine.coins_issued.0 + coins);
+        mine.near_received = U128(mine.near_received.0 + price);
+        mine.purchases = U64(mine.purchases.0 + 1);
+        env::storage_write(&buyer_key(&profile), &borsh::to_vec(&mine).unwrap());
         env::log_str(&format!("coin_purchase {op_id} {profile} {coins} {price}"));
         CoinPurchase { op_id, profile, coins: U64(coins), paid_yocto: U128(price), replay: false }
     }
