@@ -183,6 +183,27 @@ impl Economy {
         }
         s
     }
+    /// Simulation seed (local sandboxes only, used by `npm run simulate -- --players N`): the extended demo plus
+    /// labelled extra profiles. Makers m-<n> (60 coins, 2 swords, 4 tonics), artisans a-<n> (10 coins, 2 herbs, 2 flasks),
+    /// delvers d-<n> (`delver_coins` coins and a club); the bank gets 6 herbs and 6 flasks per artisan. Explicit issuance at init.
+    #[init]
+    #[private]
+    pub fn init_simulation(makers: u8, artisans: u8, delvers: u8, delver_coins: U64) -> Self {
+        assert!(makers <= 16 && artisans <= 16 && delvers <= 32 && delver_coins.0 <= 1000, "Simulation seed too large");
+        let mut s = Self::init_demo_extended();
+        let mut give = |s: &mut Self, owner: &str, ty: ItemType, prefix: &str, n: u32| {
+            for k in 0..n {
+                let id = format!("sim-{owner}-{prefix}-{k}");
+                let location = if owner == "bank" { Location::Bank } else { Location::Owned { profile: owner.into() } };
+                s.items.insert(id.clone(), Item { id, item_type: ty, location });
+            }
+        };
+        for m in 0..makers { let p = format!("m-{m}"); s.credits.insert(p.clone(), 60); give(&mut s, &p, ItemType::Sword, "sword", 2); give(&mut s, &p, ItemType::Tonic, "tonic", 4); }
+        for a in 0..artisans { let p = format!("a-{a}"); s.credits.insert(p.clone(), 10); give(&mut s, &p, ItemType::Herb, "herb", 2); give(&mut s, &p, ItemType::Flask, "flask", 2);
+            give(&mut s, "bank", ItemType::Herb, &format!("herb-{a}"), 6); give(&mut s, "bank", ItemType::Flask, &format!("flask-{a}"), 6); }
+        for d in 0..delvers { let p = format!("d-{d}"); s.credits.insert(p.clone(), delver_coins.0); give(&mut s, &p, ItemType::Club, "club", 1); }
+        s
+    }
     // Public testnet seed: the extended demo plus a larger newcomer labor pool.
     // Wallet players register with zero assets and earn their first coins
     // through bank recovery jobs, so the pool must outlast many players:
