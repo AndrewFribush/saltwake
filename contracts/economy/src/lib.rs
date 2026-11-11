@@ -52,9 +52,11 @@ fn hash<T: borsh::BorshSerialize>(value: &T) -> String {
         .map(|b| format!("{b:02x}"))
         .collect()
 }
-/// Receipt capacity: 256 for every normal world; only `init_simulation` raises it (own storage key, layout unchanged).
-const RECEIPT_CAP_KEY: &[u8] = b"receipt_cap.v1";
-fn receipt_cap() -> usize { env::storage_read(RECEIPT_CAP_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt receipt cap")) as usize).unwrap_or(256) }
+/// Prototype record caps (256 receipts; 64 runs, listings and craft batches over a world's life) are multiplied by a
+/// scale kept in its own storage key: 1 for every normal world, raised only by `init_simulation` for long bot runs.
+const CAP_SCALE_KEY: &[u8] = b"capacity_scale.v1";
+pub(crate) fn cap(base: usize) -> usize { base * env::storage_read(CAP_SCALE_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt capacity scale")) as usize).unwrap_or(1) }
+fn receipt_cap() -> usize { cap(256) }
 fn now_ms() -> u64 {
     env::block_timestamp() / 1_000_000
 }
@@ -195,7 +197,7 @@ impl Economy {
         assert!(makers <= 16 && artisans <= 16 && delvers <= 32 && delver_coins.0 <= 1000, "Simulation seed too large");
         let mut s = Self::init_demo_extended();
         // Long simulations need more receipt slots than the 256-slot prototype cap.
-        env::storage_write(RECEIPT_CAP_KEY, &4096u32.to_le_bytes());
+        env::storage_write(CAP_SCALE_KEY, &32u32.to_le_bytes());
         let mut give = |s: &mut Self, owner: &str, ty: ItemType, prefix: &str, n: u32| {
             for k in 0..n {
                 let id = format!("sim-{owner}-{prefix}-{k}");
