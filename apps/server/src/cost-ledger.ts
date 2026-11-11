@@ -73,6 +73,9 @@ export class CostJournal{
   this.db.transaction(()=>{this.db.put('cost-journal',op.id,{operation:op.id,...result});this.db.put('cost-state','current',result.state);});
  }
 }
+/** The current per-item acquisition-cost state, or all-unknown when any applied operation went unobserved. */
+export function currentCostState(db:Store,world:EconomySnapshot):CostState{let state=db.get<CostState>('cost-state','current')??unknownCosts(world);if(unobservedApplied(db)||!equal(state.owners,economicOwners(world)))state=unknownCosts(world,state.gaps+1);return state;}
+export function costDisposals(db:Store):CostDisposal[]{return db.all<JournalEntry>('cost-journal').flatMap(e=>e.disposals);}
 export function costReport(db:Store,world:EconomySnapshot,profile:string):CostReport{
  let state=db.get<CostState>('cost-state','current')??unknownCosts(world);if(unobservedApplied(db)||!equal(state.owners,economicOwners(world)))state=unknownCosts(world,state.gaps+1);
  const events=db.all<JournalEntry>('cost-journal'),disposals=events.flatMap(e=>e.disposals).filter(d=>d.owner===profile),sales=disposals.filter(d=>d.reason==='sale'),funding=disposals.filter(d=>d.reason==='funding');

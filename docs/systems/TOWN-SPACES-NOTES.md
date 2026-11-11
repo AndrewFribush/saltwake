@@ -90,6 +90,13 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - Live session (127.0.0.1 = player1, localhost = player2, local wallet sandbox): both signed in; player2 registered and bought 10 coins with NEAR; they saw each other and chatted; player1 offered a herb privately (`reservations` = wallet:player2.sandbox), player2 saw "Offered to you" and bought it (coins 8→10 / 10→8); both paid into the same dungeon at once (edition active=2) and gave up (summary "You gave up and were led out.").
 - Presence: the server announces room occupancy (`rooms` event, names only, ≤5 per room) to everyone when someone enters or leaves a player building. The notice board shows "X is browsing now" (or "in the entrance hall") per building; inside a shop, a visitor standing at a display shelf gets their name over the shelf. Checked live with the two wallet players.
 
+## Round 9: business ledger (S14)
+
+- Server `apps/server/src/business-ledger.ts` (served as `businessLedger` in the player's own `/api/world` only): cash by source from `businessAccount` receipts plus wages from finished recovery batches; owned goods with acquisition cost from the cost journal (`currentCostState`, exported from cost-ledger) or "unknown"; committed funding in open editions; pending maker fees, recovery wages and reserved run fees; per-edition (fees, placement, treasure cost, contribution or unknown, settled/active samples, funded goods still below) and per-shop (receipt revenue, matched cost, unknown-cost items, contribution or unknown, coverage, stock) results; notes that coins are synthetic and buy-ins/starting allocations are not itemized.
+- UI `BusinessLedger.tsx`: Inventory → Business (Cash / Goods / Dungeons / Shops / Notes), and the account book inside your own building opens Business ledger + Purse. Visitors' account books show only their own purse; the public board keeps aggregate counts.
+- Test: HTTP lifecycle test now checks the buyer's ledger (trade out 3, the bought tonic's cost 3, no shops, synthetic note) and the owner's (shop revenue 3 from 1 sale, complete coverage, trade in, placement out, edition open with 0 settled runs, 1 open edition committed). Browser: player1 (wallet) ledger showed +2 trade, −2 bank, −2 entry, the stall with no sales, and the same ledger from the account book in their stall.
+- Limitation: NEAR buy-ins are not itemized (the contract keeps purchases by request id, not a per-player list).
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.

@@ -1,9 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import type {AddressInfo} from 'node:net';
 import {KeyPairSigner,type KeyPairString} from 'near-api-js';import {fixture,terms} from '../../../tests/contract/helpers';import {defaultInterior} from '../../../packages/game/src/interiors';import {withBuildingUse,displayId} from '../../../packages/game/src/town-spaces';
-import {Store} from '../src/db';import {Outbox} from '../src/outbox';import {NearChain} from '../src/chain';import {Runs} from '../src/runs';import {httpServer} from '../src/http';
+import {Store} from '../src/db';import {Outbox} from '../src/outbox';import {NearChain} from '../src/chain';import {Runs} from '../src/runs';import {httpServer} from '../src/http';import {CostJournal} from '../src/cost-ledger';
 test('HTTP town spaces: dungeon entrance, display shelf sale, public records, plot limit, demolition',{timeout:150000},async()=>{
  const f=await fixture(),dir=mkdtempSync(join(tmpdir(),'town-spaces-http-'));const db=new Store(join(dir,'db'));const chain=new NearChain(f.provider,KeyPairSigner.fromSecretKey(f.genesis.privateKey as KeyPairString),f.contractId,f.contractId);
- const box=new Outbox(db,chain);const app=httpServer(box,new Runs(db,box),()=>f.view('snapshot'));
+ const box=new Outbox(db,chain,new CostJournal(db,()=>f.view('snapshot')));const app=httpServer(box,new Runs(db,box),()=>f.view('snapshot'));
  await new Promise<void>(r=>app.server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+(app.server.address() as AddressInfo).port;let cookie='';
  const request=async(path:string,body?:unknown)=>{const r=await fetch(url+'/api/'+path,{method:body===undefined?'GET':'POST',headers:{Cookie:cookie,Origin:url,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});if(r.headers.get('set-cookie'))cookie=r.headers.get('set-cookie')!.split(';')[0];const value=await r.json() as any;assert.equal(r.status,200,JSON.stringify(value));return value;};
  const cmd=async(id:string,action:unknown)=>request('command',{id,action});
@@ -26,9 +26,16 @@ test('HTTP town spaces: dungeon entrance, display shelf sale, public records, pl
   const seen=await request('world');const shelves=seen.shops.find((s:any)=>s.id==='shop-1');
   assert.deepEqual(shelves.publicRecord,{sold:1,buyers:1,coverage:'complete'});assert.equal(shelves.record,undefined,'owner receipts stay with the owner');
   assert.ok(!JSON.stringify(seen.shops.map((s:any)=>s.publicRecord)).includes('"buyer"'));
+  // Business ledger: owner-only detail from confirmed receipts; the buyer's tonic carries its observed cost.
+  const mine=seen.businessLedger;assert.ok(mine.cash.some((c:any)=>c.category==='trade'&&c.direction==='out'&&c.amount==='3'));
+  const tonic=mine.goods.find((g:any)=>g.itemId==='maker-tonic-0');assert.equal(tonic.cost,'3');assert.equal(mine.shops.length,0);assert.ok(mine.notes[0].includes('synthetic'));
   const ed=seen.editions.find((e:any)=>e.id==='edition-0');assert.deepEqual(ed.record.recent,[]);
   assert.equal((await cmd('rm-not-mine',{type:'remove_shop',shop_id:'shop-1',expected_version:shelves.version})).result,'WrongShopOwner');
   await request('profile',{profile:'maker'});
+  const owner=(await request('world')).businessLedger;
+  const stall=owner.shops.find((x:any)=>x.id==='shop-1');assert.equal(stall.revenue,'3');assert.equal(stall.itemsSold,1);assert.equal(stall.coverage,'complete');
+  assert.ok(owner.cash.some((c:any)=>c.category==='trade'&&c.direction==='in'&&c.amount==='3'));assert.ok(owner.cash.some((c:any)=>c.category==='placement'&&c.direction==='out'));
+  const ed0=owner.editions.find((e:any)=>e.id==='edition-0');assert.equal(ed0.open,true);assert.equal(ed0.settledRuns,0);assert.equal(owner.committedFunding.editions,1);
   assert.equal((await cmd('rm-stocked',{type:'remove_shop',shop_id:'shop-1',expected_version:'1'})).result,'ShopHasStock');
   assert.equal((await cmd('withdraw',{type:'cancel_listing',listing_id:'listing-0'})).status,'Applied');
   assert.equal((await cmd('rm',{type:'remove_shop',shop_id:'shop-1',expected_version:'1'})).result,'shop-1');

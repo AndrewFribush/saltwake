@@ -20,3 +20,4 @@
 @media(max-width:580px){.plot-tour-hint{left:6px;max-width:none}}
 .shelf-looker{position:absolute;left:50%;top:-4px;transform:translateX(-50%);font-size:.55rem;white-space:nowrap;background:#e3cb8e;color:#1d1a14;padding:0 3px;border-radius:3px;pointer-events:none;z-index:2}
 .board-browsing{color:#e3cb8e;font-style:italic}
+.business-ledger p{margin:3px 0}.business-ledger h4{margin:4px 0 2px}.ledger-warning{font-style:italic;opacity:.85}.ledger-row.in{color:#9fd39a}.ledger-row.out{color:#e3b38e}
