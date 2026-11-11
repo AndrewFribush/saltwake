@@ -138,3 +138,17 @@ for(const duration of [60000,3600000])test(`v8 ${duration}ms receipt deadline su
  }finally{db.close();}
  }finally{f.close();}
 });
+
+test('combat history keeps lines about enemies the player has seen, even after they die or step out of view',()=>{
+ const f=setup();try{
+  f.snapshot.editions[0].terms={...f.snapshot.editions[0].terms,rules_version:2};
+  const runs=new Runs(f.db,f.box,()=>1000);let row=runs.materialize('admit',f.snapshot);
+  row.state.enemies=[{id:'brute-1',x:row.state.player.x,y:row.state.player.y,hp:4,intent:{x:row.state.player.x,y:row.state.player.y}}];
+  row.state.log=['Entered cellar.'];f.db.put('run',row.id,row);
+  runs.view(row.id,'buyer');
+  row=runs.get(row.id,'buyer');assert.deepEqual(row.seenEnemies,['brute-1']);
+  const dormant=row.state.layout!.flatMap(r=>r.enemies).find(e=>e.id!=='brute-1')!;assert.ok(dormant,'fixture has a layout enemy');
+  row.state.enemies=[];row.state.log=['You hit brute-1 for 4.',`${dormant.id} strikes the wall for 4.`];f.db.put('run',row.id,row);
+  assert.deepEqual(runs.view(row.id,'buyer').state.log,['You hit brute-1 for 4.'],'seen enemy stays nameable; a never-seen one stays hidden');
+ }finally{f.close();}
+});

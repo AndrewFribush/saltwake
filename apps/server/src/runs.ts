@@ -17,7 +17,7 @@ import {disposition} from '../../../packages/game/src/disposition';
 import type {EconomySnapshot,EconomicRun,Partition,Command} from '../../../packages/shared/src/types';
 import {Store} from './db';
 import {Outbox} from './outbox';
-export type SavedRun={admissionSource?:'chain-discovery';externalSettlement?:true;id:string;profile:string;economic:EconomicRun;state:RunState;seq:number;startedAtMs?:number;finishedAtMs?:number;terminal?:'extracted'|'died'|'expired'|'abandoned'|'void';settlement?:string};
+export type SavedRun={seenEnemies?:string[];admissionSource?:'chain-discovery';externalSettlement?:true;id:string;profile:string;economic:EconomicRun;state:RunState;seq:number;startedAtMs?:number;finishedAtMs?:number;terminal?:'extracted'|'died'|'expired'|'abandoned'|'void';settlement?:string};
 const slots=[{x:3,y:1},{x:1,y:3},{x:5,y:3},{x:7,y:4}];
 export class Runs {
  constructor(readonly db:Store,readonly outbox:Outbox,readonly clock=Date.now){}
@@ -86,7 +86,7 @@ export class Runs {
   enterRoom(state,0);explore(state);const row:SavedRun={id:economic.id,profile:economic.player,economic:structuredClone(economic),state,seq:0,...(observedAdmission?{startedAtMs:this.clock()}:{admissionSource:'chain-discovery' as const})};this.db.put('run',row.id,row);return row;
  }
  get(id:string,profile:string){const row=this.db.get<SavedRun>('run',id);if(!row||row.profile!==profile)throw Error('Run owner mismatch');return row;}
- view(id:string,profile:string){const row=this.get(id,profile);const state=structuredClone(row.state);
+ view(id:string,profile:string){const row=this.get(id,profile);if(noteSeen(row))this.db.put('run',row.id,row);const state=structuredClone(row.state);
   // Only the present room's geometry/encounters and already carried goods cross HTTP.
   delete state.layout;delete state.roomMemory;
   if(state.connections)state.connections=state.connections.filter(l=>!state.roguelike||state.explored?.includes(`${state.roomIndex}:${l.x},${l.y}`));
@@ -102,9 +102,12 @@ export class Runs {
    state.enemies=state.enemies.filter(isVisible).map(e=>({...e,intent:isVisible(e.intent)?e.intent:{x:e.x,y:e.y},lane:e.lane?.filter(isVisible)}));
    state.traps=state.traps.filter(isVisible);
    // Off-screen combat can name dormant enemies; do not disclose those IDs via logs.
-   const hiddenIds=[...row.state.layout!.flatMap(r=>r.enemies),...row.state.enemies].filter(e=>!state.enemies.some(v=>v.id===e.id)).map(e=>e.id);
+   // Hidden means never seen by this player. Enemies you fought and killed, or that stepped out of view, stay
+   // nameable, so the combat history keeps your own fights instead of losing every line about them.
+   const seen=new Set(row.seenEnemies??[]),unseen=(e:{id:string})=>!seen.has(e.id)&&!state.enemies.some(v=>v.id===e.id);
+   const hiddenIds=[...row.state.layout!.flatMap(r=>r.enemies),...row.state.enemies].filter(unseen).map(e=>e.id);
    if(state.features)state.features=state.features.filter(f=>explored.has(`${state.roomIndex}:${f.x},${f.y}`));
-   const hiddenNames=[...row.state.layout!.flatMap(r=>r.enemies),...row.state.enemies].filter(e=>!state.enemies.some(v=>v.id===e.id)).map(e=>who(e)+' ');
+   const hiddenNames=[...row.state.layout!.flatMap(r=>r.enemies),...row.state.enemies].filter(unseen).map(e=>who(e)+' ');
    state.log=state.log.filter(line=>!hiddenIds.some(id=>line.includes(id))&&!hiddenNames.some(name=>(line+' ').replace(/[.!,]/g,' ').includes(name)));
   }
   state.items=Object.fromEntries(Object.entries(state.items).filter(([,i])=>i.location.kind!=='floor'||(i.location.room===state.roomIndex&&(!state.roguelike||isVisible(i.location)))));
@@ -123,8 +126,8 @@ export class Runs {
    if(prior){if(prior.hash!==hash)throw Error('Action payload conflict');return prior.view;}
    if(row.terminal)throw Error('Run terminal');if(row.seq!==expectedSeq)throw Error('Stale action sequence');if(row.seq>=2048)throw Error('Run action capacity');
    if(this.clock()>=Number(row.economic.deadline_ms)){this.finish(row,'expired');const view=this.view(id,profile);this.db.put('action',key,{hash,view});return view;}
-   const next=act(row.state,action);if(next===row.state)throw Error('Action not permitted');
-   row.state=next;row.seq++;row.state.log=row.state.log.slice(-200);this.db.put('run',id,row);
+   noteSeen(row);const next=act(row.state,action);if(next===row.state)throw Error('Action not permitted');
+   row.state=next;noteSeen(row);row.seq++;row.state.log=row.state.log.slice(-200);this.db.put('run',id,row);
    if(next.status!=='active')this.finish(row,next.status);
    const view=this.view(id,profile);this.db.put('action',key,{hash,view});return view;
   });
@@ -139,3 +142,5 @@ export class Runs {
  retryExpiry(chainNow:number){for(const row of this.db.all<SavedRun>('run')){const previous=row.settlement?this.db.operation(row.settlement):undefined;if(row.terminal==='expired'&&previous?.status==='Rejected'&&previous.receipt?.status==='Rejected'&&previous.receipt.result==='PrematureExpiry'&&chainNow>=Number(row.economic.deadline_ms))this.db.transaction(()=>{const id='expiry-retry-'+row.id;this.outbox.enqueue(id,previous.command);row.settlement=id;this.db.put('run',row.id,row);});}}
  expire(){for(const row of this.db.all<SavedRun>('run'))if(!row.terminal&&this.clock()>=Number(row.economic.deadline_ms))this.db.transaction(()=>this.finish(row,'expired'));}
 }
+/** Records enemies currently in the player's sight; returns true when the set grew. */
+function noteSeen(row:SavedRun){const visible=visibleTiles(row.state),seen=new Set(row.seenEnemies??[]),before=seen.size;for(const e of row.state.enemies)if(visible.has(`${e.x},${e.y}`))seen.add(e.id);if(seen.size===before)return false;row.seenEnemies=[...seen];return true;}
