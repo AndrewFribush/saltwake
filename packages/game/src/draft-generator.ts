@@ -8,14 +8,14 @@ import type {Device} from '../../shared/src/mechanisms';
 type P={x:number;y:number};type Room={x:number;y:number;w:number;h:number};
 function rng(seed:number){let n=(seed>>>0)||1;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};}
 export type GeneratedDraft={floors:CustomFloor[];placements:CreatorPlacement[][]};
-export type GeneratorOptions={arena?:boolean;vaults?:boolean;floors?:number;width?:number;height?:number;danger?:1|2|3;treasure?:boolean;budget?:FloorBudget};
+export type GeneratorOptions={timed?:boolean;arena?:boolean;vaults?:boolean;floors?:number;width?:number;height?:number;danger?:1|2|3;treasure?:boolean;budget?:FloorBudget};
 /** Per-floor caps used to keep generated drafts affordable. */
 export type FloorBudget={enemies:number;traps:number;treasure:number;featureCoins:number;tide:boolean};
 export type GeneratorPreset='small'|'medium'|'large';
 export const generatorPresets:Record<GeneratorPreset,{label:string;options:GeneratorOptions}>={
  small:{label:'Small · 1 floor',options:{floors:1,width:15,height:11,danger:1,budget:{enemies:2,traps:0,treasure:1,featureCoins:2,tide:false}}},
  medium:{label:'Medium · 2 floors',options:{arena:true,vaults:true,floors:2,width:19,height:12,danger:2,budget:{enemies:3,traps:1,treasure:1,featureCoins:7,tide:true}}},
- large:{label:'Large · 3 floors',options:{arena:true,vaults:true,floors:3,danger:2}},
+ large:{label:'Large · 3 floors',options:{timed:true,arena:true,vaults:true,floors:3,danger:2}},
 };
 /** Placement coins and owned treasure goods a draft needs before it can open. */
 export function estimateDraft(d:GeneratedDraft):{coins:number;goods:number}{
@@ -43,7 +43,7 @@ function trimFloor(f:CustomFloor,ps:CreatorPlacement[],b:FloorBudget){
  if(!b.tide)delete f.tide;
 }
 const key=(p:P)=>`${p.x},${p.y}`;
-function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,danger:number,vault=false):{floor:CustomFloor;placements:CreatorPlacement[]}|null{
+function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,danger:number,vault=false,timed=false):{floor:CustomFloor;placements:CreatorPlacement[]}|null{
  const int=(a:number,b:number)=>a+Math.floor(r()*(b-a+1));const pick=<T,>(xs:readonly T[])=>xs[Math.floor(r()*xs.length)];
  const g=Array.from({length:H},()=>Array<string>(W).fill('#'));
  const rooms:Room[]=[];
@@ -100,6 +100,11 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
    devices.push({id:`gate${depth}`,...lure.gate,channel:ch,kind:'door',open_when:true},{id:`hatch${depth}`,...lure.exit,channel:out,kind:'door',open_when:true},{id:`lever${depth}`,...order[order.length-1],channel:out,kind:'switch',mode:'toggle'});
    features.push({...defaultFeature('plate',fid(),lure.plate.x,lure.plate.y),channel:ch} as Feature);
    ambushKeep.push(order[0],lure.approach,lure.line,lure.plate,lure.exitOut);
+  }else if(timed&&!ambush&&r()<.5){
+   // Timed vault (rules v14): a tide clock opens the gate 2 turns in every 6; get in, grab it, and time the way out.
+   g[door.y][door.x]='.';const ch=`clock${depth}`;devices.push({id:`gate${depth}`,x:door.x,y:door.y,channel:ch,kind:'door',open_when:true});
+   const near=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:door.x+dx,y:door.y+dy})).find(p=>g[p.y]?.[p.x]==='.'&&!secret.some(q=>q.x===p.x&&q.y===p.y));
+   features.push({...defaultFeature('clock',fid(),secret[0].x,secret[0].y),channel:ch,period:6,on:2,offset:int(0,5)} as Feature);ambushKeep.push(secret[0]);if(near)ambushKeep.push(near);
   }else if(ambush&&secret.length>=4){
    // Ambush stash: an open gate; the first step inside slams it shut; a lever at the back reopens it.
    g[door.y][door.x]='.';const ch=`ambush${depth}`;devices.push({id:`gate${depth}`,x:door.x,y:door.y,channel:ch,kind:'door',open_when:false});
@@ -183,7 +188,7 @@ export function generateDraft(seed:number,options:GeneratorOptions={}):Generated
  const r=rng(seed);const floors:CustomFloor[]=[],placements:CreatorPlacement[][]=[];
  for(let depth=0;depth<count;depth++){
   let made:ReturnType<typeof generateFloor>=null;
-  for(let attempt=0;attempt<40&&!made;attempt++)made=generateFloor(r,depth,count,W,H,danger,!!options.vaults&&depth>=1);
+  for(let attempt=0;attempt<40&&!made;attempt++)made=generateFloor(r,depth,count,W,H,danger,!!options.vaults&&depth>=1,!!options.timed&&depth>=2);
   if(!made)throw Error('Could not generate a valid floor; try another seed.');
   if(options.budget)trimFloor(made.floor,made.placements,options.budget);
   floors.push(made.floor);placements.push(options.treasure===false?made.placements.map(p=>({...p,reward:null})):made.placements);

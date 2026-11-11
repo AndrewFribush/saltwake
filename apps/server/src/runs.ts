@@ -67,7 +67,7 @@ export class Runs {
   if(this.db.get('run-terminal-seen',economic.id))throw Error('Run already terminal; local play unavailable');
   const edition=snapshot.editions.find(e=>e.id===economic.edition);if(!edition)throw Error('Missing confirmed edition');
   const state=createRun();state.items={};state.originalTownIds=[];state.reservedItemIds=[];state.player.weapon='unarmed';state.player.armor=false;
-  if(![1,2,3,4,5,6,7,8,9,10,11,12,13].includes(edition.terms.rules_version))throw Error('Unsupported rules version');
+  if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14].includes(edition.terms.rules_version))throw Error('Unsupported rules version');
   const customFloors=edition.terms.rules_version>=3?edition.terms.modules.map(decodeCustomModule):undefined;
   const customRooms=customFloors?authoredLayout(customFloors,edition.terms.sockets):undefined;
   const generated=customFloors?customFloors.map((floor,index)=>({slots:floor.sockets,layout:customRooms![index]})):edition.terms.rules_version===2?fundedLayout(economic.seed,edition.terms.modules):undefined;

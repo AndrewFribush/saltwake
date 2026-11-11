@@ -68,3 +68,21 @@ test('WASM v13 accepts generated drafts with a lure vault and a one-way drop int
   }
  }finally{await f.sandbox.tearDown();}
 });
+
+test('WASM v14 accepts clocks (cost 1, wired as switches) and keeps them out of v13; v13 editions unchanged',{timeout:180000},async()=>{
+ const f=await fixture();try{
+  const t=base(Number(await f.view('clock_ms')));
+  const clock={id:'c',x:2,y:6,kind:'clock',channel:'tick',period:5,on:2,offset:1};
+  const gate={id:'g',x:8,y:6,kind:'door',channel:'tick',open_when:true};
+  const v=(version:number,features:unknown[],prefix:string)=>({...t,rules_version:version,modules:[mod(floor({features,devices:[gate]}),prefix)]});
+  assert.notEqual((await call(f,'v13-clock',publish(v(13,[clock],'custom13:')))).status,'Applied');
+  for(const [name,bad] of [['on-eq-period',{...clock,on:5}],['offset',{...clock,offset:5}],['period',{...clock,period:13}],['channel',{...clock,channel:'9x'}],['extra',{...clock,extra:1}]] as const)
+   assert.notEqual((await call(f,'v14-'+name,publish(v(14,[bad],'custom14:')))).status,'Applied',name);
+  assert.notEqual((await call(f,'v14-unwired',publish({...t,rules_version:14,modules:[mod(floor({features:[clock],devices:[{...gate,channel:'other'}]}),'custom14:')]}))).status,'Applied');
+  const before=BigInt((await f.view('snapshot')).credits.maker);
+  const r=await call(f,'v14-ok',publish(v(14,[clock],'custom14:')));assert.equal(r.status,'Applied',JSON.stringify(r));
+  assert.equal(before-BigInt((await f.view('snapshot')).credits.maker),7n); // base 2 + brute 4 + clock 1
+  const prog=[{id:'k',x:3,y:3,kind:'key',color:'brass'},{id:'l',x:4,y:4,kind:'lock',color:'brass'},{id:'p',x:2,y:6,kind:'plate',channel:'tick'}];
+  assert.equal((await call(f,'v13-still',publish(v(13,prog,'custom13:')))).status,'Applied');
+ }finally{await f.sandbox.tearDown();}
+});
