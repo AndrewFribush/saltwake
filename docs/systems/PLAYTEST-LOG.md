@@ -170,3 +170,19 @@ Verified on a fresh generated preset: Check now reports the shortfall, one click
 - The list says "← Previous dungeon / Dungeon 1 of 3 / Next dungeon →" and sits under a gold divider.
 - An offer's rules use "‹ Back / More rules ›", and long text uses "More ›".
 - The pay button names the dungeon: "Pay 1 coin & enter Rat warren".
+
+## Round 10: grid power tools, and a 4-floor dungeon built with them
+
+**Built:** `packages/game/src/floor-regions.ts` (pure, tested), `apps/web/src/RegionTools.tsx` and `apps/web/src/FloorOverview.tsx`. FloorBuilder gets a few one-line hooks.
+- **Area select:** two clicks mark an area, which you can then Copy, Fill wall or Fill floor. Paste places at the clicked top-left, and Rotate ↻ and Mirror ⇋ work on the copy. Pastes never touch the outer wall or wall over markers, encounters, devices, features or passages. Every operation is undoable.
+- **Room stamps:** built-ins are Pillared hall, Corridor junction, Vault alcove, Arena ring, Long corridor, Twin rooms and Wall segment. "Save as stamp" keeps your own on this device, with a mini preview for each.
+- **Keyboard on the map:** arrows move a cursor (Shift jumps 5) and the view follows it. Space paints or places; W/F/S/E pick a brush; V selects, C copies, P pastes, R rotates, M mirrors, Esc stops.
+- **All floors** (Overview): a mini-map of every floor with arrival, stairs, encounters and passages, plus size, enemy and treasure counts, the exit rule and where the stairs or passages lead. Drag one floor onto another, or use ↑/↓, to reorder; click a floor to edit it.
+- **Whole floor** zoom shows a big floor in one view instead of panning a 13×9 window.
+
+**Built a 4-floor, 21×15 dungeon:** resize → select the whole interior → fill floor → stamp a pillared hall, a rotated vault alcove and twin rooms → duplicate the floor 3 times → change floor 4 by keyboard (moved arrival, drew a wall run) → reorder in the overview → add enemies on floors 2–4 → Check said ready → rehearsed floor 1 of 4.
+
+**What was slow or broken, and fixed:**
+- **Unreachable floor.** Selecting a 19×13 area needed panning, so I added Whole floor. Then closed stamps left sealed rooms, and the only clue was one "Show tile" at a time in Check. Cut-off floor is now hatched red in the Draw step, with a one-click "wall them off". Twin rooms now has doorways, and Arena ring is new.
+- Fill left a heavy blue selection over everything; it clears after a fill now, and the selection style is lighter.
+- On big floors the grid's last rows were squashed; rows are now even and the grid keeps the floor's aspect ratio.
