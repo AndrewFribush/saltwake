@@ -38,7 +38,10 @@ export function useTownPresence(here:Here){
  const flush=()=>{pending.current=undefined;if(!ready.current)return;lastSent.current=Date.now();const h=latest.current;void post('move',{...(h??{district:null,x:0,y:0,facing:'down'}),look:myLook()}).catch(()=>{});};
  const schedule=()=>{if(pending.current)return;const wait=Math.max(0,MOVE_EVERY_MS-(Date.now()-lastSent.current));pending.current=setTimeout(flush,wait);};
  useEffect(()=>{
-  const source=new EventSource('/api/presence/stream');
+  // EventSource retries dropped connections itself, but gives up for good on a non-200 answer (for example 401
+  // after a server restart cleared sessions). Then reopen with backoff until the page has a session again.
+  let source:EventSource,retry:ReturnType<typeof setTimeout>|undefined,closed=false,backoff=2000;
+  const connect=()=>{if(closed)return;source=new EventSource('/api/presence/stream');
   const on=(name:string,fn:(data:any)=>void)=>source.addEventListener(name,e=>fn(JSON.parse((e as MessageEvent).data)));
   // A (re)connect resets server state; resend where we stand right away.
   on('hello',d=>{setYou(d.you);setOnline(true);setOthers({});ready.current=true;clearTimeout(pending.current);flush();});
@@ -48,9 +51,12 @@ export function useTownPresence(here:Here){
   on('leave',d=>setOthers(o=>{const {[d.id]:_,...rest}=o;return rest;}));
   on('chat',m=>setChat(c=>[...c,m].slice(-40)));
   on('rooms',r=>setRooms(r&&typeof r==='object'?r:{}));
-  source.onerror=()=>{setOnline(false);ready.current=false;};
+  on('hello',()=>{backoff=2000;});
+  source.onerror=()=>{setOnline(false);ready.current=false;if(source.readyState===EventSource.CLOSED){clearTimeout(retry);retry=setTimeout(connect,backoff);backoff=Math.min(15000,backoff*2);}};
+  };
+  connect();
   const beat=setInterval(()=>{if(ready.current)flush();},HEARTBEAT_MS);
-  return()=>{source.close();clearInterval(beat);clearTimeout(pending.current);ready.current=false;};
+  return()=>{closed=true;clearTimeout(retry);source.close();clearInterval(beat);clearTimeout(pending.current);ready.current=false;};
  },[]);
  const look=useMyLook();
  useEffect(()=>{schedule();},[here?.district,here?.room,here?.x,here?.y,here?.facing,here===null,look]);
