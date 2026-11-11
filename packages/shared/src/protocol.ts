@@ -21,6 +21,7 @@ export function encodeCommand(c:Command):Uint8Array{
   if(a.type==='settle')strings(a.carried_dungeon_ids);
  }else if(a.type==='admit'){byte(2);str(a.edition_id);u64(a.expected_version);u64(a.expected_fee);strings(a.loadout_ids);u64(a.seed);}
  else if(a.type==='finalize_close'){byte(5);str(a.edition_id);}
+ else if(a.type==='retire'){byte(24);str(a.edition_id);}
  else if(a.type==='refresh'){byte(7);str(a.edition_id);strings(a.fixed_funding);u32(a.random_funding.length);for(const t of a.random_funding){str(t.table_id);strings(t.item_ids);}}
  else if(a.type==='set_fee'){byte(8);str(a.edition_id);u64(a.new_fee);}
  else if(a.type==='list'){byte(9);strings(a.item_ids);u64(a.unit_price);}

@@ -16,7 +16,7 @@ export function isPlayerAction(action:Command['action']|null|undefined):boolean{
  if(!action)return false;
  switch(action.type){
   case 'begin_craft':case 'begin_recovery':return /^[a-f0-9]{64}$/.test(action.batch_id??'')&&action.deadline_ms==='0';
-  case 'publish':case 'publish_random':case 'admit':case 'finalize_close':case 'refresh':case 'set_fee':
+  case 'publish':case 'publish_random':case 'admit':case 'finalize_close':case 'retire':case 'refresh':case 'set_fee':
   case 'list':case 'cancel_listing':case 'buy':case 'bank_buy':case 'bank_sell':case 'fill_npc_order':
   case 'create_shop':case 'update_shop':case 'stock_shop':case 'remove_shop':case 'list_for':return true;
   default:return false;

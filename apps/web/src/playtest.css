@@ -160,3 +160,12 @@
 .stairs-rule{display:flex;gap:6px;align-items:flex-start;font-size:12px;padding:5px 6px;border:1px solid #3d4f45;border-radius:4px;background:#1f342d;margin:4px 0}
 .trial-end .studio-row span{font-size:12px}
 .treasure-needs{padding:6px;border:1px solid #d0b470;border-radius:4px;background:#2b3a2c;font-size:12px;margin:4px 0}.treasure-needs p{margin:2px 0}
+/* Revision view: where finished runs of the published edition ended. */
+.fb-cell[data-deaths]::after,.fb-cell[data-escapes]::after,.fb-cell[data-quits]::after{position:absolute;top:1px;right:1px;z-index:3;padding:0 3px;border-radius:6px;font:bold 10px system-ui,sans-serif;pointer-events:none}
+.fb-cell[data-deaths]::after{content:'☠' attr(data-deaths);background:#c0614f;color:#fff}
+.fb-cell[data-escapes]:not([data-deaths])::after{content:'↑' attr(data-escapes);background:#7fae5c;color:#132317}
+.fb-cell[data-quits]:not([data-deaths]):not([data-escapes])::after{content:'·' attr(data-quits);background:#8a8a7a;color:#132317}
+.fb-cell[data-deaths]{box-shadow:inset 0 0 0 3px #c0614f88}
+.revision-insight{font-size:12px;padding:6px 8px;margin-bottom:6px;border-left:3px solid #c0614f;background:#2e2a26}
+.revision-insight b{color:#e2c783}.revision-insight p{margin:3px 0}
+.fb-cell[data-deaths]::after,.fb-cell[data-escapes]::after,.fb-cell[data-quits]::after{font-size:13px;padding:1px 5px}
