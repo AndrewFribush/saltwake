@@ -181,3 +181,33 @@ export const textureVars:Record<string,string>={
 };
 /** Raw data URLs (without url()) for SVG <image href>. */
 export const textureHref=(name:string)=>textureVars[name].slice(5,-2).replace(/^"|"$/g,'');
+
+// ---- Title scene: a small harbor at dusk, used behind arrival / onboarding screens --------
+function inner(rows:readonly string[],palette:Palette,x:number,y:number,flip=false){return pixelSvg(rows,palette,flip).replace(/^<svg[^>]*>/,`<g transform="translate(${x} ${y})">`).replace('</svg>','</g>');}
+function titleScene(){
+ const W=192,H=84,r=rng(5);let s='';
+ const bands=['#16283a','#1b3142','#223a48','#2b4550','#3a5257','#56605a'];bands.forEach((c,i)=>{s+=`<rect x="0" y="${i*7}" width="${W}" height="7" fill="${c}"/>`;});
+ for(let i=0;i<26;i++){const x=Math.floor(r()*W),y=Math.floor(r()*24);s+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${r()>.7?'#fff6b0':'#c9d6dc'}"/>`;}
+ for(let y=-6;y<=6;y++)for(let x=-6;x<=6;x++){const d=x*x+y*y;if(d<=36)s+=`<rect x="${158+x}" y="${14+y}" width="1" height="1" fill="${d>28?'#d9c9a0':(x+y>3?'#e8dbb7':'#f4ead0')}"/>`;}
+ // far roofs
+ const houses=[[4,30,26,'#5a3a2a'],[28,26,22,'#3e4f55'],[48,32,30,'#6a3a2c'],[96,28,24,'#4a4030'],[118,24,28,'#5a3a2a'],[146,30,22,'#3e4f55'],[166,27,26,'#6a3a2c']] as const;
+ for(const [x,y,w,roof] of houses){const h=52-y;s+=`<rect x="${x}" y="${y+6}" width="${w}" height="${h-6}" fill="#c2a878"/><rect x="${x}" y="${y+6}" width="1" height="${h-6}" fill="#5e4129"/><rect x="${x+w-1}" y="${y+6}" width="1" height="${h-6}" fill="#5e4129"/>`;
+  for(let i=0;i<7;i++)s+=`<rect x="${x-1+Math.floor(i/2)}" y="${y+6-i}" width="${w+2-Math.floor(i/2)*2}" height="1" fill="${i%2?roof:'#00000055'}"/><rect x="${x-1+Math.floor(i/2)}" y="${y+6-i}" width="${w+2-Math.floor(i/2)*2}" height="1" fill="${roof}" opacity=".8"/>`;
+  for(let wx=x+4;wx<x+w-5;wx+=9)s+=`<rect x="${wx}" y="${y+11}" width="4" height="4" fill="#ffd27a"/><rect x="${wx}" y="${y+13}" width="4" height="1" fill="#a87c3a"/>`;
+  s+=`<rect x="${x+Math.floor(w/2)-2}" y="${48}" width="5" height="4" fill="#4a3020"/>`;}
+ // catacomb gate between houses
+ s+=`<rect x="80" y="34" width="14" height="18" fill="#5b6560"/><rect x="82" y="40" width="10" height="12" fill="#14181a"/><rect x="83" y="40" width="1" height="12" fill="#8f9279"/><rect x="86" y="40" width="1" height="12" fill="#8f9279"/><rect x="89" y="40" width="1" height="12" fill="#8f9279"/>`;
+ // quay
+ s+=`<rect x="0" y="52" width="${W}" height="12" fill="#857a61"/><rect x="0" y="52" width="${W}" height="1" fill="#a49778"/>`;
+ for(let x=0;x<W;x+=6)for(let y=54;y<63;y+=4)s+=`<rect x="${x+((y/4)%2?3:0)}" y="${y}" width="1" height="3" fill="#6c6452"/>`;
+ s+=`<rect x="0" y="63" width="${W}" height="2" fill="#4a4232"/>`;
+ // water
+ s+=`<rect x="0" y="65" width="${W}" height="${H-65}" fill="#1f4a55"/>`;
+ for(let i=0;i<40;i++){const x=Math.floor(r()*W),y=67+Math.floor(r()*16);s+=`<rect x="${x}" y="${y}" width="${3+Math.floor(r()*5)}" height="1" fill="${r()>.5?'#3b7380':'#6aa2ab'}"/>`;}
+ for(let y=67;y<H;y+=3)s+=`<rect x="${152+((y*7)%5)}" y="${y}" width="${10-(y-67)/3}" height="1" fill="#e8dbb7" opacity=".55"/>`;
+ // characters on the quay
+ const keeper:Palette={...pal,y:'#5f84a6',Y:'#3e5c7a',h:'#b9b3a2',H:'#857f70',b:'#e8dcc0'};
+ s+=inner(heroSide,pal,60,38)+inner(heroDown,keeper,118,38)+inner(crab,pal,140,42,true)+inner(rat,pal,22,42)+inner(keg,pal,100,38);
+ return dataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">${s}</svg>`);
+}
+textureVars['--tx-title']=titleScene();
