@@ -135,3 +135,5 @@
 .buy-row button[aria-pressed=true]{background:#d0b470!important;color:#142522!important}
 .buy-row input{width:70px}
 .buy-notice{font-size:12px;margin:0;color:#e8f0d8}
+.buy-row label{font-size:12px;display:flex;align-items:center;gap:4px}
+.buy-coins.compact{padding:5px;gap:3px;margin:4px 0}.buy-coins.compact .trade-note{margin:0}

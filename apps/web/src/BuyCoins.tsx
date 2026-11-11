@@ -22,10 +22,10 @@ export function BuyCoins({suggest,compact=false}:{suggest?:number;compact?:boole
   finally{setWorking(false);}};
  return <div className={`buy-coins ${compact?'compact':''}`}>
   {!compact&&<h3>Buy coins with NEAR</h3>}
-  <div className="buy-row">{[10,25,50].map(n=><button type="button" key={n} aria-pressed={coins===n} disabled={working} onClick={()=>setCoins(n)}>{n}</button>)}
-   <label>Coins <input type="number" min="1" max={MAX_COINS_PER_PURCHASE} value={coins} disabled={working} onChange={e=>setCoins(Number(e.target.value))}/></label></div>
+  {!compact&&<div className="buy-row">{[10,25,50].map(n=><button type="button" key={n} aria-pressed={coins===n} disabled={working} onClick={()=>setCoins(n)}>{n}</button>)}
+   <label>Coins <input type="number" min="1" max={MAX_COINS_PER_PURCHASE} value={coins} disabled={working} onChange={e=>setCoins(Number(e.target.value))}/></label></div>}
   <button type="button" className="primary" disabled={working||!valid} onClick={()=>void buy()}>{working?'Waiting for your wallet…':valid?`Buy ${coins} coins for ${nearLabel(buyInDeposit(coins))}`:'Choose 1–1000 coins'}</button>
-  <p className="trade-note">Rate: 0.01 NEAR per coin. Your wallet shows the exact amount before you sign; the NEAR goes to the game treasury.</p>
+  <p className="trade-note">{compact?'0.01 NEAR per coin; your wallet shows the exact amount.':'Rate: 0.01 NEAR per coin. Your wallet shows the exact amount before you sign; the NEAR goes to the game treasury.'}</p>
   {notice&&<p role="status" className="buy-notice">{notice}</p>}
  </div>;
 }

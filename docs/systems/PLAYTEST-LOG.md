@@ -68,3 +68,13 @@ Playing Saltwake as a stranger on a local sandbox (web 18970, API 18971), fixing
 - The shop-site picker draws the real water, roads and buildings with their names, and turns red when the footprint is blocked.
 
 **Money finding (no contract change made):** under the deployed rules a fresh wallet player *can* open a first dungeon. Two recovery jobs (4 coins) cover a one-enemy design. Three jobs (6 coins) cover a herb and one treasure spot. It takes 1–3 short minigames first. Making it instant would need a starter grant at registration or cheaper placement. Both are contract state or rule changes that the deployed testnet state can't take without a migration, so the UI explains the path instead.
+
+## Round 4: NEAR buy-in, end to end in local wallet mode
+
+**Andrew's call:** "You can earn it or buy in. It's crypto remember." So there's no free grant.
+
+**Built:** `buy_coins` on the contract (payable, 0.01 NEAR per coin, exact quote, idempotent per request, NEAR kept by the contract). Issuance is tracked in its own storage line, and `snapshot.coin_issuance` reports it. "Buy coins with NEAR" appears in the purse and in the builder's not-enough-coins step. It shows in wallet mode only, and only when the deployed contract reports buy-in.
+
+**Played:** a fresh wallet player registered and bought 10 coins in the purse (`buy_coins`, credited 10). A second fresh player opened the drafting table and went to step 5. It saw "Opening this design costs 2 coins and you have 0" with a "Buy 2 coins for 0.02 NEAR" button, bought, and opened the dungeon straight away. Total time from registration to an open dungeon was under a minute, with no minigames.
+
+**Fixed along the way:** the merged Vite config ignored `**/.claude/**`, which matched every file in a worktree, so worktree dev servers stopped hot-reloading. The ignores are now anchored to the checkout root. In the builder, the buy box sits after the cost message and before Pay, so the step fits in the window.
