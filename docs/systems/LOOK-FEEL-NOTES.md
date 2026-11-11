@@ -153,4 +153,10 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Phones: room fixture labels, hints, legends and ledger notes raised to readable sizes; slightly larger health pips and key chips.
 - Checks: typecheck, game 187, web 31, server 168, build pass.
 
-Next step: keep styling new UI from other lanes; sound level tuning with a listener.
+### 21. First-screens polish (part 1)
+- Connecting / server-offline screen: centred in the window; the title art no longer gets squashed by a percentage max-height (`first-offline.jpg`). Arrival screens with no actions show a small loading tide of dots.
+- Empty states are quiet notes with a small chest mark (parchment variant inside ledgers); status notices get an amber "!" badge; `role=alert` messages a red rule; busy regions dim slightly.
+- The plot-tour hint over the first town view is a pinned parchment note instead of a dark box (`first-town.jpg`). First shop checked (`first-shop.jpg`).
+- Checks: typecheck, game 187, web 31, server 168, build pass.
+
+Next step: first dungeon run and builder first open in the judge path; price history/charts, route/Wiring lists and ⚠ Check badge when they land.
