@@ -22,7 +22,8 @@ const carried=(s:RunState)=>Object.values(s.items).filter(i=>i.origin==='dungeon
 function stepToward(s:RunState,goals:Set<string>,avoid:Set<string>,bumpKegs:boolean):Point|null{
  const explored=new Set((s.explored??[]).filter(k=>k.startsWith(s.roomIndex+':')).map(k=>k.slice(k.indexOf(':')+1)));
  const lock=(p:Point)=>{const f=featureAt(s,p,'lock');return f?.kind==='lock'&&!!s.keys?.includes(f.color);};
- const passable=(p:Point)=>(walkable(s,p)||!!featureAt(s,p,'crack')||lock(p)||bumpKegs&&!!featureAt(s,p,'barrel'))&&explored.has(key(p));
+ const passages=new Set((s.connections??[]).map(key));
+ const passable=(p:Point)=>!passages.has(key(p))&&(walkable(s,p)||!!featureAt(s,p,'crack')||lock(p)||bumpKegs&&!!featureAt(s,p,'barrel'))&&explored.has(key(p));
  const prev=new Map<string,string|null>([[key(s.player),null]]);const q:Point[]=[s.player];
  for(const p of q){
   if(goals.has(key(p))&&key(p)!==key(s.player)){let k=key(p);while(prev.get(k)!==key(s.player)&&prev.get(k)!==null)k=prev.get(k)!;const [x,y]=k.split(',').map(Number);return {x,y};}
@@ -32,7 +33,8 @@ function stepToward(s:RunState,goals:Set<string>,avoid:Set<string>,bumpKegs:bool
 }
 function frontier(s:RunState):Set<string>{
  const explored=new Set((s.explored??[]).filter(k=>k.startsWith(s.roomIndex+':')).map(k=>k.slice(k.indexOf(':')+1)));const out=new Set<string>();
- for(const k of explored){const [x,y]=k.split(',').map(Number);if(!walkable(s,{x,y}))continue;if(nb({x,y}).some(n=>!explored.has(key(n))&&s.room[n.y]?.[n.x]!==undefined))out.add(k);}
+ const passages=new Set((s.connections??[]).map(key));
+ for(const k of explored){const [x,y]=k.split(',').map(Number);if(!walkable(s,{x,y})||passages.has(k))continue;if(nb({x,y}).some(n=>!explored.has(key(n))&&s.room[n.y]?.[n.x]!==undefined))out.add(k);}
  return out;
 }
 function lureGate(s:RunState):{gate:Point;approach:Point;line:Point}|null{
@@ -47,7 +49,9 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
  // Area threats only (bolts, blasts, sweeps, charges, fire); plain melee intents are fought, not fled.
  const danger=new Set([...depthThreatTiles(s),...s.enemies.filter(e=>e.kind&&e.kind!=='pursuer'&&e.lane?.length).flatMap(e=>e.lane!)].map(key));const here=key(s.player);void visibleThreatTiles;
  const exit=s.layout![s.roomIndex].exit;const vis=visibleTiles(s);
- const deeper=hasNextRoom(s);const last=!deeper;
+ // Connected floors (generated arenas): stairs passages ('down…', 'onward') stand in for continuing; 'drop' leads into a sealed arena.
+ const down=s.connections?.find(l=>l.id.startsWith('down')||l.id==='onward');const drop=s.connections?.find(l=>l.id==='drop');
+ const deeper=hasNextRoom(s)||!!down;const last=!deeper;
  // Leaving decisions.
  const loot=carried(s);
  const exitDist=(()=>{const seen=new Map([[key(s.player),0]]);const q:Point[]=[s.player];for(const p of q){if(p.x===exit.x&&p.y===exit.y)return seen.get(key(p))!;for(const n of nb(p))if(!seen.has(key(n))&&(walkable(s,n)||featureAt(s,n,'crack')||s.enemies.some(e=>e.x===n.x&&e.y===n.y))){seen.set(key(n),seen.get(key(p))!+1);q.push(n);}}return 2*(Math.abs(exit.x-s.player.x)+Math.abs(exit.y-s.player.y));})();
@@ -56,9 +60,11 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
  const wantsDeeper=policy==='reckless'?deeper:policy==='greedy'?deeper&&s.player.hp>6:false;
  if(s.player.x===exit.x&&s.player.y===exit.y){
   const pending=Object.values(s.items).some(i=>i.location.kind==='floor'&&i.location.room===s.roomIndex&&s.explored?.includes(`${s.roomIndex}:${i.location.x},${i.location.y}`))||frontier(s).size>0;
+  if(down&&wantsDeeper&&!(down.require_clear&&s.enemies.length)&&(policy==='reckless'||!(wantsOut&&canExtract(s))))return {type:'move',x:down.x,y:down.y};
   if(wantsDeeper&&canContinue(s)&&(policy==='reckless'||!pending||tideClose)&&!(policy!=='reckless'&&wantsOut&&canExtract(s)&&!tideClose))return {type:'continue'};
   if(canExtract(s)&&(wantsOut||policy==='reckless'||!pending&&(!deeper||policy==='cautious')))return {type:'extract'};
   if(canContinue(s))return {type:'continue'};
+  if(down&&!(down.require_clear&&s.enemies.length))return {type:'move',x:down.x,y:down.y};
  }
  const tonic=Object.values(s.items).find(i=>(i.type==='tonic'||i.type==='fineTonic')&&i.location.kind==='bag');
  if(tonic&&s.player.hp<=(policy==='reckless'?3:5))return {type:'use',itemId:tonic.id};
@@ -78,29 +84,44 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
  // Throw a bomb at a visible enemy that is not next to us.
  if(policy!=='reckless'&&(s.supplies?.bomb??0)>0){const e=s.enemies.find(e=>vis.has(key(e))&&Math.max(Math.abs(e.x-s.player.x),Math.abs(e.y-s.player.y))>=2&&Math.abs(e.x-s.player.x)+Math.abs(e.y-s.player.y)<=4);if(e)return {type:'supply',supply:'bomb',x:e.x,y:e.y};}
  // Goals: exit when leaving, else loot/caches/springs in sight, else unexplored frontier, else exit.
- const goals=new Set<string>();const exitKnown=!!s.explored?.includes(`${s.roomIndex}:${key(exit)}`);
- if((wantsOut||policy==='reckless')&&exitKnown)goals.add(key(exit));
+ let hunting=false;const goals=new Set<string>();const exitKnown=!!s.explored?.includes(`${s.roomIndex}:${key(exit)}`);
+ // A sealed arena only lets you out once it is cleared: hunt the rest down.
+ if(s.exitRule?.require_clear&&s.enemies.length&&!drop&&(wantsOut||policy==='reckless')){
+  // Kiting enemies sidestep a diagonal approach: step onto their row (or column) to pin them against a wall.
+  const diag=s.enemies.find(e=>Math.abs(e.x-s.player.x)===1&&Math.abs(e.y-s.player.y)===1);
+  if(diag){for(const p of [{x:s.player.x,y:diag.y},{x:diag.x,y:s.player.y}])if(walkable(s,p)&&!s.enemies.some(e=>e.x===p.x&&e.y===p.y))return {type:'move',...p};}
+  for(const e of s.enemies)goals.add(key(e));hunting=true;
+  // Close in straight along a shared row or column so a sidestep cannot reset the chase.
+  const target=[...s.enemies].sort((a,b)=>Math.abs(a.x-s.player.x)+Math.abs(a.y-s.player.y)-Math.abs(b.x-s.player.x)-Math.abs(b.y-s.player.y))[0];
+  const md=(p:Point)=>Math.abs(p.x-target.x)+Math.abs(p.y-target.y);
+  const best=nb(s.player).filter(p=>walkable(s,p)&&!s.enemies.some(e=>e.x===p.x&&e.y===p.y)&&md(p)<md(s.player)).sort((a,b)=>md(a)*10+(a.x===target.x||a.y===target.y?0:5)-md(b)*10-(b.x===target.x||b.y===target.y?0:5))[0];
+  if(md(s.player)<=5&&md(s.player)>1&&target.alerted&&(s.turn%4!==0))return {type:"guard"}; // let chasers come; step in now and then
+  if(best&&md(s.player)>1)return {type:'move',...best};
+ }
+ else if(policy==='reckless'&&drop&&s.explored?.includes(`${s.roomIndex}:${key(drop)}`)){if(Math.abs(drop.x-s.player.x)+Math.abs(drop.y-s.player.y)===1)return {type:'move',x:drop.x,y:drop.y};goals.add(key(drop));}
+ else if((wantsOut||policy==='reckless')&&exitKnown)goals.add(key(exit));
  else if(wantsOut||policy==='reckless'){for(const k of frontier(s))goals.add(k);}
  else{
   for(const i of Object.values(s.items))if(i.location.kind==='floor'&&i.location.room===s.roomIndex&&s.explored?.includes(`${s.roomIndex}:${i.location.x},${i.location.y}`))goals.add(`${i.location.x},${i.location.y}`);
   for(const f of s.features??[])if(!f.spent&&(f.kind==='cache'||f.kind==='crack'||f.kind==='key'||(f.kind==='lock'&&s.keys?.includes(f.color))||(f.kind==='fountain'&&s.player.hp<9))&&s.explored?.includes(`${s.roomIndex}:${f.x},${f.y}`))goals.add(key(f));
   // A closed gate with a reachable lever: pull it before wandering (ambush rooms, gated vaults).
   const closedDoor=(s.devices??[]).some(d=>d.kind==='door'&&!doorOpen(d,s.signals));
+  if(!goals.size&&drop&&(policy==='greedy'&&s.player.hp>8)&&s.explored?.includes(`${s.roomIndex}:${key(drop)}`)){if(Math.abs(drop.x-s.player.x)+Math.abs(drop.y-s.player.y)===1)return {type:'move',x:drop.x,y:drop.y};goals.add(key(drop));}
   if(!goals.size&&closedDoor){for(const d of s.devices??[])if(d.kind==='switch'&&d.mode!=='set'&&!(d.x===s.player.x&&d.y===s.player.y)&&s.explored?.includes(`${s.roomIndex}:${d.x},${d.y}`))goals.add(key(d));}
   if(!goals.size&&lure&&s.enemies.length&&lureTurns(s)<30){if(here===key(lure.approach))return {type:'wait'};goals.add(key(lure.approach));}
   if(!goals.size)for(const k of frontier(s))goals.add(k);
   if(!goals.size)goals.add(key(exit));
  }
- if(policy!=='reckless'&&danger.has(here)){
+ if(policy!=='reckless'&&!hunting&&danger.has(here)){
   // Dodge to a safe neighbor, preferring the one that keeps progress toward the goal.
   const dist=new Map<string,number>();const q=[...goals].map(k=>{const [x,y]=k.split(',').map(Number);dist.set(k,0);return {x,y};});
   for(const p of q)for(const n of nb(p))if(!dist.has(key(n))&&walkable(s,n)){dist.set(key(n),dist.get(key(p))!+1);q.push(n);}
-  const safe=nb(s.player).filter(p=>walkable(s,p)&&!danger.has(key(p))&&!s.enemies.some(e=>e.x===p.x&&e.y===p.y)).sort((a,b)=>(dist.get(key(a))??999)-(dist.get(key(b))??999))[0];
+  const safe=nb(s.player).filter(p=>walkable(s,p)&&!s.connections?.some(l=>l.x===p.x&&l.y===p.y)&&!danger.has(key(p))&&!s.enemies.some(e=>e.x===p.x&&e.y===p.y)).sort((a,b)=>(dist.get(key(a))??999)-(dist.get(key(b))??999))[0];
   const pressOn=s.player.hp>4&&(!safe||(dist.get(key(safe))??999)>=(dist.get(here)??999))&&!s.enemies.some(e=>e.kind==='bomber'&&e.primed||e.kind==='brute'&&e.lane?.length)&&!depthThreatTiles(s).some(p=>key(p)===here);
   if(!pressOn)return safe?{type:'move',...safe}:{type:'guard'};
  }
  const trips=(s.devices??[]).filter(d=>d.kind==='switch'&&d.mode==='set').map(key);
- const avoid=new Set([...(policy==='reckless'||danger.has(here)?[]:danger),...(policy==='reckless'?[]:trips)]);
+ const avoid=new Set([...(policy==='reckless'||hunting||danger.has(here)?[]:danger),...(policy==='reckless'?[]:trips)]);
  const levers=new Set((s.devices??[]).filter(d=>d.kind==='switch'&&d.mode!=='set'&&!(d.x===s.player.x&&d.y===s.player.y)).map(key));
  const step=stepToward(s,goals,avoid,policy==='reckless')??stepToward(s,goals,new Set(),true)??stepToward(s,frontier(s),new Set(),true)??stepToward(s,levers,new Set(),true);
  if(step){const e=s.enemies.find(e=>e.x===step.x&&e.y===step.y);return e?{type:'attack',enemyId:e.id}:{type:'move',...step};}
@@ -109,17 +130,17 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
  if(foe){const st=stepToward(s,new Set([key(foe)]),new Set(),true);if(st){const e=s.enemies.find(e=>e.x===st.x&&e.y===st.y);return e?{type:'attack',enemyId:e.id}:{type:'move',...st};}}
  return {type:'wait'};
 }
-export type Result={lureVaults:number;lured:number;status:RunState['status'];killedBy?:string;turns:number;floor:number;extracted:number;used:number;funded:number;tideDeath:boolean};
+export type Result={arena:boolean;dropped:boolean;arenaDeath:boolean;lureVaults:number;lured:number;status:RunState['status'];killedBy?:string;turns:number;floor:number;extracted:number;used:number;funded:number;tideDeath:boolean};
 export function simulate(seed:number,preset:GeneratorPreset,policy:Policy,kit:RehearsalKit='club'):Result{
  const d=generateDraft(seed,generatorPresets[preset].options);let s=creatorRehearsal(d.floors,d.placements,kit,'tonic');
- let floorTurns=0,room=0;lureWaits.clear();
+ let floorTurns=0,room=0;lureWaits.clear();const arenaIndex=d.floors.some(f=>f.links)?d.floors.length-1:-1;let dropped=false;
  const gates=d.floors.flatMap((f,room)=>(f.devices??[]).filter(g=>g.kind==='door'&&f.features?.some(x=>x.kind==='plate'&&x.channel===g.channel)).map(g=>`${room}:${g.x},${g.y}`));const lured=new Set<string>();
  for(let i=0;i<600&&s.status==='active';i++){
   const a=choose(s,policy,floorTurns);let n=act(s,a);
   if(n===s)n=act(s,{type:'wait'});
-  s=n;if(gates.includes(`${s.roomIndex}:${s.player.x},${s.player.y}`))lured.add(`${s.roomIndex}:${s.player.x},${s.player.y}`);if(s.roomIndex!==room){room=s.roomIndex;floorTurns=0;}else floorTurns++;
+  s=n;if(s.roomIndex===arenaIndex)dropped=true;if(gates.includes(`${s.roomIndex}:${s.player.x},${s.player.y}`))lured.add(`${s.roomIndex}:${s.player.x},${s.player.y}`);if(s.roomIndex!==room){room=s.roomIndex;floorTurns=0;}else floorTurns++;
  }
- return {lureVaults:gates.length,lured:lured.size,status:s.status,killedBy:s.killedBy,turns:s.turn,floor:s.roomIndex+1,extracted:s.status==='extracted'?carried(s):0,used:Object.values(s.items).filter(i=>i.origin==='dungeon'&&i.location.kind==='consumed').length,funded:estimateDraft(d).goods,tideDeath:s.killedBy==='the rising tide'};
+ return {arena:arenaIndex>=0,dropped,arenaDeath:s.status==='died'&&s.roomIndex===arenaIndex,lureVaults:gates.length,lured:lured.size,status:s.status,killedBy:s.killedBy,turns:s.turn,floor:s.roomIndex+1,extracted:s.status==='extracted'?carried(s):0,used:Object.values(s.items).filter(i=>i.origin==='dungeon'&&i.location.kind==='consumed').length,funded:estimateDraft(d).goods,tideDeath:s.killedBy==='the rising tide'};
 }
 const cause=(k?:string)=>!k?'?':k.replace(/ #[\d.]+/,'').replace(/ blast$/,' (blast)');
 export function report(seeds:number,kit:RehearsalKit='club'){
@@ -129,7 +150,7 @@ export function report(seeds:number,kit:RehearsalKit='club'){
   const died=rs.filter(r=>r.status==='died'),out=rs.filter(r=>r.status==='extracted');
   const causes=new Map<string,number>();for(const r of died)causes.set(cause(r.killedBy),(causes.get(cause(r.killedBy))??0)+1);
   const pct=(n:number)=>`${Math.round(100*n/rs.length)}%`;
-  rows.push(`${preset.padEnd(6)} ${policy.padEnd(8)} died ${pct(died.length).padStart(4)} out ${pct(out.length).padStart(4)} stalled ${pct(rs.length-died.length-out.length).padStart(4)} · loot out ${(rs.reduce((n,r)=>n+r.extracted,0)/rs.length).toFixed(2)} + drunk ${(rs.reduce((n,r)=>n+r.used,0)/rs.length).toFixed(2)} of ${(rs.reduce((n,r)=>n+r.funded,0)/rs.length).toFixed(1)} funded · turns ${Math.round(rs.reduce((n,r)=>n+r.turns,0)/rs.length)} · floor ${(rs.reduce((n,r)=>n+r.floor,0)/rs.length).toFixed(1)} · tide ${died.filter(r=>r.tideDeath).length} · lure ${rs.reduce((n,r)=>n+r.lured,0)}/${rs.reduce((n,r)=>n+r.lureVaults,0)} · causes ${[...causes].sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`${k} ${v}`).join(', ')}`);
+  rows.push(`${preset.padEnd(6)} ${policy.padEnd(8)} died ${pct(died.length).padStart(4)} out ${pct(out.length).padStart(4)} stalled ${pct(rs.length-died.length-out.length).padStart(4)} · loot out ${(rs.reduce((n,r)=>n+r.extracted,0)/rs.length).toFixed(2)} + drunk ${(rs.reduce((n,r)=>n+r.used,0)/rs.length).toFixed(2)} of ${(rs.reduce((n,r)=>n+r.funded,0)/rs.length).toFixed(1)} funded · turns ${Math.round(rs.reduce((n,r)=>n+r.turns,0)/rs.length)} · floor ${(rs.reduce((n,r)=>n+r.floor,0)/rs.length).toFixed(1)} · tide ${died.filter(r=>r.tideDeath).length} · arena ${rs.filter(r=>r.dropped).length}/${rs.filter(r=>r.arena).length} (died ${rs.filter(r=>r.arenaDeath).length}) · lure ${rs.reduce((n,r)=>n+r.lured,0)}/${rs.reduce((n,r)=>n+r.lureVaults,0)} · causes ${[...causes].sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`${k} ${v}`).join(', ')}`);
  }
  return rows;
 }

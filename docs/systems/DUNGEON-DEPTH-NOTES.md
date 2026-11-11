@@ -169,4 +169,29 @@ Greedy tide deaths on Medium went from 8 to 0 (they were ambush traps); greedy d
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** generator lure room filtered by the solver (and a separate vault exit), then the one-way drop into a sealed arena.
+## Lure vaults and sealed arenas (generator)
+
+- **Lure vault** (Medium/Large vault floors, alongside locked vaults and ambush stashes): the hidden room's gate is wired only to a pressure plate three tiles out along its approach (gate, approach, line tile, plate in a straight row). Stand at the approach, let the vault's guard (a pursuer placed 2-4 tiles away) come along the line, and shove it onto the plate: it is pinned for a turn and the gate opens long enough to step in. The way out is a separate hatch (a gate on its own channel, tunnelled through up to 3 rock tiles if needed) opened by a toggle lever at the back of the vault. Nothing else writes the gate's channel.
+- Every candidate is kept only if (a) with the vault sealed the rest of the floor still connects, (b) the route solver, from the approach with only the guard present, gets through the gate under exact play rules, and (c) from inside, the solver reaches the stairs through the hatch. Test: across seeds, every lure vault re-proves, most proofs need a shove (10 of 11), and without the guard the vault is proven unenterable. Solver fix found on the way: lit kegs were missing from its state key, so it could not see a keg burning open a route.
+- Killing the guard closes the vault for good unless another enemy can be lured: a real decision. Greedy harness bots try (wait at the approach, shove when the guard is on the line tile) but usually kill the guard first: 1 of 7 Medium and 1 of 17 Large lure vaults entered.
+- **Sealed arena** (Medium/Large, ~45% of drafts, drawn after the main floors so their layouts are unchanged): the draft switches to connected floors. Each floor gets a stairs passage beside its exit, one floor gets a one-way **drop** passage into an extra floor: an open hall with pillars, a pack (pursuers/chargers, crabs and brutes deeper; no crossbow sentries, because they kite and the hall only opens once everything is down) and two treasure spots. The arena's exit allows extraction only once it is cleared, and a passage onward to the next floor needs a cleared room. No passage leads back. Passage tiles are never chokepoints (walking onto one travels, so the rest must stay reachable around it).
+- Proof: `arenaSolvable` checks there is no passage back and that, with the pack gone, the exit is reachable under play rules; tests also drop into the arena, find the exit and onward passage shut while enemies live and open once cleared; a contract test publishes two generated Medium drafts (lure vault + arena) at v13.
+- Builder: arenas and lure vaults are made from existing components (plates, gates, levers, passages, exit rules), so a generated draft is fully editable. No new rules version.
+
+Harness, 60 seeds (arena = dropped/arena drafts, with deaths in the arena; lure = vaults entered/present):
+```
+Saltwake depth simulation · 60 seeds per preset × policy · kit club
+small  cautious died   2% out  97% stalled   2% · loot out 0.75 + drunk 0.07 of 1.0 funded · turns 33 · floor 1.0 · tide 0 · arena 0/0 (died 0) · lure 0/0 · causes pursuer 1
+small  greedy   died   2% out  95% stalled   3% · loot out 0.85 + drunk 0.10 of 1.0 funded · turns 46 · floor 1.0 · tide 0 · arena 0/0 (died 0) · lure 0/0 · causes pursuer 1
+small  reckless died   5% out  93% stalled   2% · loot out 0.20 + drunk 0.02 of 1.0 funded · turns 26 · floor 1.0 · tide 0 · arena 0/0 (died 0) · lure 0/0 · causes powder crab (blast) 2, Keg (blast) 1
+medium cautious died   7% out  90% stalled   3% · loot out 0.60 + drunk 0.15 of 2.4 funded · turns 55 · floor 1.1 · tide 0 · arena 0/26 (died 0) · lure 0/7 · causes sentry 1, Spikes 1, charger 1, pursuer 1
+medium greedy   died  28% out  68% stalled   3% · loot out 0.40 + drunk 0.92 of 2.4 funded · turns 88 · floor 1.9 · tide 0 · arena 8/26 (died 5) · lure 0/7 · causes pursuer 6, charger 3, Spikes 2, rat 2
+medium reckless died  82% out  18% stalled   0% · loot out 0.03 + drunk 0.22 of 2.4 funded · turns 33 · floor 1.9 · tide 0 · arena 11/26 (died 11) · lure 0/7 · causes charger 12, pursuer 11, powder crab (blast) 11, sentry 9
+large  cautious died  13% out  80% stalled   7% · loot out 0.68 + drunk 0.13 of 9.4 funded · turns 75 · floor 1.0 · tide 0 · arena 0/33 (died 0) · lure 0/17 · causes Spikes 4, sentry 2, pursuer 2
+large  greedy   died  55% out  38% stalled   7% · loot out 0.27 + drunk 1.88 of 9.4 funded · turns 130 · floor 2.1 · tide 5 · arena 5/33 (died 2) · lure 1/17 · causes pursuer 11, the rising tide 5, powder crab (blast) 4, Spikes 4
+large  reckless died 100% out   0% stalled   0% · loot out 0.00 + drunk 0.13 of 9.4 funded · turns 35 · floor 2.1 · tide 1 · arena 9/33 (died 9) · lure 0/17 · causes charger 14, pursuer 11, sentry 11, powder crab (blast) 10
+```
+Small is unchanged and survivable for careful play (2% cautious deaths). Medium: careful 7%, greedy 28%, reckless 82%. Large: careful 13%, greedy 55%, reckless 100%. Arenas are the riskiest choice: greedy bots that drop in die there about 40-60% of the time.
+
+**Next step:** builder Puzzle & passages panel (plates, keys, locks, switches, gates and passages in one place, sealed-arena helper, wiring list) wired into FloorBuilder; then goal 4 vocabulary (timed doors, patrols) behind a new rules version.
+
