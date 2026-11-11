@@ -110,6 +110,12 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - UI: notice board → Commissions tab (post/fill/cancel); workbench Small batch button; ledger counts commission coins.
 - Simulation levers `fastfee`, `smallbatch`, `commission` (default on). Three seeds: broke days → 0, delvers end with 25–57 coins, makers 24–53 (from 85–93). Details in ECONOMY-TUNING.md.
 
+## Round 12: price discovery, bigger towns, collapse, charts
+
+- Simulation: `prices` lever (asks/bids from yesterday's fills), `--players N` (contract `init_simulation` seed: m-/a-/d- profiles, scaled record caps for that world only), `--scenario collapse` (delvers start at 0). Day reports add coins by role, prices paid and best bids.
+- Town history: inline SVG charts (coins by role, runs/trades/unsold, average price paid), CSS classes for look-feel.
+- Findings (ECONOMY-TUNING.md round 3): ingredients run out by day 5 in a 30-day 20-player town (no herb/flask source); collapse recovers via free entry + commissions (delvers 0 → 51 in 14 days). Lifetime record caps (64 runs/listings/batches, 256 receipts) flagged; capacity lane owns the fix — do not touch runs.rs/market.rs/craft.rs caps or outbox capacity.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
