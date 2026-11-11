@@ -11,7 +11,7 @@ pub const MAX_COMMISSION_QUANTITY: u32 = 32;
 #[derive(Clone)]
 pub struct Commission { pub id: String, pub buyer: String, pub item_type: ItemType, pub unit_price: U64, pub quantity: u32, pub filled: u32, pub escrow: U64, pub status: String, pub delivered: Vec<String> }
 pub fn read() -> BTreeMap<String, Commission> { env::storage_read(KEY).map(|b| borsh::from_slice(&b).expect("Corrupt commissions")).unwrap_or_default() }
-fn write(map: &BTreeMap<String, Commission>) { env::storage_write(KEY, &borsh::to_vec(map).unwrap()); }
+pub(crate) fn write(map: &BTreeMap<String, Commission>) { env::storage_write(KEY, &borsh::to_vec(map).unwrap()); }
 impl Economy {
     pub(crate) fn post_commission(&mut self, actor: String, item_type: ItemType, price: U64, quantity: u32) -> Result<String, String> {
         let mut map = read();
@@ -22,7 +22,7 @@ impl Economy {
         let balance = self.credits.get_mut(&actor).ok_or("UnknownProfile")?;
         if *balance < total { return Err("InsufficientCredits".into()); }
         *balance -= total;
-        let id = format!("commission-{}", map.len());
+        let id = crate::compact::allocate_commission(&map);
         map.insert(id.clone(), Commission { id: id.clone(), buyer: actor, item_type, unit_price: price, quantity, filled: 0, escrow: U64(total), status: "open".into(), delivered: vec![] });
         write(&map);
         Ok(id)

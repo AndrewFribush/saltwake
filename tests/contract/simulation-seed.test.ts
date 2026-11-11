@@ -1,8 +1,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import type {ChildProcess} from 'node:child_process';
 import {Sandbox,GenesisAccount} from 'near-sandbox';import {Account,JsonRpcProvider,type KeyPairString} from 'near-api-js';
 import {fixture} from './helpers';
-test('normal worlds keep the 256-receipt cap; the simulation seed adds labelled profiles and a larger cap',{timeout:150000},async()=>{
- const f=await fixture();try{assert.equal(await f.view('receipt_capacity'),256);
+test('normal worlds keep 256 recent receipts; the simulation seed adds labelled profiles and a wider receipt window',{timeout:150000},async()=>{
+ const f=await fixture();try{assert.equal(await f.view('receipt_capacity'),256);assert.equal((await f.view('capacity')).receipts.tombstone_capacity,4096);
   // Operator restock is the contract account's own call only; it mints goods into the bank and records the total.
   await assert.rejects(f.outsider.callFunction({contractId:f.contractId,methodName:'operator_restock',args:{item_type:'herb',count:4},gas:100_000_000_000_000n}));
   assert.equal(await f.view('item_issuance'),'0');
@@ -14,7 +14,9 @@ test('normal worlds keep the 256-receipt cap; the simulation seed adds labelled 
   await a.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));
   await a.callFunction({contractId:g.accountId,methodName:'init_simulation',args:{makers:2,artisans:1,delvers:3,delver_coins:'0'},gas:300_000_000_000_000n,waitUntil:'FINAL'});
   const view=(method:string)=>provider.callFunction<any>({contractId:g.accountId,method,args:{}});const s=await view('snapshot');
-  assert.equal(await view('receipt_capacity'),8192);
+  // The scale now widens only the receipt window's tombstone slots (docs/systems/CAPACITY.md); the recent tier stays 256.
+  assert.equal(await view('receipt_capacity'),256);
+  const cap=await view('capacity');assert.equal(cap.receipts.tombstone_capacity,4096*32);assert.equal(cap.max_active_runs,64);
   assert.deepEqual(['m-0','m-1','a-0','d-0','d-1','d-2'].map(p=>s.credits[p]),['60','60','10','0','0','0']);
   assert.equal(s.items.filter((i:any)=>i.location.kind==='owned'&&i.location.profile==='m-0').length,6);
   assert.equal(s.items.filter((i:any)=>i.id.startsWith('sim-bank-')).length,12);

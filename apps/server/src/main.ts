@@ -8,6 +8,7 @@ import {DemoSessions} from './auth';
 import {WalletSessions} from './wallet-auth';
 import {checkTestnetApproval} from './testnet-approval';
 import {cachedRead} from './rpc-cache';
+import {withArchive} from './history-archive';
 import {Store} from './db';import {Outbox} from './outbox';import {NearChain} from './chain';import {Runs} from './runs';import {httpServer} from './http';
 import type {EconomySnapshot} from '../../../packages/shared/src/types';
 // Local sandbox: operator-controlled demo profiles. Testnet: wallet sign-in only, no demo profiles.
@@ -36,7 +37,8 @@ if(testnet){
 const provider=new JsonRpcProvider({url:config.rpcUrl});
 const db=new Store('.state/'+config.epoch+'/server.sqlite');const chain=new NearChain(provider,KeyPairSigner.fromSecretKey(config.privateKey),config.accountId,config.accountId);
 const bounded=bounds?new BoundedChain(chain,db,bounds.budgetId,bounds.limit,bounds.expiresAt):undefined;
-const readSnapshot=async()=>{const s=await provider.callFunction<EconomySnapshot>({contractId:config.accountId,method:'snapshot',args:{},blockQuery:{finality:'final'}});if(!s)throw Error('No chain snapshot');return s;};
+// Terminal records pruned on chain stay visible to history views through the server's bounded archive (CAPACITY.md).
+const readSnapshot=async()=>{const s=await provider.callFunction<EconomySnapshot>({contractId:config.accountId,method:'snapshot',args:{},blockQuery:{finality:'final'}});if(!s)throw Error('No chain snapshot');return withArchive(db,s);};
 // Testnet: a full snapshot view takes seconds on public RPCs, and every client poll asks for a reconcile pass.
 // Snapshot and contract clock reads are cached for --rpc-cache-ms (default 5000; raise it when the public RPC
 // returns -429). Operation receipts are always read fresh; cost observations use fresh reads too.
@@ -48,7 +50,9 @@ if(testnet){
  const receipt=chain.receipt.bind(chain),receipts=new Map<string,ReturnType<typeof cachedRead<Awaited<ReturnType<typeof receipt>>>>>();
  chain.receipt=id=>{let read=receipts.get(id);if(!read)receipts.set(id,read=cachedRead(()=>receipt(id),cacheMs/2,cacheMs/2));return read();};
 }
-const box=new Outbox(db,bounded??chain,new CostJournal(db,readSnapshot));const runs=new Runs(db,box);
+// The outbox mirrors the contract's whole receipt window (recent receipts plus tombstones); older contracts have no `capacity` view.
+const windowSize=await provider.callFunction<{receipts:{recent_capacity:number;tombstone_capacity:number}}>({contractId:config.accountId,method:'capacity',args:{},blockQuery:{finality:'final'}}).then(c=>c?c.receipts.recent_capacity+c.receipts.tombstone_capacity:256,()=>256);
+const box=new Outbox(db,bounded??chain,new CostJournal(db,readSnapshot),{capacity:windowSize});const runs=new Runs(db,box);
 const demo=new DemoSessions({profiles:config.profiles??['buyer','maker','p2','p3','p4','p5'],secureCookies:false});
 const walletNetwork=testnet?'testnet':'localnet';
 // --wallet-local-alias http://localhost:<port>: a second loopback origin (separate cookie jar) for two local wallet players. Local wallet mode only.

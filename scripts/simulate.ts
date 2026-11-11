@@ -20,7 +20,7 @@ import {Sandbox,GenesisAccount} from 'near-sandbox';
 import {Account,JsonRpcProvider,KeyPairSigner,type KeyPairString} from 'near-api-js';
 import {starterTownCommands} from '../packages/shared/src/starter-town';
 import {catalog} from '../packages/shared/src/catalog';
-import {Store} from '../apps/server/src/db';import {Outbox} from '../apps/server/src/outbox';import {NearChain} from '../apps/server/src/chain';import {Runs,type SavedRun} from '../apps/server/src/runs';import {httpServer} from '../apps/server/src/http';import {CostJournal} from '../apps/server/src/cost-ledger';import {DemoSessions} from '../apps/server/src/auth';
+import {Store} from '../apps/server/src/db';import {Outbox} from '../apps/server/src/outbox';import {NearChain} from '../apps/server/src/chain';import {Runs,type SavedRun} from '../apps/server/src/runs';import {httpServer} from '../apps/server/src/http';import {CostJournal} from '../apps/server/src/cost-ledger';import {withArchive} from '../apps/server/src/history-archive';import {DemoSessions} from '../apps/server/src/auth';
 import {apiClient,seedDemoTown,presetPublication} from './demo-town';
 import {creatorFunding} from '../packages/shared/src/creator-rewards';
 import {choose,type Policy} from './depth-sim';
@@ -53,9 +53,12 @@ try{
  const db=new Store('.state/'+local.epoch+'/server.sqlite');
  const chain=new NearChain(provider,KeyPairSigner.fromSecretKey(local.privateKey as KeyPairString),local.accountId,local.accountId);
  const snapshot=()=>provider.callFunction<any>({contractId:local.accountId,method:'snapshot',args:{},blockQuery:{finality:'final'}});
- const cap=await provider.callFunction<number>({contractId:local.accountId,method:'receipt_capacity',args:{},blockQuery:{finality:'final'}});
- const box=new Outbox(db,chain,new CostJournal(db,snapshot),{capacity:cap});
- const {server}=httpServer(box,new Runs(db,box),snapshot,new DemoSessions({profiles:PROFILES,secureCookies:false}));
+ // The outbox mirrors the contract's whole receipt window; history views see pruned terminal records via the server archive.
+ const receiptWindow=await provider.callFunction<any>({contractId:local.accountId,method:'capacity',args:{},blockQuery:{finality:'final'}});
+ const cap=receiptWindow.receipts.recent_capacity+receiptWindow.receipts.tombstone_capacity;
+ const served=()=>snapshot().then((s:any)=>withArchive(db,s));
+ const box=new Outbox(db,chain,new CostJournal(db,served),{capacity:cap});
+ const {server}=httpServer(box,new Runs(db,box),served,new DemoSessions({profiles:PROFILES,secureCookies:false}));
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
  const api=apiClient('http://127.0.0.1:'+(server.address() as AddressInfo).port);
  const history:TownHistory={label:'SIMULATION',days:[],startedAt:new Date().toISOString(),note:'Bot players acting through the real server and contract on an isolated local sandbox. Each day is one round of bot turns; chain time does not jump. Not organic activity.'};
@@ -200,7 +203,8 @@ try{
     }}
    // Makers revise: cut the fee of an open dungeon nobody entered today; raise it when it was busy.
    for(const p of ROLES.makers){const w=await world(p);for(const e of (w.editions as any[]).filter(e=>e.maker===p&&e.status==='open')){
-    const entered=(await snapshot()).runs.filter((r:any)=>r.edition===e.id).length-prev.runs.filter((r:any)=>r.edition===e.id).length;
+    // Settled runs are pruned on chain beyond a fixed history (CAPACITY.md): count runs that are new since yesterday.
+    const entered=(await snapshot()).runs.filter((r:any)=>r.edition===e.id&&!prev.runs.some((x:any)=>x.id===r.id)).length;
     const broke=events.some(x=>/could not afford/.test(x));const cash=(await snapshot()).credits;const poorest=Math.min(...ROLES.delvers.map(d=>Number(cash[d]??0)));
     const fee=Number(e.fee),next=LEVERS.has('fastfee')?(entered===0&&(broke||fee>poorest)?Math.min(Math.floor(fee/2),poorest):entered>=3?fee+1:fee):entered===0?Math.max(0,fee-1):entered>=2?fee+1:fee;
     if(next!==fee){const r=await cmd(p,{type:'set_fee',edition_id:e.id,new_fee:String(next)});if(r.ok)events.push(`${p} ${next<fee?'cut':'raised'} the entry fee of ${e.terms.title} to ${next} (${entered} entries today)`);}
@@ -210,7 +214,7 @@ try{
    const prices:Record<string,{min:number;max:number;count:number}>={};
    for(const l of s.listings.filter((l:any)=>l.status==='active'))for(const id of l.remaining_ids){const it=s.items.find((i:any)=>i.id===id);if(!it)continue;const p=prices[it.item_type]??={min:Infinity,max:0,count:0};p.min=Math.min(p.min,Number(l.unit_price));p.max=Math.max(p.max,Number(l.unit_price));p.count++;}
    const treasure=s.editions.reduce((a:any,e:any)=>({extracted:a.extracted+Number(e.extracted_value),consumed:a.consumed+Number(e.consumed_value),banked:a.banked+Number(e.banked_value)}),{extracted:0,consumed:0,banked:0});
-   const absent=s.editions.filter((e:any)=>!e.closed&&s.runs.filter((r:any)=>r.edition===e.id).length===prev.runs.filter((r:any)=>r.edition===e.id).length).map((e:any)=>e.terms.title);
+   const absent=s.editions.filter((e:any)=>!e.closed&&!s.runs.some((r:any)=>r.edition===e.id&&!prev.runs.some((x:any)=>x.id===r.id))).map((e:any)=>e.terms.title);
    // Prices actually paid today: listing sales (remaining shrank since yesterday) and commission deliveries.
    const paid:Record<string,number[]>={};const typeOf=(id:string)=>s.items.find((i:any)=>i.id===id)?.item_type;
    for(const l of s.listings){const before=prev.listings.find((x:any)=>x.id===l.id);const was=before?before.remaining_ids:l.item_ids;for(const id of was)if(!l.remaining_ids.includes(id)){const t=typeOf(id);if(t)(paid[t]??=[]).push(Number(l.unit_price));}}
@@ -233,6 +237,8 @@ try{
    makerCoinsEnd:ROLES.makers.reduce((n,p)=>n+Number(end.credits[p]??0),0),artisanCoinsEnd:ROLES.artisans.reduce((n,p)=>n+Number(end.credits[p]??0),0),unsoldEnd:D.at(-1)!.unsoldItems,bankEnd:D.at(-1)!.bank,
    delversBrokeDays:D.filter(d=>d.events.some(e=>/could not afford/.test(e))).length,batchesAfterDay5:D.filter(d=>d.day>5).reduce((n,d)=>n+d.batchesBrewed,0),itemsIssued:D.reduce((n,d)=>n+(d.itemsIssued??0),0)};
   (history as any).summary=summary;console.log('SUMMARY '+JSON.stringify(summary));
+  // Bounded storage (docs/systems/CAPACITY.md): live records and the receipt window after the whole run.
+  console.log('CAPACITY '+JSON.stringify(await provider.callFunction<any>({contractId:local.accountId,method:'capacity',args:{},blockQuery:{finality:'final'}})));
   history.finishedAt=new Date().toISOString();writeFileSync(historyPath,JSON.stringify(history,null,1));
   console.log(`SIMULATION finished: ${days} days in ${Math.round((Date.now()-started)/1000)}s. History: ${historyPath}`);
  }finally{await new Promise<void>(r=>server.close(()=>r()));db.close();}

@@ -18,13 +18,13 @@ impl Economy {
         price: U64,
     ) -> Result<String, String> {
         unique_items(&ids)?;
-        if self.listings.len() >= crate::cap(64) {
+        if self.active_listings() >= crate::compact::MAX_ACTIVE_LISTINGS {
             return Err("ListingCapacity".into());
         }
         if price.0 == 0 || price.0 > 1_000_000 {
             return Err("InvalidPrice".into());
         }
-        let id = format!("listing-{}", self.listings.len());
+        let (serial, id) = crate::compact::next_listing(&self.listings);
         for item_id in &ids {
             let item = self.items.get_mut(item_id).ok_or("MissingItem")?;
             if item.location
@@ -49,6 +49,7 @@ impl Economy {
                 status: "active".into(),
             },
         );
+        crate::compact::commit_listing(serial);
         Ok(id)
     }
     pub(crate) fn cancel_listing(&mut self, actor: String, id: String) -> Result<String, String> {
@@ -242,6 +243,10 @@ impl Economy {
 fn reservation_key(listing: &str) -> Vec<u8> { format!("listing-buyer:{listing}").into_bytes() }
 pub(crate) fn reserved_buyer(listing: &str) -> Option<String> {
     near_sdk::env::storage_read(&reservation_key(listing)).and_then(|v| String::from_utf8(v).ok())
+}
+/// A pruned (terminal) listing's reservation is no longer needed; its id is never reused.
+pub(crate) fn forget_reservation(listing: &str) {
+    near_sdk::env::storage_remove(&reservation_key(listing));
 }
 pub(crate) fn reserve(listing: &str, buyer: &str) {
     near_sdk::env::storage_write(&reservation_key(listing), buyer.as_bytes());

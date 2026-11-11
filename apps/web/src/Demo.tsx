@@ -1,4 +1,5 @@
 import {ExpeditionOffer} from './ExpeditionOffer';
+import {resumablePending} from './pending-command';
 import {itemUse,planLoadout,weaponDamage} from '../../../packages/shared/src/equipment';
 import {ShopBuilder} from './ShopBuilder';
 import {MyBuildings} from './MyBuildings';
@@ -74,7 +75,9 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
   setNotice(isOffline(e)?OFFLINE_NOTICE:e.message);}).finally(()=>{polling.current=false;});}},3000);return()=>{stopped=true;worldGeneration.current++;clearInterval(timer);};},[]);
  const work=async(fn:()=>Promise<unknown>)=>{if(inflight.current||childBusy)return;inflight.current=true;setBusy(true);try{await fn();await refresh();setNotice('');}catch(e){setNotice((e as Error).message);}finally{inflight.current=false;setBusy(false);}};
  const command=async(action:unknown)=>{
-  const key=pendingCommandKey(world?.profile);const saved=sessionStorage.getItem(key);const pending=saved?JSON.parse(saved):{id:crypto.randomUUID(),action};
+  const key=pendingCommandKey(world?.profile);const resumed=resumablePending(sessionStorage.getItem(key),!!walletConnection,Date.now());
+  if(resumed.dropped){sessionStorage.removeItem(key);await refresh();throw Error('An interrupted request is more than 12 hours old and will not be resent. Check your purse and goods, then try again.');}
+  const saved=resumed.pending;const pending=saved??{id:crypto.randomUUID(),action,at:Date.now()};
   if(saved&&JSON.stringify(pending.action)!==JSON.stringify(action))throw Error('Retry or reconcile the earlier command before changing it.');
   sessionStorage.setItem(key,JSON.stringify(pending));const r=walletConnection?await walletConnection.execute(pending.id,pending.action):await api('command',{...pending,expectedProfile:world?.profile});
   if(r.status==='Applied'||r.status==='Rejected')sessionStorage.removeItem(key);

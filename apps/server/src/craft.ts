@@ -61,7 +61,8 @@ export class Craft {
       }
       const records = this.db.all<SavedCraft>('craft');
       if (records.some(r => r.profile === profile && !['rejected', 'finished'].includes(this.present(r).status))) throw Error('Profile has active craft');
-      if (records.length >= MAX_CRAFT_REQUESTS) throw Error('Craft storage capacity reached');
+      // Bound OPEN requests; rejected and finished ones are history and never block new crafting (CAPACITY.md).
+      if (records.filter(r => !['rejected', 'finished'].includes(this.present(r).status)).length >= MAX_CRAFT_REQUESTS) throw Error('Craft storage capacity reached');
       const challenge = {nonce: randomBytes(32).toString('hex'), stepMs: CRAFT_STEP_MS, target: {...CRAFT_TARGET}, steps: CRAFT_STEPS};
       const row: SavedCraft = {
         id, profile, requestHash, inputIds: [...inputIds], recovery, challenge, commitment: hash(challenge),
@@ -135,8 +136,8 @@ export class Craft {
           if(item.item_type==='herb')herbs++;else if(item.item_type==='flask')flasks++;else throw Error('Invalid discovered recipe');
         }
         if(herbs!==2||flasks!==2)throw Error('Invalid discovered recipe');
-        // Up to64 prepared records plus the contract's64 lifetime batches.
-        if(this.db.all('craft').length>=MAX_CRAFT_REQUESTS+64)throw Error('Craft discovery storage capacity reached');
+        // Up to 64 open prepared records plus the contract's 64 active batches.
+        if(this.db.all<SavedCraft>('craft').filter(r=>!['rejected','finished'].includes(this.present(r).status)).length>=MAX_CRAFT_REQUESTS+64)throw Error('Craft discovery storage capacity reached');
         this.save({id:batch.id,profile:batch.actor,wallet:true,discovered:true,requestHash:'',inputIds:[...batch.input_ids],recovery:batch.recovery,
           challenge:null,commitment:batch.challenge_commitment,deadlineMs:deadline,beginOp:batch.id,finishOp:null,confirmed:true,finished:false,seq:0,startedAtMs:null,inputs:[],tier:null,reason:null,outputIds:[],events:{}});
       }

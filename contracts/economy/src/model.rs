@@ -424,3 +424,23 @@ pub struct RecoveryState {
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]
 pub struct Shopfront {pub id:String,pub owner:String,pub title:String,pub district:String,pub x:u8,pub y:u8,pub interior:String,pub version:U64,pub open:bool,pub listing_ids:Vec<String>}
+#[near(serializers=[json])]
+pub struct CapacityReport {
+    pub receipts: crate::receipts::WindowReport,
+    pub active_runs: u32,
+    pub max_active_runs: u32,
+    pub runs_kept: u32,
+    pub active_listings: u32,
+    pub max_active_listings: u32,
+    pub listings_kept: u32,
+    pub active_batches: u32,
+    pub max_active_batches: u32,
+    pub batches_kept: u32,
+    pub open_editions: u32,
+    pub max_open_editions: u32,
+    pub editions_kept: u32,
+    pub commissions_kept: u32,
+    pub max_open_commissions: u32,
+    /// Terminal records kept for history: runs, listings, batches, editions, commissions.
+    pub kept_terminal: Vec<u32>,
+}

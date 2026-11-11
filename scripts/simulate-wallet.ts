@@ -35,7 +35,9 @@ try{
  for(const {id,command} of starterTownCommands(Number(clock))){const r=await root.callFunction<any>({contractId,methodName:'execute',args:{op_id:id,command},gas:100_000_000_000_000n,waitUntil:'FINAL'});if(r.status!=='Applied')throw Error('Starter town failed: '+r.result);}
  const epoch='wallet-sim-'+randomUUID();mkdirSync('.state/'+epoch,{recursive:true,mode:0o700});const db=new Store('.state/'+epoch+'/server.sqlite');
  const snapshot=()=>provider.callFunction<any>({contractId,method:'snapshot',args:{},blockQuery:{finality:'final'}});
- const box=new Outbox(db,new NearChain(provider,KeyPairSigner.fromSecretKey(genesis.privateKey as KeyPairString),contractId,contractId));
+ // The outbox mirrors the contract's whole receipt window (docs/systems/CAPACITY.md).
+ const receiptWindow=await provider.callFunction<any>({contractId,method:'capacity',args:{},blockQuery:{finality:'final'}});
+ const box=new Outbox(db,new NearChain(provider,KeyPairSigner.fromSecretKey(genesis.privateKey as KeyPairString),contractId,contractId),undefined,{capacity:receiptWindow.receipts.recent_capacity+receiptWindow.receipts.tombstone_capacity});
  const sessions=new WalletSessions({origin,network:'localnet',contractId,provider,secureCookies:false,sessionMs:3600000});
  const {server}=httpServer(box,new Runs(db,box),snapshot,undefined,{walletSessions:sessions,origin,network:'localnet',contractId},{webOrigin:origin});
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+(server.address() as AddressInfo).port;

@@ -51,10 +51,12 @@ impl Economy {
         if id.is_empty() || id.len() > 64 {
             return Err("InvalidBatchId".into());
         }
-        if self.batches.contains_key(&id) {
+        // Finished batches are pruned eventually; their live outputs still reserve the id so a reused
+        // batch id can never collide with existing `crafted-<id>-<n>` goods and strand its inputs.
+        if self.batches.contains_key(&id) || self.items.contains_key(&format!("crafted-{id}-0")) || self.items.contains_key(&format!("crafted-{id}-1")) {
             return Err("BatchExists".into());
         }
-        if self.batches.len() >= crate::cap(64) {
+        if self.active_batches() >= crate::compact::MAX_ACTIVE_BATCHES {
             return Err("BatchCapacity".into());
         }
         if commitment.len() != 64 || !commitment.bytes().all(|b| b.is_ascii_hexdigit()) {

@@ -6,7 +6,7 @@ import {audit} from './invariants';
 import {readFileSync} from 'node:fs';
 import {Sandbox,GenesisAccount} from 'near-sandbox';
 import {Account,JsonRpcProvider,type KeyPairString} from 'near-api-js';
-export async function fixture(wasm='contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'){
+export async function fixture(wasm='contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm',init:{method:string;args:Record<string,unknown>}={method:'init_demo',args:{}}){
  const genesis=GenesisAccount.createDefault();const other=GenesisAccount.createDefault('outsider');
  const sandbox=await Sandbox.start({config:{additionalAccounts:[other]}});
  // near-sandbox0.3.4 can hang in graceful shutdown after fast-forward.
@@ -24,7 +24,7 @@ export async function fixture(wasm='contracts/economy/target/wasm32-unknown-unkn
  await account.deployContract(readFileSync(wasm));
  const call=(methodName:string,args:Record<string,unknown>={})=>account.callFunction<any>({contractId:genesis.accountId,methodName,args,gas:100_000_000_000_000n,waitUntil:methodName==='init_demo'?'FINAL':'INCLUDED_FINAL'});
  const view=(method:string,args:Record<string,unknown>={})=>provider.callFunction<any>({contractId:genesis.accountId,method,args});
- await call('init_demo');
+ await account.callFunction({contractId:genesis.accountId,methodName:init.method,args:init.args,gas:100_000_000_000_000n,waitUntil:'FINAL'});
  return {sandbox,provider,account,genesis,call,view,apply:async(op_id:string,command:object)=>{const receipt=await call('execute',{op_id,command});audit(await view('snapshot'));assert.equal(receipt.payload_hash,commandHash(command as Command));return receipt;},outsider,contractId:genesis.accountId};
  }catch(e){await sandbox.tearDown();throw e;}
 }

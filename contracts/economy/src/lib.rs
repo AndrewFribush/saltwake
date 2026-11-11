@@ -1,6 +1,8 @@
 mod buyin;
 mod commissions;
+mod compact;
 mod craft;
+mod receipts;
 mod shops;
 mod editions;
 mod market;
@@ -52,11 +54,15 @@ fn hash<T: borsh::BorshSerialize>(value: &T) -> String {
         .map(|b| format!("{b:02x}"))
         .collect()
 }
-/// Prototype record caps (256 receipts; 64 runs, listings and craft batches over a world's life) are multiplied by a
-/// scale kept in its own storage key: 1 for every normal world, raised only by `init_simulation` for long bot runs.
+/// Full receipts kept in the main state (tier 1, receipts.rs): 256 for every normal world. `receipt_cap.v1` is set
+/// only by the local capacity test seed (and by simulation seeds before bounded storage). Older receipts become tombstones.
+const RECEIPT_CAP_KEY: &[u8] = b"receipt_cap.v1";
+fn receipt_cap() -> usize { env::storage_read(RECEIPT_CAP_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt receipt cap")) as usize).unwrap_or(256) }
+/// `capacity_scale.v1` (1 on every normal world; raised only by `init_simulation`). Active-record caps and pruning
+/// made the old lifetime multiplier redundant (docs/systems/CAPACITY.md); the scale now multiplies only the
+/// tombstone slots of the receipt window, so long bot runs get more throughput without a larger main state.
 const CAP_SCALE_KEY: &[u8] = b"capacity_scale.v1";
-pub(crate) fn cap(base: usize) -> usize { base * env::storage_read(CAP_SCALE_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt capacity scale")) as usize).unwrap_or(1) }
-fn receipt_cap() -> usize { cap(256) }
+pub(crate) fn cap_scale() -> u32 { env::storage_read(CAP_SCALE_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt capacity scale"))).unwrap_or(1) }
 fn now_ms() -> u64 {
     env::block_timestamp() / 1_000_000
 }
@@ -211,6 +217,24 @@ impl Economy {
         for d in 0..delvers { let p = format!("d-{d}"); s.credits.insert(p.clone(), delver_coins.0); give(&mut s, &p, ItemType::Club, "club", 1); }
         s
     }
+    /// Capacity test seed (local sandboxes only): the demo with a chosen receipt window so tests can fill and expire it,
+    /// plus `materials` herbs and flasks and `maker_coins` extra coins for the maker. Explicit issuance at init only.
+    #[init]
+    #[private]
+    pub fn init_demo_capacity_test(recent: u32, replay_slots: u32, min_age_ms: U64, materials: u32, maker_coins: U64) -> Self {
+        assert!((4..=4096).contains(&recent) && replay_slots <= 65536 && min_age_ms.0 >= 1000 && materials <= 512 && maker_coins.0 <= 100_000, "Invalid capacity test seed");
+        let mut s = Self::init_demo();
+        *s.credits.get_mut("maker").unwrap() += maker_coins.0;
+        for n in 0..materials {
+            for (ty, prefix) in [(ItemType::Herb, "herb"), (ItemType::Flask, "flask")] {
+                let id = format!("cap-{prefix}-{n}");
+                s.items.insert(id.clone(), Item { id, item_type: ty, location: Location::Owned { profile: "maker".into() } });
+            }
+        }
+        env::storage_write(RECEIPT_CAP_KEY, &recent.to_le_bytes());
+        receipts::set_config(receipts::WindowConfig { slots: replay_slots, min_age_ms: min_age_ms.0 });
+        s
+    }
     // Public testnet seed: the extended demo plus a larger newcomer labor pool.
     // Wallet players register with zero assets and earn their first coins
     // through bank recovery jobs, so the pool must outlast many players:
@@ -285,8 +309,31 @@ impl Economy {
         }
         self.process_command(op_id, Command { actor, action }, true)
     }
+    /// The recorded outcome of an operation: the full receipt while recent, then a tombstone receipt
+    /// (`run` omitted) for at least the replay window's minimum age. `None` means never seen or forgotten.
     pub fn operation(&self, op_id: String) -> Option<Receipt> {
-        self.receipts.get(&op_id).cloned()
+        self.receipts.get(&op_id).cloned().or_else(|| receipts::tombstone(&op_id))
+    }
+    /// Live record counts and their bounds (docs/systems/CAPACITY.md).
+    pub fn capacity(&self) -> CapacityReport {
+        CapacityReport {
+            receipts: receipts::report(self.receipts.len()),
+            active_runs: self.active_runs() as u32,
+            max_active_runs: compact::MAX_ACTIVE_RUNS as u32,
+            runs_kept: self.runs.len() as u32,
+            active_listings: self.active_listings() as u32,
+            max_active_listings: compact::MAX_ACTIVE_LISTINGS as u32,
+            listings_kept: self.listings.len() as u32,
+            active_batches: self.active_batches() as u32,
+            max_active_batches: compact::MAX_ACTIVE_BATCHES as u32,
+            batches_kept: self.batches.len() as u32,
+            open_editions: self.open_editions() as u32,
+            max_open_editions: compact::MAX_OPEN_EDITIONS as u32,
+            editions_kept: self.editions.len() as u32,
+            commissions_kept: commissions::read().len() as u32,
+            max_open_commissions: commissions::MAX_OPEN_COMMISSIONS as u32,
+            kept_terminal: [compact::KEEP_TERMINAL_RUNS, compact::KEEP_CLOSED_LISTINGS, compact::KEEP_FINISHED_BATCHES, compact::KEEP_CLOSED_EDITIONS, compact::KEEP_CLOSED_COMMISSIONS].map(|n| n as u32).to_vec(),
+        }
     }
     pub fn clock_ms(&self) -> U64 {
         U64(now_ms())
@@ -428,11 +475,14 @@ impl Economy {
             "Invalid operation ID"
         );
         let payload_hash = hash(&command);
-        if let Some(r) = self.receipts.get(&op_id) {
-            assert_eq!(r.payload_hash, payload_hash, "Operation payload conflict");
-            return r.clone();
+        if let Some(r) = self.receipts.get(&op_id).cloned().or_else(|| receipts::tombstone(&op_id)) {
+            near_sdk::require!(r.payload_hash == payload_hash, "Operation payload conflict");
+            return r;
         }
-        assert!(self.receipts.len() < receipt_cap(), "Receipt capacity exhausted");
+        let now = now_ms();
+        let ring = receipts::expire_old(now);
+        let free = receipts::free_slots(self.receipts.len(), ring);
+        near_sdk::require!(free > 0, "Receipt window full");
         // Receipt identity is the submitted command. Derive execution randomness
         // only for a new player admission, never for replay or operator demos.
         if player {
@@ -452,6 +502,8 @@ impl Economy {
         }
         // All validation is transactional, including validation rejections retained as receipts.
         let reserve_for = if let Action::ListFor { ref buyer, .. } = command.action { Some(buyer.clone()) } else { None };
+        let commissions_touched = matches!(command.action, Action::PostCommission { .. } | Action::FillCommission { .. } | Action::CancelCommission { .. });
+        let editions_touched = matches!(command.action, Action::FinalizeClose { .. } | Action::UpdateShop { .. } | Action::RemoveShop { .. });
         let mut staged = self.clone();
         let outcome = if !staged.credits.contains_key(&command.actor) {
             Err("UnknownProfile".into())
@@ -460,20 +512,14 @@ impl Economy {
         };
         let (status, result) = match outcome {
             Ok(result) => {
-                assert!(
-                    staged.receipts.len() + 1 + staged.reserved_capacity() <= receipt_cap(),
-                    "ReceiptCapacityReserved"
-                );
+                near_sdk::require!(1 + staged.reserved_capacity() <= free, "ReceiptCapacityReserved");
                 *self = staged;
                 // Side storage is written only once the command has committed, so rejections leave nothing behind.
                 if let Some(buyer) = reserve_for { market::reserve(&result, &buyer); }
                 ("Applied", result)
             }
             Err(code) => {
-                assert!(
-                    self.receipts.len() + 1 + self.reserved_capacity() <= receipt_cap(),
-                    "ReceiptCapacityReserved"
-                );
+                near_sdk::require!(1 + self.reserved_capacity() <= free, "ReceiptCapacityReserved");
                 ("Rejected", code)
             }
         };
@@ -489,7 +535,10 @@ impl Economy {
             result,
             run,
         };
-        self.receipts.insert(op_id, receipt.clone());
+        receipts::record(&mut self.receipts, receipt.clone(), now);
+        if status == "Applied" {
+            self.compact(editions_touched, commissions_touched);
+        }
         receipt
     }
     fn reserved_capacity(&self) -> usize {
