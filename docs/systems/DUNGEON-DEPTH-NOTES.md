@@ -144,6 +144,12 @@ large  reckless died 100% out   0% stalled   0% · loot out 0.00 + drunk 0.23 of
 ```
 Greedy tide deaths on Medium went from 8 to 0 (they were ambush traps); greedy deaths Medium 22%, Large 57%.
 
+## v13 published and played (local sandbox, browser)
+
+- The delver hand-built "Brass and the gate" in the builder (wall with a brass-locked doorway, a brass key, a pressure plate on channel `gate` wired to a gate) and opened it: 5 coins (base 2 + key, lock, plate), rules v13.
+- Another profile (the wayfarer) paid 1 coin and entered. Standing on the plate turned channel `gate` on and the gate read open ("Door gate: open", portcullis raised); keys, locks and plates drew with look-feel's sprites. Screenshot: `docs/evidence/dungeon-depth/v13-paid-plate-holds-gate-open.jpg`.
+- Friction seen while testing (not my lane, reported): opening the offers pager is easy to confuse with each offer's own detail pager (both say "Next →"), and a mis-click can pay into the wrong dungeon.
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
@@ -151,4 +157,4 @@ Greedy tide deaths on Medium went from 8 to 0 (they were ambush traps); greedy d
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** publish the hand-built key/lock/plate/gate floor and play it as another profile (step on the plate, watch the gate open); then the plate-lure puzzle room with a solvability check and the one-way drop into a sealed arena.
+**Next step:** plate-lure puzzle room with a solvability check (BFS over player/enemy positions with the plate-held gate), then the one-way drop into a sealed arena.
