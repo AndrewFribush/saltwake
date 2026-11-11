@@ -38,3 +38,10 @@ test('receipt mismatches cannot inflate loot; aggregates reveal no assignments o
  const r=editionRecord(f.world,f.db,'e');assert.equal(r.lootSamples,0);assert.equal(r.averageLoot,null);assert.ok(!JSON.stringify(r).includes('loot-win'));assert.equal('player' in r,false);
  const empty=editionRecord(f.world,f.db,'empty');assert.equal(empty.completed,0);assert.equal(empty.medianLoot,null);
 });
+test('recent outcomes for the notice board: newest first, at most five, outcome and time only',t=>{
+ const f=fixture(t);for(const [i,s] of (['died','extracted','died','abandoned','expired','died'] as const).entries()){const r=s==='extracted'?(f.extracted('r'+i),f.db.get<SavedRun>('run','r'+i)!):f.add('r'+i,s);r.finishedAtMs=100000+i*1000;f.db.put('run',r.id,r);}
+ f.add('live','active');f.add('gone','void');
+ const r=editionRecord(f.world,f.db,'e');
+ assert.deepEqual(r.recent?.map(x=>x.outcome),['died','expired','abandoned','died','extracted']);assert.equal(r.recent?.[0].finishedAtMs,105000);
+ assert.ok(!JSON.stringify(r.recent).includes('"p"'));
+});
