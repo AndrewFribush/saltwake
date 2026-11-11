@@ -16,6 +16,7 @@ import {depthPractice} from '../../../../packages/game/src/draft-generator';
 import {actWithMessages} from '../../../../packages/game/src/actions';
 import {generateDraft,generatorPresets} from '../../../../packages/game/src/draft-generator';
 import {startTrial} from '../../../../packages/game/src/creator-trial';
+import {canExtract} from '../../../../packages/game/src/generation';
 import {explore} from '../../../../packages/game/src/roguelike';
 import {walkable} from '../../../../packages/game/src/state';
 import type {RunState} from '../../../../packages/game/src/state';
@@ -78,7 +79,7 @@ function Gallery(){
    {['--tx-floor-a','--tx-floor-b','--tx-wall','--tx-grass-a','--tx-road-a','--tx-water','--tx-plank-a','--tx-plaster','--tx-slate'].map(v=><figure key={v} style={{margin:0,width:72,textAlign:'center',fontSize:10}}><div style={{width:64,height:64,margin:'auto',background:`var(${v}) center/100% 100%`,imageRendering:'pixelated'}}/>{v}</figure>)}
   </section>
   <div style={{display:'flex',gap:8,padding:8}}><button onClick={()=>set(vault?vaultScene(vault):scene())}>Reset scene</button><button onClick={()=>set(p=>({...p,turn:p.turn+1,enemies:p.enemies.map(e=>({...e,hp:0})).filter(()=>false)}))}>Defeat all foes</button><button onClick={()=>set(p=>({...p,status:'died',player:{...p.player,hp:0},killedBy:'powder crab #crab-1'} as RunState))}>End run (summary)</button><button onClick={()=>{setBlast(!lastBlast);set(p=>({...p,turn:p.turn+1,blasts:[{x:4,y:5},{x:5,y:5},{x:6,y:5},{x:4,y:6},{x:5,y:6},{x:6,y:6},{x:4,y:7},{x:5,y:7},{x:6,y:7}],player:{...p.player,hp:p.player.hp-3}}));}}>Fake blast</button></div>
-  <div className="game-shell" style={{height:760,flex:'none'}}><div className="game-stage"><Run compact remote={{state:s,send,busy:false,title:'Gallery',roomCount:1,terminal:null,settlement:null,canExtract:true}}/></div></div>
+  <div className="game-shell" style={{height:760,flex:'none'}}><div className="game-stage"><Run compact remote={{state:s,send,busy:false,title:'Gallery',roomCount:1,terminal:null,settlement:null,canExtract:canExtract(s)}}/></div></div>
  </main>;
 }
 if(!location.search.includes('arrival')){document.body.style.overflow='auto';document.documentElement.style.height='auto';}

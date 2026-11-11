@@ -755,3 +755,24 @@ main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
 .depth-feature:is(.f-plate,.f-key,.f-lock){background:center/contain no-repeat!important;border:0!important;outline:0;image-rendering:pixelated}
 .depth-feature:is(.f-plate,.f-key,.f-lock)::before,.depth-feature:is(.f-plate,.f-key,.f-lock)::after{display:none!important}
 .depth-feature.f-plate{background-image:var(--sp-plate)!important}.depth-feature.f-key{background-image:var(--sp-key)!important}.depth-feature.f-lock{background-image:var(--sp-lockedDoor)!important}
+
+/* ---------- Turn clock (tide now; timed gates later) ---------- */
+.turn-clock{position:absolute;z-index:9;display:grid;place-items:center;width:clamp(34px,4.4vw,48px);height:clamp(34px,4.4vw,48px);pointer-events:none}
+.turn-clock svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.turn-clock .ring-bg{fill:#0c1618d9;stroke:#ffffff1a;stroke-width:3.5}
+.turn-clock .ring{fill:none;stroke:#6aa2ab;stroke-width:3.5;stroke-linecap:round;transition:stroke-dasharray .4s,stroke .4s}
+.turn-clock b{position:relative;font:800 clamp(11px,1.3vw,15px)/1 ui-monospace,Menlo,monospace;color:#d8f2f6;text-shadow:0 1px 0 #000}
+.turn-clock.soon .ring{stroke:#e8c56a}.turn-clock.soon b{color:#fff1c8}
+.turn-clock.urgent .ring{stroke:#ff6a48}.turn-clock.urgent{animation:sw-pop .5s ease-out}
+.turn-clock.flood .ring{stroke:#3b7380}.turn-clock.flood .ring-bg{fill:#1f4a55e6}.turn-clock.flood b{color:#c8f0f6}
+.tide-clock{left:6px;bottom:18px}
+.tide-clock::after{content:'tide';position:absolute;bottom:-12px;font:700 9px/1 system-ui;letter-spacing:.08em;color:#9fd0d8;text-transform:uppercase;text-shadow:0 1px 0 #000}
+
+/* ---------- Chat safety (town lane) ---------- */
+.saltwake .chat-menu{gap:2px;padding:1px;border-radius:3px;background:#0c1618;box-shadow:inset 0 0 0 1px #d9b86640}
+.saltwake .chat-menu button:last-child{color:#ffc4b4!important}
+.saltwake .chat-safety{border-top:1px solid #ffffff14;margin-top:2px;color:#c9c2a8}
+.saltwake .chat-manage li{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:2px 0;border-bottom:1px dotted #ffffff14}
+.saltwake .town-chat-log li.empty{font-style:italic;color:#9aa496}
+.saltwake .town-chat-error{color:#ffc4b4;border-left:3px solid #e2563c;padding-left:6px}
+.saltwake .presence-dot:not(.on){background:#e8a23c!important;animation:sw-threat 1.2s ease-in-out infinite}

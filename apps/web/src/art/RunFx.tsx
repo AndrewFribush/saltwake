@@ -40,25 +40,27 @@ export function useRunFx(s:RunState):RunFx{
   const moved=now.pos.x!==p.pos.x||now.pos.y!==p.pos.y;
   if(moved)facing.current=dirTo(p.pos,now.pos);
   // Only what the player could see: unseen enemies dying off-screen must not leak their position.
-  const seenNow=visibleTiles(s),seen=(q:Pt)=>seenNow.has(`${q.x},${q.y}`);
+  const seenNow=visibleTiles(s),seen=(q:Pt)=>seenNow.has(`${q.x},${q.y}`);const seenBlasts=(s.blasts??[]).filter(seen).length;
   for(const [id,old] of p.enemies){
    const cur=now.enemies.get(id);
-   const lost=old.hp-(cur?.hp??0);
-   if(lost>0&&seen(old)){add.push({id:++seq,x:old.x,y:old.y,text:`−${Math.min(lost,old.hp)}`,tone:'hit'});enemyHit.add(id);
+   const lost=old.hp-(cur?.hp??0);let died=false;
+   if(lost>0&&seen(old)&&(cur||died)){add.push({id:++seq,x:old.x,y:old.y,text:`−${Math.min(lost,old.hp)}`,tone:'hit'});enemyHit.add(id);
     if(!moved&&adj(now.pos,old)&&!playerLunge){playerLunge={x:old.x-now.pos.x,y:old.y-now.pos.y};facing.current=dirTo(now.pos,old);}}
-   if((!cur||cur.hp<=0)&&seen(old))dead.push({id:++seq,x:old.x,y:old.y,sprite:enemySprite(old),flip:flips.current.get(id)??old.x>now.pos.x,minion:!!old.minion});
+   const couldLeave=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>!seen({x:old.x+dx,y:old.y+dy}))||old.kind==='charger';
+   died=cur?cur.hp<=0:(s.blasts??[]).some(b=>b.x===old.x&&b.y===old.y)||(!moved&&adj(now.pos,old)&&s.log.slice(-4).some(l=>/^You (hit|shove|strike)/.test(l)))||!couldLeave;
+   if(died&&seen(old))dead.push({id:++seq,x:old.x,y:old.y,sprite:enemySprite(old),flip:flips.current.get(id)??old.x>now.pos.x,minion:!!old.minion});
    if(cur){if(cur.x!==old.x)flips.current.set(id,cur.x<old.x);if(cur.x!==old.x||cur.y!==old.y)enemyMoved.add(id);}
   }
   const hurt=p.hp-now.hp;
   if(hurt>0){add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:`−${hurt}`,tone:'hurt'});
    for(const e of s.enemies){const old=p.enemies.get(e.id);if(old&&old.x===e.x&&old.y===e.y&&adj(e,now.pos)&&!e.stunned){enemyLunge.set(e.id,{x:now.pos.x-e.x,y:now.pos.y-e.y});break;}}
-   if((hurt>=3||(s.blasts?.length??0)>0)&&!reduced())setShake(n=>n+1);}
+   if((hurt>=3||seenBlasts>0)&&!reduced())setShake(n=>n+1);}
   else if(hurt<0)add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:`+${-hurt}`,tone:'heal'});
   const doorFx:Slam[]=[];for(const d of s.devices??[])if(d.kind==='door'&&p.doors.has(d.id)&&p.doors.get(d.id)!==now.doors.get(d.id))doorFx.push({id:++seq,x:d.x,y:d.y,shut:!now.doors.get(d.id)});
   if(doorFx.length){setSlams(v=>[...v,...doorFx]);const ids=new Set(doorFx.map(a=>a.id));setTimeout(()=>setSlams(v=>v.filter(x=>!ids.has(x.id))),700);if(doorFx.some(d=>d.shut)&&!reduced())setShake(n=>n+1);}
   if(now.bag>p.bag)add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:'✦',tone:'loot'});
-  if((s.blasts?.length??0)>2&&hurt<=0&&!reduced())setShake(n=>n+1);
-  if(enemyHit.size)emit('hit');if(dead.length)emit('death');if(hurt>0)emit('hurt');if((s.blasts?.length??0)>0)emit('blast');
+  if(seenBlasts>2&&hurt<=0&&!reduced())setShake(n=>n+1);
+  if(enemyHit.size)emit('hit');if(dead.length)emit('death');if(hurt>0)emit('hurt');if(seenBlasts>0)emit('blast');
   if(doorFx.some(d=>d.shut))emit('slam');else if(doorFx.length)emit('door');
   if(s.tide){const left=s.tide.turns-(s.tideTurns??0);if(left===3||left<=0)emit('tide');}
   setEvents({turn:now.turn,playerLunge,playerHit:hurt>0,enemyLunge,enemyHit,enemyMoved});
@@ -76,14 +78,14 @@ function Pips({hp,max}:{hp:number;max:number}){
  return <span className="hp-pips">{Array.from({length:max},(_,i)=><i key={i} className={i<hp?'on':''}/>)}</span>;
 }
 
-export function ActorLayer({s,fx,visible,viewport,danger,ended,dangerSet=new Set()}:{s:RunState;fx:RunFx;visible:Set<string>;viewport:{x:number;y:number;columns:number;rows:number};danger:boolean;ended:boolean;dangerSet?:Set<string>}){
+export function ActorLayer({s,fx,visible,viewport,danger,ended,dangerSet=new Set(),canLeave=false}:{s:RunState;canLeave?:boolean;fx:RunFx;visible:Set<string>;viewport:{x:number;y:number;columns:number;rows:number};danger:boolean;ended:boolean;dangerSet?:Set<string>}){
  const inCam=(p:Pt)=>p.x>=viewport.x&&p.y>=viewport.y&&p.x<viewport.x+viewport.columns&&p.y<viewport.y+viewport.rows;
  const enemies=s.enemies.filter(e=>e.hp>0&&visible.has(`${e.x},${e.y}`)&&inCam(e));
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
  const walking=useMoving(s.player.x,s.player.y);const look=useMyLook();
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
- return <><ArenaLayer s={s}/><OffscreenLayer s={s} visible={visible} viewport={viewport} danger={dangerSet}/><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
-  {(s.blasts??[]).filter(inCam).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
+ return <>{s.tide&&s.status==='active'&&<TurnClock className="tide-clock" left={s.tide.turns-(s.tideTurns??0)} total={s.tide.turns} label={(s.tideTurns??0)>=s.tide.turns?'The tide is in: flooding':'Turns until the tide floods this floor'}/>}<ArenaLayer s={s} canLeave={canLeave}/><OffscreenLayer s={s} visible={visible} viewport={viewport} danger={dangerSet}/><WireLayer s={s} viewport={viewport} visible={visible}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
+  {(s.blasts??[]).filter(b=>inCam(b)&&visible.has(`${b.x},${b.y}`)).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
   {fx.ghosts.filter(g=>g.x>=viewport.x&&g.y>=viewport.y&&g.x<viewport.x+viewport.columns&&g.y<viewport.y+viewport.rows).map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
   {enemies.map(e=>{const flip=fx.enemyFlip.get(e.id)??(e.x>s.player.x),max=fx.maxHp.get(e.id)??e.hp,lunge=fx.enemyLunge.get(e.id),hit=fx.enemyHit.has(e.id);
    const unaware=!!s.roguelike&&e.alerted===false;
@@ -114,11 +116,11 @@ export function EntryCeremony({roomIndex,turn,title}:{roomIndex:number;turn:numb
 }
 
 /** Faint wire from each seen switch or pressure plate to the gates (and nothing else) on its channel. */
-export function WireLayer({s,viewport}:{s:RunState;viewport:{x:number;y:number;columns:number;rows:number}}){
+export function WireLayer({s,viewport,visible}:{s:RunState;viewport:{x:number;y:number;columns:number;rows:number};visible:Set<string>}){
  const seen=(p:{x:number;y:number})=>!s.roguelike||!!s.explored?.includes(`${s.roomIndex}:${p.x},${p.y}`);
  const inputs=[...(s.devices??[]).filter(d=>d.kind==='switch').map(d=>({x:d.x,y:d.y,channel:d.channel})),...(s.features??[]).filter(f=>f.kind==='plate'&&!f.spent).map(f=>({x:f.x,y:f.y,channel:(f as any).channel as string}))].filter(seen);
  const gates=(s.devices??[]).filter(d=>d.kind==='door').filter(seen);
- const lines=inputs.flatMap(a=>gates.filter(g=>g.channel===a.channel).map(g=>({a,g,on:signalValue(s.signals,a.channel),open:doorOpen(g,s.signals??{})})));
+ const lines=inputs.flatMap(a=>gates.filter(g=>g.channel===a.channel).map(g=>({a,g,on:signalValue(s.signals,a.channel)&&(visible.has(`${a.x},${a.y}`)||visible.has(`${g.x},${g.y}`)),open:doorOpen(g,s.signals??{})})));
  if(!lines.length)return null;
  const cx=(x:number)=>x-viewport.x+.5,cy=(y:number)=>y-viewport.y+.5;
  return <svg className="wire-layer" aria-hidden="true" viewBox={`0 0 ${viewport.columns} ${viewport.rows}`} preserveAspectRatio="none">
@@ -127,17 +129,18 @@ export function WireLayer({s,viewport}:{s:RunState;viewport:{x:number;y:number;c
 }
 
 /** Sealed arena (every way out needs the room cleared): iron frame while foes remain, a short banner on arrival and when cleared. */
-export function ArenaLayer({s}:{s:RunState}){
+export function ArenaLayer({s,canLeave}:{s:RunState;canLeave:boolean}){
+ // Never counts enemies: in real runs the server hides unseen ones, and counting them would leak. "Cleared" is shown
+ // only when the game itself says you may leave (the exit is usable).
  const sealed=s.status==='active'&&!!s.exitRule?.require_clear&&(s.connections??[]).every(c=>c.require_clear);
- const foes=s.enemies.filter(e=>e.hp>0).length;
- const [banner,setBanner]=useState<string|null>(null);const was=useRef<{room:number;foes:number}|null>(null);
- useEffect(()=>{const w=was.current;was.current={room:s.roomIndex,foes};if(!sealed)return;
+ const [banner,setBanner]=useState<string|null>(null);const was=useRef<{room:number;open:boolean}|null>(null);
+ useEffect(()=>{const w=was.current;was.current={room:s.roomIndex,open:canLeave};if(!sealed)return;
   let text:string|null=null;
-  if(!w||w.room!==s.roomIndex){if(foes)text='Sealed arena · defeat every foe to leave';}
-  else if(w.foes>0&&foes===0){text='Arena cleared · the way out opens';emit('open');}
-  if(!text)return;setBanner(text);const t=setTimeout(()=>setBanner(null),2600);return()=>clearTimeout(t);},[s.roomIndex,foes,sealed]);
+  if(!w||w.room!==s.roomIndex){if(!canLeave)text='Sealed arena · defeat every foe to leave';}
+  else if(!w.open&&canLeave){text='Arena cleared · the way out opens';emit('open');}
+  if(!text)return;setBanner(text);const t=setTimeout(()=>setBanner(null),2600);return()=>clearTimeout(t);},[s.roomIndex,canLeave,sealed]);
  if(!sealed)return null;
- return <div className={`arena-layer ${foes?'locked':'cleared'}`} aria-hidden="true">{banner&&<span key={banner} className="arena-banner">{banner}</span>}</div>;
+ return <div className={`arena-layer ${canLeave?'cleared':'locked'}`} aria-hidden="true">{banner&&<span key={banner} className="arena-banner">{banner}</span>}</div>;
 }
 
 /** Large floors: arrows on the board edge for seen enemies and danger outside the camera, and a small map of explored ground. */
@@ -154,4 +157,11 @@ export function OffscreenLayer({s,visible,viewport,danger}:{s:RunState;visible:S
   {off.map(e=><span key={e.id} className={`offscreen ${hot.has(e.id)?'hot':''}`} style={pin(e)} title="Enemy out of view"><i/></span>)}
   <svg className="minimap" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">{cells}<rect className="cam" x={viewport.x} y={viewport.y} width={viewport.columns} height={viewport.rows}/>{off.map(e=><rect key={e.id} className="foe" x={e.x} y={e.y} width="1" height="1"/>)}<rect className="you" x={s.player.x} y={s.player.y} width="1" height="1"/></svg>
  </>;
+}
+
+/** A depleting ring for anything on a turn clock (rising tide now; timed gates can reuse it with their own label). */
+export function TurnClock({left,total,label,className=''}:{left:number;total:number;label:string;className?:string}){
+ const f=Math.max(0,Math.min(1,left/Math.max(1,total))),r=15.9,c=2*Math.PI*r;
+ const tone=left<=0?'flood':left<=3?'urgent':left<=Math.ceil(total*.25)?'soon':'';
+ return <span className={`turn-clock ${tone} ${className}`} title={label} aria-hidden="true"><svg viewBox="0 0 36 36"><circle className="ring-bg" cx="18" cy="18" r={r}/><circle className="ring" cx="18" cy="18" r={r} strokeDasharray={`${c*f} ${c}`}/></svg><b>{left>0?left:'≈'}</b></span>;
 }
