@@ -50,6 +50,12 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - Relocation: Manage → "Move, refurnish or relink" opens placement directly. Browser-checked: moved the entrance from Harbor Square to Market Ward (5,10); contract record became district e, version 2, plot count unchanged.
 - The worktree sandbox keeps receiving a clean shutdown signal even when spawned detached; something outside this lane stops `demo-sandbox` processes. Restart it plus the API before browser checks.
 
+## Round 3 (after merging main again)
+
+- **Harbor notice board** (Harbor Square quay, tile 3,7; shops cannot be placed west of x=4 so it is never built over). Walk onto it (or click its sign to walk there) to read player dungeons and shops: owner, district, open/closed, entry fee, funded attempts, settled runs with escaped/died counts (edition records), shop stock count and price range, plus spoken directions. "Mark on my map" pins the door (pin drawn in that district; the prompt keeps saying which way to go). No teleport or auto-walk to the destination. `packages/game/src/town-board.ts` (tested). Browser-checked.
+- **Display shelves** (`decor-display-<8 hex>` fixtures, valid on the current contract without changes): owners place them in the shop interior builder; active listings spread over the shelves, each shelf tile shows an item icon, and walking up shows the goods with "Buy one" (ordinary `buy` at the exact listed price). Browser-checked on chain: shop with 2 shelves, 2 listings; the delver bought a fine tonic from a shelf (10 → 4 coins, item transferred, shelf count dropped).
+- **Claim-a-plot tour**: a player with no buildings sees a dashed "free plot" on the nearest land the contract would accept (`suggestPlot`/`footprintBlocked` mirror shops.rs; ShopBuilder now uses the same rule) and a one-time note pointing at Build here; "Got it" remembers per profile.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.

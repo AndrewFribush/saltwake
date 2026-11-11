@@ -35,3 +35,17 @@ test('walking into a district names the player buildings standing there',()=>{
  assert.equal(doorstepLine(districtPlaces('e',[]).find(p=>!p.shopId)!),undefined);
  assert.equal(ownerHue('maker'),ownerHue('maker'));
 });
+import {displayId,isDisplay,displayAssignments} from '../src/town-spaces';
+test('display shelves are valid decor and spread real stock over the shelves',()=>{
+ const id=displayId();assert.match(id,/^decor-display-[0-9a-f]{8}$/);assert.ok(id.length-'decor-'.length<=40);assert.ok(isDisplay({id})&&!isDisplay({id:'decor-a'}));
+ const room=defaultInterior('market');room.fixtures.push({id,name:'Display shelf',glyph:'▥',x:6,y:4});assert.deepEqual(validateInterior(room),[]);
+ const a=displayAssignments([{id:'s1'},{id:'s2'}],['x','y','z']);assert.deepEqual([...a.entries()],[['s1',['x','z']],['s2',['y']]]);
+ assert.equal(displayAssignments([],['x']).size,0);
+});
+import {footprintBlocked,suggestPlot} from '../src/town-discovery';
+test('the claim-a-plot hint points at land the contract would accept',()=>{
+ const p=suggestPlot('center',[],{x:12,y:9})!;assert.ok(p);assert.equal(footprintBlocked('center',[],p.x,p.y),false);
+ assert.ok(footprintBlocked('center',[],5,2),'starter inn');assert.ok(footprintBlocked('center',[],11,8),'spawn road');assert.ok(footprintBlocked('e',[],3,5),'west of x=4');
+ const taken=[{id:'shop-0',owner:'m',title:'t',district:'center',x:p.x,y:p.y,interior:'{}',version:'1',open:true,listing_ids:[]}];
+ const q=suggestPlot('center',taken,{x:12,y:9})!;assert.notDeepEqual(q,p);assert.equal(footprintBlocked('center',taken,q.x,q.y),false);
+});
