@@ -22,7 +22,7 @@ impl Economy {
         {
             return Err("InvalidRules".into());
         }
-        if self.editions.len() >= 32 {
+        if self.open_editions() >= crate::compact::MAX_OPEN_EDITIONS {
             return Err("EditionCapacity".into());
         }
         if terms.title.trim().is_empty()
@@ -837,6 +837,15 @@ fn valid_lock_keys(modules: &[String]) -> bool {
 const RETIRED_KEY: &[u8] = b"retired_editions.v1";
 pub(crate) fn read_retired() -> Vec<String> {
     env::storage_read(RETIRED_KEY).map(|b| borsh::from_slice(&b).expect("Corrupt retired list")).unwrap_or_default()
+}
+/// Drop pruned (closed) editions from the retired list.
+pub(crate) fn forget_retired(ids: &[String]) {
+    let mut retired = read_retired();
+    let before = retired.len();
+    retired.retain(|id| !ids.contains(id));
+    if retired.len() != before {
+        env::storage_write(RETIRED_KEY, &borsh::to_vec(&retired).unwrap());
+    }
 }
 pub(crate) fn is_retired(edition_id: &str) -> bool {
     read_retired().iter().any(|id| id == edition_id)

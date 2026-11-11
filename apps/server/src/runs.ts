@@ -22,9 +22,13 @@ const slots=[{x:3,y:1},{x:1,y:3},{x:5,y:3},{x:7,y:4}];
 export class Runs {
  constructor(readonly db:Store,readonly outbox:Outbox,readonly clock=Date.now){}
  materialize(opId:string,snapshot:EconomySnapshot):SavedRun{
-  const op=this.db.operation(opId);if(op?.status!=='Applied'||op.command.action.type!=='admit'||op.receipt?.status!=='Applied'||!op.receipt.run)throw Error('Admission not confirmed');
-  if(op.receipt.run.player!==op.command.actor)throw Error('Admission owner mismatch');
-  return this.materializeEconomic(op.receipt.run,snapshot,true);
+  const op=this.db.operation(opId);if(op?.status!=='Applied'||op.command.action.type!=='admit'||op.receipt?.status!=='Applied')throw Error('Admission not confirmed');
+  // A receipt first observed after it left the contract's recent tier is a tombstone without the run copy
+  // (docs/systems/CAPACITY.md); the run id is the receipt result and the run itself comes from the snapshot.
+  const receipt=op.receipt,economic=receipt.run??snapshot.runs.find(r=>r.id===receipt.result);
+  if(!economic)throw Error('Admission not confirmed');
+  if(economic.player!==op.command.actor)throw Error('Admission owner mismatch');
+  return this.materializeEconomic(economic,snapshot,true);
  }
  /** Consume only the configured chain's final snapshot, never request-supplied run data. */
  discoverPlayerRuns(snapshot:EconomySnapshot):void{

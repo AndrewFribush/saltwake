@@ -4,7 +4,7 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {Store} from '../src/db';
-import {Outbox,type Chain} from '../src/outbox';
+import {Outbox,REPLAY_MIN_AGE_MS,RESIGN_CUTOFF_MS,type Chain} from '../src/outbox';
 import {commandHash} from '../../../packages/shared/src/protocol';
 import type {Command} from '../../../packages/shared/src/types';
 const command:Command={actor:'maker',action:{type:'debit',amount:'1'}};
@@ -29,3 +29,36 @@ test('malformed string fields reject before persisting and cannot jam later sett
 test('only v9 publication receives the larger command envelope and oversized commands never reserve capacity',()=>{const f=setup();try{const box=new Outbox(f.db,{} as Chain);const action={type:'publish' as const,terms:{title:'x'.repeat(40000),rules_version:9,modules:[],sockets:[],opens_at_ms:'0',closes_at_ms:'1',run_duration_ms:'60000',max_runs:1,no_reward:true,difficulty_tag:'standard',style_tag:'combat'},fee:'0',funding:[]};assert.equal(box.enqueue('v9',{actor:'maker',action}).status,'Pending');assert.throws(()=>box.enqueue('old',{actor:'maker',action:{...action,terms:{...action.terms,rules_version:8}}}),/32 KB/);assert.throws(()=>box.enqueue('too-big',{actor:'maker',action:{...action,terms:{...action.terms,title:'x'.repeat(131072)}}}),/128 KB/);assert.equal(f.db.operations().length,1);}finally{f.close();}});
 
 for(const v9 of [false,true])test(`oversized ${v9?'v9 publication':'legacy'} signed transactions never broadcast on retry or restart`,async()=>{const f=setup();let broadcasts=0;const large=v9?262145:65537;const chain:Chain={sign:async()=>({hash:'oversized',nonce:'1',bytes:'x'.repeat(large)}),broadcast:async()=>{broadcasts++;},receipt:async()=>null};try{const cmd:Command=v9?{actor:'maker',action:{type:'publish',terms:{title:'Fixture',rules_version:9,modules:[],sockets:[],opens_at_ms:'0',closes_at_ms:'1',run_duration_ms:'60000',max_runs:1,no_reward:true,difficulty_tag:'standard',style_tag:'combat'},fee:'0',funding:[]}}:command;const box=new Outbox(f.db,chain);box.enqueue('oversized',cmd);await box.process('oversized');await box.process('oversized');assert.equal(broadcasts,0);f.db.close();const db=new Store(join(f.dir,'db.sqlite'));try{const restarted=new Outbox(db,chain);await restarted.process('oversized');assert.equal(broadcasts,0);const row=db.operation('oversized')!;row.signed={hash:'old-oversized',nonce:'1',bytes:'x'.repeat(large)};row.signedAt=Date.now();db.putOperation(row);await restarted.process('oversized');assert.equal(broadcasts,0,'previously stored oversized bytes must also be blocked');}finally{db.close();}}finally{f.close();}});
+
+// Receipt window mirror (docs/systems/CAPACITY.md): capacity is bounded by recent and unresolved work, never lifetime totals.
+test('resolved operations leave the capacity window after the minimum retention; unresolved ones never do',()=>{const f=setup();let now=1_000_000;try{
+ const box=new Outbox(f.db,{} as Chain,undefined,{now:()=>now});
+ const stuck=box.enqueue('stuck',command);stuck.status='Unknown';f.db.putOperation(stuck);
+ for(let n=0;n<255;n++){const r=box.enqueue('old'+n,command);r.status='Rejected';f.db.putOperation(r);}
+ assert.throws(()=>box.enqueue('full',command),/capacity/);
+ now+=REPLAY_MIN_AGE_MS-1;assert.throws(()=>box.enqueue('still-full',command),/capacity/,'nothing is forgotten before the minimum age');
+ now+=2;for(let n=0;n<255;n++){const r=box.enqueue('new'+n,command);r.status='Rejected';f.db.putOperation(r);}
+ assert.throws(()=>box.enqueue('full-again',command),/capacity/,'the unresolved operation still occupies its slot');
+ assert.equal(f.db.operations().length,511,'far past the old lifetime cap of 256');
+ // Rows written before createdAt existed were resolved under the old contract and are not counted.
+ const legacy=f.db.operation('new0')!;delete legacy.createdAt;f.db.putOperation(legacy);assert.doesNotThrow(()=>box.enqueue('legacy-slot',command));
+}finally{f.close();}});
+test('a replacement signature is never made after the replay-safe signing cutoff',async()=>{const f=setup();let now=5_000_000,signs=0,state:'failed'|'unknown'='unknown';try{
+ const chain:Chain={async sign(){signs++;return {hash:'tx'+signs,nonce:String(signs),bytes:'signed'+signs};},async broadcast(){throw Error('offline');},async receipt(){return null;},async transactionState(){return state;}};
+ const box=new Outbox(f.db,chain,undefined,{now:()=>now});box.enqueue('op',command);
+ // A never-signed operation cannot have executed: its first signature may come long after creation.
+ now+=RESIGN_CUTOFF_MS*2;assert.equal((await box.process('op')).status,'Unknown');assert.equal(signs,1);assert.equal(f.db.operation('op')?.firstSignedAt,now);
+ // Within the cutoff a failed transaction may be replaced under the same op id.
+ state='failed';now+=60_000;await box.process('op');assert.equal(signs,2);
+ // Past the cutoff the existing signature may still be rebroadcast, but no new signature is made.
+ now+=RESIGN_CUTOFF_MS;const row=await box.process('op');assert.equal(signs,2);assert.equal(row.status,'Unknown');assert.match(row.reason??'',/replay-safe signing window/);
+ // A legacy row is dated on first sight, then follows the same rule.
+ const legacy=box.enqueue('legacy',{...command,actor:'buyer'});delete (legacy as any).createdAt;f.db.putOperation(legacy);
+ await box.process('legacy');assert.equal(f.db.operation('legacy')?.createdAt,now);
+}finally{f.close();}});
+test('a tombstone receipt without its run copy still resolves the operation exactly once',async()=>{const f=setup();try{
+ const admit:Command={actor:'buyer',action:{type:'admit',edition_id:'e',expected_version:'1',expected_fee:'0',loadout_ids:[],seed:'1'}};let signs=0;
+ const chain:Chain={async sign(){signs++;return {hash:'t',bytes:'b'};},async broadcast(){},async receipt(id){return {status:'Applied',op_id:id,payload_hash:commandHash(admit),result:'run-7',run:null};}};
+ const box=new Outbox(f.db,chain);box.enqueue('entry',admit);const row=await box.process('entry');
+ assert.equal(row.status,'Applied');assert.equal(row.receipt?.status==='Applied'&&row.receipt.result,'run-7');assert.equal(signs,0,'a remembered operation is never signed again');
+}finally{f.close();}});

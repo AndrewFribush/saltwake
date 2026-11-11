@@ -3,7 +3,7 @@ import {closeSync,openSync,readFileSync,unlinkSync,writeFileSync,mkdirSync} from
 import {dirname} from 'node:path';
 import type {Command,OperationStatus} from '../../../packages/shared/src/types';
 export type Signed={hash:string;bytes:string;nonce?:string};
-export type StoredOperation={authority?:'player';id:string;command:Command;hash:string;status:'Pending'|'Unknown'|'Applied'|'Rejected';signed?:Signed;signedAt?:number;retired?:Signed[];receipt?:OperationStatus;reason?:string};
+export type StoredOperation={authority?:'player';id:string;command:Command;hash:string;status:'Pending'|'Unknown'|'Applied'|'Rejected';signed?:Signed;signedAt?:number;retired?:Signed[];receipt?:OperationStatus;reason?:string;createdAt?:number;firstSignedAt?:number};
 export class Store {
  readonly sql:DatabaseSync;private closed=false;private lock:string;
  constructor(path:string){
@@ -22,5 +22,7 @@ export class Store {
  get<T>(kind:string,id:string):T|undefined{const row=this.sql.prepare('SELECT value FROM records WHERE kind=? AND id=?').get(kind,id);return row?JSON.parse(row.value as string):undefined;}
  all<T>(kind:string):T[]{return this.sql.prepare('SELECT value FROM records WHERE kind=? ORDER BY rowid').all(kind).map(r=>JSON.parse(r.value as string));}
  put(kind:string,id:string,value:unknown){const encoded=JSON.stringify(value);if(Buffer.byteLength(encoded)>262144)throw Error('Record too large');this.sql.prepare('INSERT INTO records(kind,id,value) VALUES (?,?,?) ON CONFLICT(kind,id) DO UPDATE SET value=excluded.value').run(kind,id,encoded);}
+ /** Keep only the newest `keep` records of a kind (insertion order). */
+ trim(kind:string,keep:number){this.sql.prepare('DELETE FROM records WHERE kind=? AND rowid NOT IN (SELECT rowid FROM records WHERE kind=? ORDER BY rowid DESC LIMIT ?)').run(kind,kind,keep);}
  close(){if(!this.closed){this.sql.close();unlinkSync(this.lock);this.closed=true;}}
 }

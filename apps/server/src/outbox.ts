@@ -3,13 +3,20 @@ import {commandSizeError,commandByteLimit,largePublicationBytes} from '../../../
 import {commandHash} from '../../../packages/shared/src/protocol';
 import type {Command,OperationStatus} from '../../../packages/shared/src/types';
 import {Store,type Signed,type StoredOperation} from './db';
+/** Mirrors the contract's receipt window (docs/systems/CAPACITY.md): a recorded op id is remembered for at least
+ * 72 hours after its execution. A NEAR transaction is valid for about a day after its reference block, so replacement
+ * signatures are only made within 12 hours of the operation's FIRST signature: every signed copy then lands well
+ * inside the window and cannot execute twice. Never-signed operations cannot have executed and may be signed any time.
+ * An operation that needs a replacement after the cutoff waits for an operator. */
+export const REPLAY_MIN_AGE_MS=72*3600*1000;
+export const RESIGN_CUTOFF_MS=12*3600*1000;
 export interface Chain {clock?():Promise<number>;sign(id:string,command:Command,minNonce?:string):Promise<Signed>;broadcast(tx:Signed):Promise<void>;receipt(id:string):Promise<OperationStatus|null>;transactionState?(tx:Signed):Promise<'failed'|'unknown'>;}
 export class Outbox {
  private tail:Promise<unknown>=Promise.resolve();
  private playerTasks=new Map<string,Promise<StoredOperation>>();
  private receiptFlights=new Map<string,Promise<OperationStatus|null>>();
  private observationFlights=new Map<string,Promise<void>>();
- constructor(readonly db:Store,readonly chain:Chain,private observer?:{before(op:StoredOperation,signal?:AbortSignal):Promise<void>;after(op:StoredOperation,signal?:AbortSignal):Promise<void>},private options:{receiptTimeoutMs?:number;observationTimeoutMs?:number;capacity?:number}={}){if(options.receiptTimeoutMs!==undefined&&(!Number.isSafeInteger(options.receiptTimeoutMs)||options.receiptTimeoutMs<10||options.receiptTimeoutMs>30000))throw Error('Invalid receipt timeout');if(options.observationTimeoutMs!==undefined&&(!Number.isSafeInteger(options.observationTimeoutMs)||options.observationTimeoutMs<10||options.observationTimeoutMs>30000))throw Error('Invalid observation timeout');}
+ constructor(readonly db:Store,readonly chain:Chain,private observer?:{before(op:StoredOperation,signal?:AbortSignal):Promise<void>;after(op:StoredOperation,signal?:AbortSignal):Promise<void>},private options:{receiptTimeoutMs?:number;observationTimeoutMs?:number;capacity?:number;now?:()=>number}={}){if(options.receiptTimeoutMs!==undefined&&(!Number.isSafeInteger(options.receiptTimeoutMs)||options.receiptTimeoutMs<10||options.receiptTimeoutMs>30000))throw Error('Invalid receipt timeout');if(options.observationTimeoutMs!==undefined&&(!Number.isSafeInteger(options.observationTimeoutMs)||options.observationTimeoutMs<10||options.observationTimeoutMs>30000))throw Error('Invalid observation timeout');}
  private async observe(phase:"before"|"after",row:StoredOperation){
   if(!this.observer)return;const key=phase+':'+row.id;if(this.observationFlights.has(key))return;
   const controller=new AbortController();let timer:ReturnType<typeof setTimeout>|undefined;
@@ -33,18 +40,23 @@ export class Outbox {
   const sizeError=commandSizeError(id,command);if(sizeError)throw Error(sizeError);
   const hash=commandHash(command);const prior=this.db.operation(id);
   if(prior){if(prior.authority!==authority)throw Error('Operation authority conflict');if(prior.hash!==hash)throw Error('Operation payload conflict');return prior;}
-  const cap=this.options.capacity??256;// Must match the contract's receipt capacity (256 unless a simulation seed raised it).
-  if(this.db.operations().length+1+this.reserved(command)>cap){
+  // Must match the contract's receipt window: recent receipts plus tombstones (contract view `capacity`).
+  const cap=this.options.capacity??256;const live=this.windowed().length;
+  if(live+1+this.reserved(command)>cap){
    // Final-chain discovery can reveal obligations after ordinary slots filled.
    // A bounded emergency lane accepts only the owner-bound oracle result for a
    // persisted confirmed batch; never additional player spending.
    const a=command.action;
    const saved=a.type==='finish_craft'||a.type==='finish_recovery'?this.db.get<{profile:string;confirmed:boolean;recovery:boolean;finished:boolean}>('craft',a.batch_id):undefined;
    const emergency=!authority&&saved?.confirmed&&!saved.finished&&saved.profile===command.actor&&saved.recovery===(a.type==='finish_recovery');
-   if(!emergency||this.db.operations().length>=cap*2)throw Error('Outbox capacity reached; terminal headroom reserved');
+   if(!emergency||live>=cap*2)throw Error('Outbox capacity reached; terminal headroom reserved');
   }
-  const row:StoredOperation={...(authority?{authority}:{}),id,command:structuredClone(command),hash,status:'Pending'};this.db.putOperation(row);return row;
+  const row:StoredOperation={...(authority?{authority}:{}),id,command:structuredClone(command),hash,status:'Pending',createdAt:this.now()};this.db.putOperation(row);return row;
  }
+ private now(){return this.options.now?.()??Date.now();}
+ /** Operations that still occupy the contract's receipt window: unresolved ones, and ones created within the
+  * minimum retention. Rows from before this field existed were resolved under the old contract; they are not counted. */
+ private windowed(){const since=this.now()-REPLAY_MIN_AGE_MS;return this.db.operations().filter(r=>r.status==='Pending'||r.status==='Unknown'||(r.createdAt!==undefined&&r.createdAt>=since));}
  private reserved(incoming:Command){
   const rows=this.db.operations();const obligations=new Map<string,string>();
   for(const r of rows){if(r.status==='Rejected')continue;const a=r.command.action;
@@ -82,6 +94,8 @@ export class Outbox {
  private async submit(id:string):Promise<StoredOperation>{
   const row=this.db.operation(id);if(!row)throw Error('Unknown operation');
   if(row.status==='Applied'||row.status==='Rejected'){if(row.status==='Applied')await this.observe('after',row);return row;}
+  // Rows from before createdAt existed are dated on first sight: the upgraded contract had forgotten nothing then.
+  if(row.createdAt===undefined){row.createdAt=this.now();this.db.putOperation(row);}
   const accept=async()=>{const receipt=await this.receipt(id);if(!receipt)return false;
    if(receipt.status!=='Applied'&&receipt.status!=='Rejected')return false;
    if(receipt.op_id!==id||receipt.payload_hash!==row.hash)throw Error('Receipt identity conflict');
@@ -105,7 +119,11 @@ export class Outbox {
      row.retired=[...(row.retired??[]),row.signed];delete row.signed;this.db.putOperation(row);
     }
    }
-   if(!row.signed){await this.observe('before',row);const minNonce=row.retired?.reduce((n,t)=>t.nonce&&BigInt(t.nonce)>=BigInt(n)?(BigInt(t.nonce)+1n).toString():n,'0');const signed=await this.chain.sign(id,row.command,minNonce);if(signed.bytes.length>(commandByteLimit(row.command.action)===largePublicationBytes?262144:65536))throw Error('Signed transaction too large');row.signed=signed;row.signedAt=Date.now();this.db.putOperation(row);}
+   if(!row.signed&&row.retired?.length&&this.now()-(row.firstSignedAt??row.createdAt??this.now())>RESIGN_CUTOFF_MS){
+    row.status='Unknown';row.reason='No confirmed receipt within the replay-safe signing window; it will not be signed again. Operator recovery required.';
+    this.db.putOperation(row);return row;
+   }
+   if(!row.signed){await this.observe('before',row);const minNonce=row.retired?.reduce((n,t)=>t.nonce&&BigInt(t.nonce)>=BigInt(n)?(BigInt(t.nonce)+1n).toString():n,'0');const signed=await this.chain.sign(id,row.command,minNonce);if(signed.bytes.length>(commandByteLimit(row.command.action)===largePublicationBytes?262144:65536))throw Error('Signed transaction too large');row.signed=signed;row.signedAt=Date.now();row.firstSignedAt??=row.retired?.length?row.createdAt:this.now();this.db.putOperation(row);}
    if(row.signed.bytes.length>(commandByteLimit(row.command.action)===largePublicationBytes?262144:65536))throw Error('Signed transaction too large');
    try{await this.chain.broadcast(row.signed);}catch(e){row.reason=String(e).slice(0,500);}
    if(await accept())return row;

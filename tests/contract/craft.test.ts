@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {extendedFixture,inputs,commitment} from './extended-fixture';
+import {fixture} from './helpers';
 import type {Command} from '../../packages/shared/src/types';
 const begin=(id:string,deadline:string,ids=inputs('maker'),actor='maker'):Command=>({actor,action:{type:'begin_craft',batch_id:id,input_ids:ids,challenge_commitment:commitment,deadline_ms:deadline}});
 const finish=(id:string,tier:'normal'|'fine'='fine',reason:'completed'|'expired'='completed',actor='maker'):Command=>({actor,action:{type:'finish_craft',batch_id:id,tier,reason}});
@@ -36,11 +37,14 @@ test('deadline is stored; late completion forces normal tier and timeout cannot 
  const next=String(BigInt(await f.view('clock_ms'))+60000n);await f.apply('begin-timeout',begin('timeout',next,inputs('maker',2)));await f.advance(next);assert.equal((await f.apply('timeout',finish('timeout','fine','expired'))).status,'Applied');assert.equal((await f.view()).batches.find((b:any)=>b.id==='timeout').tier,'normal');
  }finally{await f.close();}
 });
-test('receipt exhaustion preserves terminal capacity for a locked crafting batch',{timeout:360000},async()=>{
- const f=await extendedFixture();try{
- const deadline=String(BigInt(await f.view('clock_ms'))+900000n);assert.equal((await f.apply('begin',begin('capacity',deadline))).status,'Applied');
+// The receipt window is no longer a lifetime cap (docs/systems/CAPACITY.md); a 256-slot capacity seed with nothing
+// old enough to forget reproduces exhaustion.
+test('receipt exhaustion preserves terminal capacity for a locked crafting batch',{timeout:600000},async()=>{
+ const f=await fixture(undefined,{method:'init_demo_capacity_test',args:{recent:128,replay_slots:128,min_age_ms:'3600000',materials:2,maker_coins:'0'}});try{
+ const ids=['cap-herb-0','cap-herb-1','cap-flask-0','cap-flask-1'];
+ const deadline=String(BigInt(await f.view('clock_ms'))+900000n);assert.equal((await f.call('execute',{op_id:'begin',command:begin('capacity',deadline,ids)})).status,'Applied');
  for(let i=0;i<254;i++){const r=await f.call('execute',{op_id:`fill-${i}`,command:{actor:'missing',action:{type:'debit',amount:'0'}}});assert.equal(r.result,'UnknownProfile');}
  await assert.rejects(()=>f.call('execute',{op_id:'overflow',command:{actor:'missing',action:{type:'debit',amount:'0'}}}));
- const r=await f.apply('finish',finish('capacity'));assert.equal(r.status,'Applied');assert.deepEqual(await f.apply('finish',finish('capacity')),r);assert.equal((await f.view()).batches[0].status,'finished');
- }finally{await f.close();}
+ const r=await f.call('execute',{op_id:'finish',command:finish('capacity')});assert.equal(r.status,'Applied');assert.deepEqual(await f.call('execute',{op_id:'finish',command:finish('capacity')}),r);assert.equal((await f.view('snapshot')).batches[0].status,'finished');
+ }finally{await f.sandbox.tearDown();}
 });

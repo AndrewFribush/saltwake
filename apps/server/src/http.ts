@@ -32,7 +32,9 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
   await box.recover();const world=await snapshot();
   for(const op of box.db.operations()){
    if(op.status!=='Applied'||op.command.action.type!=='admit')continue;
-   const runId=op.receipt?.status==='Applied'?op.receipt.run?.id:undefined;
+   const runId=op.receipt?.status==='Applied'?op.receipt.run?.id??op.receipt.result:undefined;
+   // Tombstone receipts carry no run copy; without a local record, only a still-active snapshot run can be materialized.
+   if(runId&&op.receipt?.status==='Applied'&&!op.receipt.run&&!box.db.get('run',runId)&&world.runs.find(r=>r.id===runId)?.status!=='active')continue;
    // A recovered admission receipt is historical, not permission to resurrect play.
    if(wallet&&runId&&!box.db.get('run',runId)){
     const current=world.runs.find(r=>r.id===runId);

@@ -217,7 +217,7 @@ test('premature expiry retries once only after confirmed chain deadline without 
   } finally {f.close();}
 });
 
-test('request history is bounded and independent profiles cannot affect one another', () => {
+test('open craft requests are bounded, terminal ones never block new crafting, and profiles stay independent', () => {
   const f = fixture();
   try {
     const a = f.craft.begin('artisan', 'first', ids);
@@ -225,12 +225,17 @@ test('request history is bounded and independent profiles cannot affect one anot
     assert.notEqual(a.id, b.id);
     assert.equal(f.craft.view('artisan')!.id, a.id);
     f.confirm(a.beginOp, 'Rejected'); f.confirm(b.beginOp, 'Rejected');
-    for (let i = 2; i < MAX_CRAFT_REQUESTS; i++) {
+    // Far past the old lifetime cap: finished and rejected requests never fill the store.
+    for (let i = 2; i < MAX_CRAFT_REQUESTS + 8; i++) {
       const v = f.craft.begin('artisan', `r${i}`, ids);
       f.confirm(v.beginOp, 'Rejected');
     }
-    assert.throws(() => f.craft.begin('artisan', 'overflow', ids), /storage capacity/);
-    assert.equal(f.db.all('craft').length, MAX_CRAFT_REQUESTS);
     assert.equal(f.craft.begin('artisan', 'first', ids).id, a.id);
+    // Open (unresolved) requests are what the cap bounds.
+    const open = [];
+    for (let i = 0; i < MAX_CRAFT_REQUESTS; i++) open.push(f.craft.begin(`open-${i}`, 'req', ids));
+    assert.throws(() => f.craft.begin('artisan', 'overflow', ids), /storage capacity/);
+    f.confirm(open[0].beginOp, 'Rejected');
+    assert.doesNotThrow(() => f.craft.begin('artisan', 'after-one-closes', ids));
   } finally {f.close();}
 });

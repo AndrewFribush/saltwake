@@ -28,7 +28,7 @@ impl Economy {
         if expected_version.0 != edition.version.0 || expected_fee.0 != edition.fee.0 {
             return Err("StaleOffer".into());
         }
-        if self.runs.len() >= 64 || edition.active_runs.len() >= edition.terms.max_runs as usize {
+        if self.active_runs() >= crate::compact::MAX_ACTIVE_RUNS || edition.active_runs.len() >= edition.terms.max_runs as usize {
             return Err("RunCapacity".into());
         }
         if self
