@@ -223,3 +223,14 @@ Second run: I packed the club, chose The drowned stair (Dangerous: 6 enemies and
 **Showcase dungeon.** "The tide vaults" (demo supply) is the large three-floor preset (seed 11) thinned to the proprietor's budget: enemies come off the shallowest floor first, and 4 enemies and 3 traps remain. A fine tonic on floor 2 and a sword at the bottom are funded from goods the proprietor already holds. It is published by `scripts/demo-town.ts` through the normal publish command and housed in the east hall that used to point at the starter (the starter stays at the gate). It was generated, not hand-drawn in the builder. I copied it into the builder through the Library to check it. The route list shows all three floors reachable on the quick check, and the full check with enemies passed with the club kit (18, 22 and 18 turns). Wiring was fine. As the newcomer with a club I escaped from floor 3 with 1 health; the auto-walker set off a powder keg in a floor-2 corridor on the way.
 
 Evidence: `docs/evidence/playtest/r12-offer-card.png`, `r12-run-ledger.png`, `r12-showcase-offer.png`, `r12-showcase-routes.png`.
+
+## Round 13: showcase made robust, three funded copies
+
+- Generator changes on main (lure vaults, sealed arenas) raised the large preset's cost, and `npm run sandbox` crashed on "Showcase needs 64 coins; budget 45". **Fixed (0385728):**
+  - The showcase now thins in two stages. Optional hazards go first (oil, kegs, caches, altars, springs, chasms). Then the most expensive enemies and traps go, shallowest floor first, always keeping one fight on the last floor. Geometry, keys, locks, plates, cracked walls and devices are never removed.
+  - If one seed can't fit, it tries the next of 10 seeds.
+  - Seeding never throws on the showcase. If no seed fits, it logs "showcase skipped (...)" and seeds the rest of the town.
+  - `apps/server/test/showcase.test.ts` and `demo-town.test.ts` now run the showcase against the current generator.
+- The showcase had only one funded attempt, so it emptied after a single win. **Fixed:** it is now funded for three delvers. Each copy is a herb on floor 2 and a fine tonic on the last floor (10 coins of goods against a 4-coin fee), all from the proprietor's seeded goods. The two fine tonics the pantry used to shelve now fund the showcase. The pantry sells the proprietor's spare sword (12 coins) instead, so the town has a sword for sale. Conservation is unchanged; demo-town.test checks for 6 funded items.
+
+**Next step:** the first five minutes for a fresh visitor. Script a path that ends either with escaping The tide vaults or with building and opening their own Small dungeon, then polish every rough step on that path. Start from the round 12 notes above: the offer card, the run ledger, the gear-up goal and the outlets text are in place. Not yet checked: whether a newcomer with 10 coins can afford the showcase (4) plus gear, and whether the Small preset fits a newcomer's budget.
