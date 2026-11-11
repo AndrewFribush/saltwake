@@ -194,4 +194,12 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Shop placement map ("Place a building") now uses the town textures: grass, cobbles, water, walls, timber for existing buildings, gold outline on your own plot, green or red footprint (`shop-site-map.jpg`).
 - Checks: typecheck, game 193, web 31, server 171, build pass.
 
-Next step: Puzzle & passages panel when it lands on main.
+### 29. Arena cleared live, large floors, Puzzle panel, gentle board/chart motion
+- Arena cleared watched live (gallery `?vault=arena`, "Defeat all foes"): frame turns green and the banner reads "Arena cleared · the way out opens" (`arena-cleared.jpg`).
+- Fixed an information leak found while watching it: damage numbers and death puffs were shown for enemies the player could not see (e.g. killed in the dark). They now appear only for enemies on visible tiles inside the camera.
+- Large floors (sight is 6 but the camera shows ±4 rows): enemies you can see but that are outside the camera get an arrow chip on the board edge pointing at them (amber; red and pulsing if their threat is near), and a small minimap of explored ground with the camera box, you and those enemies sits in the corner. Only already-visible or explored information is drawn. Fixed: such enemies' sprites were drawn outside the board (`large-floor-edge-arrows.jpg`, gallery `?big=1`).
+- Puzzle & passages panel (dungeon-depth): piece buttons in a 3×2 grid with a sprite each (plate, lever, gate, key, locked door, drop hatch); wiring list as a framed ledger with wire marks and amber issue text; the selected-piece fieldset framed. Builder map now draws plates, keys and locks with the pixel sprites instead of the CSS fallback (`puzzle-panel.jpg`).
+- Checks: typecheck, game 193, web 31, server 171, build pass.
+- Town history charts draw in left to right on first show; notice-board notes and history cards drop in when they appear (new entries on live updates animate; existing ones do not). Off under reduced motion.
+
+Next step: polish as lanes land UI.
