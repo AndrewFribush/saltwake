@@ -13,8 +13,8 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  const int=(a:number,b:number)=>a+Math.floor(r()*(b-a+1));const pick=<T,>(xs:readonly T[])=>xs[Math.floor(r()*xs.length)];
  const g=Array.from({length:H},()=>Array<string>(W).fill('#'));
  const rooms:Room[]=[];
- for(let tries=0;tries<80&&rooms.length<5;tries++){
-  const w=int(3,6),h=int(3,4),x=int(1,W-w-1),y=int(1,H-h-1);
+ for(let tries=0;tries<120&&rooms.length<6;tries++){
+  const w=int(3,8),h=int(3,5),x=int(1,W-w-1),y=int(1,H-h-1);
   if(rooms.some(o=>x<=o.x+o.w+1&&o.x<=x+w+1&&y<=o.y+o.h+1&&o.y<=y+h+1))continue;
   rooms.push({x,y,w,h});
  }
@@ -25,6 +25,13 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  const carve=(a:P,b:P)=>{let {x,y}=a;const horizontalFirst=r()<.5;
   const stepX=()=>{while(x!==b.x){x+=Math.sign(b.x-x);g[y][x]='.';}},stepY=()=>{while(y!==b.y){y+=Math.sign(b.y-y);g[y][x]='.';}};
   if(horizontalFirst){stepX();stepY();}else{stepY();stepX();}};
+ // Room shapes: pillared halls and notched corners make cover and chokepoints.
+ const shapes:string[]=[];
+ for(const [i,m] of rooms.entries()){if(i===0||i===rooms.length-1){shapes.push('plain');continue;}
+  const c=center(m);
+  if(m.w>=5&&m.h>=5&&r()<.6){shapes.push('pillars');for(let y=m.y+1;y<m.y+m.h-1;y+=2)for(let x=m.x+1;x<m.x+m.w-1;x+=2)if(!(x===c.x&&y===c.y))g[y][x]='#';}
+  else if(m.w>=4&&m.h>=4&&r()<.5){shapes.push('notched');for(const [x,y] of [[m.x,m.y],[m.x+m.w-1,m.y],[m.x,m.y+m.h-1],[m.x+m.w-1,m.y+m.h-1]])g[y][x]='#';}
+  else shapes.push('plain');}
  for(let i=1;i<rooms.length;i++)carve(center(rooms[i-1]),center(rooms[i]));
  if(rooms.length>3&&r()<.6)carve(center(rooms[0]),center(rooms[rooms.length-1]));
  // Hidden side room behind a cracked wall: solid rock all around except the crack.
@@ -48,6 +55,16 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  const used=new Set([key(spawn),key(exit)]);
  const take=(filter:(p:P)=>boolean=()=>true):P|undefined=>{const options=floorTiles.filter(p=>!used.has(key(p))&&filter(p));if(!options.length)return;const p=pick(options);used.add(key(p));return p;};
  const far=(p:P)=>Math.abs(p.x-spawn.x)+Math.abs(p.y-spawn.y)>=5;
+ // Themed rooms: a keg gallery guarded by a sentry, or an oil-slicked hall with a keg at its edge.
+ const themeSockets:{p:P;placement:CreatorPlacement}[]=[];
+ const middle=rooms.slice(1,-1).filter(m=>m.w>=4);
+ if(middle.length&&r()<.8){
+  const m=pick(middle),inside=(p:P)=>tiles[p.y]?.[p.x]==='.'&&!used.has(key(p))&&!secretKeys.has(key(p));
+  if(r()<.5){let n=0;for(let x=m.x;x<m.x+m.w&&n<3;x+=2){const p={x,y:m.y};if(inside(p)){used.add(key(p));features.push(defaultFeature('barrel',fid(),p.x,p.y));n++;}}
+   const guard=[...Array(m.w).keys()].map(dx=>({x:m.x+dx,y:m.y+m.h-1})).find(inside);if(guard&&n){used.add(key(guard));themeSockets.push({p:guard,placement:{enemy:'archer',trap:false,reward:null}});}}
+  else{for(let y=m.y;y<m.y+m.h;y++)for(let x=m.x;x<m.x+m.w;x++){const p={x,y};if(inside(p)&&r()<.45){used.add(key(p));features.push(defaultFeature('oil',fid(),x,y));}}
+   const edge=[...Array(m.h).keys()].map(dy=>({x:m.x+m.w-1,y:m.y+dy})).find(inside);if(edge){used.add(key(edge));features.push(defaultFeature('barrel',fid(),edge.x,edge.y));}}
+ }
  // Features: secret stash, kegs and oil to exploit, a spring or altar, sometimes a chasm.
  if(secret.length){const s=pick(secret);used.add(key(s));features.push(r()<.5?defaultFeature('cache',fid(),s.x,s.y):{...defaultFeature('fountain',fid(),s.x,s.y),charges:2} as Feature);}
  const supply:SupplyKind=pick(['bomb','dart','flash']);
@@ -58,13 +75,13 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  if(r()<.5){const p=take(q=>far(q)&&[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>tiles[q.y+dy]?.[q.x+dx]==='.').length>=3);if(p)features.push(defaultFeature('pit',fid(),p.x,p.y));}
  // Encounters scale with depth and danger.
  const pool:EnemyKind[][]=[['pursuer','bomber','archer'],['pursuer','charger','archer','bomber','nest'],['charger','archer','bomber','brute','nest','pursuer']];
- const sockets:P[]=[],placements:CreatorPlacement[]=[];
- const enemies=Math.min(16,1+depth+danger);
- for(let i=0;i<enemies;i++){const p=take(far);if(!p)break;sockets.push(p);const kind=pick(pool[Math.min(depth,2)]);placements.push({enemy:kind==='nest'&&placements.some(q=>q.enemy==='nest')?'pursuer':kind,trap:false,reward:i<1+Math.floor(depth/2)?'random':null});}
+ const sockets:P[]=themeSockets.map(t=>t.p),placements:CreatorPlacement[]=themeSockets.map(t=>t.placement);
+ const enemies=Math.min(16,placements.length+1+depth+danger)-placements.length;
+ for(let i=0;i<enemies;i++){const p=take(far);if(!p)break;sockets.push(p);const kind=pick(pool[Math.min(depth,2)]);placements.push({enemy:kind==='nest'&&placements.some(q=>q.enemy==='nest')?'pursuer':kind,trap:false,reward:i<1+depth?'random':null});}
  for(let i=0;i<int(0,1+depth)&&sockets.length<16;i++){const p=take(far);if(!p)break;sockets.push(p);placements.push({enemy:'none',trap:true,reward:null});}
  if(secret.length&&sockets.length<16){const s=secret.find(p=>!used.has(key(p)));if(s){used.add(key(s));sockets.push(s);placements.push({enemy:'none',trap:false,reward:'random'});}}
  const last=depth===count-1;
- const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices:[],exit_rule:{...defaultExitRule,require_clear:false},features,...(depth>0?{tide:{turns:Math.max(25,60-depth*10),damage:Math.min(3,depth)}}:{})};
+ const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices:[],exit_rule:{...defaultExitRule,require_clear:false},features,...(depth>0?{tide:{turns:Math.max(25,Math.round(tiles.join('').split('.').length*0.45)-depth*5),damage:Math.min(3,depth)}}:{})};
  if(last)floor.exit_rule={extract:true,require_clear:false};
  return validateCustomFloor(floor,'depth').length?null:{floor,placements};
 }

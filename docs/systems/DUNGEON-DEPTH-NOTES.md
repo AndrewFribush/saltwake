@@ -44,6 +44,12 @@ Goal: make runs play like a roguelike while keeping every new thing a player-aut
 - Hand-built test: a one-room "keg gallery" made through the builder UI (kegs, oil line, cache, chasm, sentry, crab, pursuer) rehearsed fine.
 - Economic bombs/darts: not started. They need ItemType, bank prices and a crafting recipe, which sit in the playtest agent's town/crafting area.
 
+## Third pass (after merge b54ced9)
+
+- Run screen: the turn log lists the last 8 events, newest first and highlighted (it used to page 2 lines at a time). A run-end summary says what killed you (tracked as `killedBy`: enemy, blast, fire, spikes or the tide), the floor and turn, and lists goods by outcome with the reason: carried out, gear kept, gear lost to the bank, left in the dungeon, used up. Paid runs use the confirmed settlement, with unseen items counted; rehearsal says nothing really moves.
+- Generator: rooms up to 8×5 and up to six rooms; pillared halls and notched rooms in the middle; one themed room per floor most of the time (a keg gallery guarded by a crossbow sentry, or an oil-slicked hall with a keg at the edge). Rewards per floor grow with depth (1, 2, 3 plus the hidden stash). Tide timing scales with the floor's open area (about 0.45 turns per tile, less on deeper floors, at least 25). 300 seeds generate without failure.
+- Dev note: the merged vite config ignores `**/.claude/**`, so a dev server started from this worktree does not hot-reload; restart it after edits.
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
@@ -51,4 +57,4 @@ Goal: make runs play like a roguelike while keeping every new thing a player-aut
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** play more generated seeds at 6-tile sight and tune tide turns and enemy counts per floor; check the coloured telegraphs on a phone-width rehearsal.
+**Next step:** play generated seeds end to end in the browser with the new summary and tune per-floor enemy counts from what kills players.

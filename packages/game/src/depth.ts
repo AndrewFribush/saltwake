@@ -9,7 +9,7 @@ export function makeCtx(s:RunState,guard:boolean):Ctx{
  const ctx:Ctx={s,guard,late:false,exploded:new Set(),hitPlayer:(damage,source)=>{
   if(s.player.hp<=0)return;
   const raw=Math.max(1,damage-(s.player.armor?armorReduction:0)-(s.buffs?.ward??0));const hit=ctx.guard?Math.ceil(raw/2):raw;ctx.guard=false;
-  s.player.hp=Math.max(0,s.player.hp-hit);s.log.push(`${source} hits for ${hit}.`);
+  s.player.hp=Math.max(0,s.player.hp-hit);s.log.push(`${source} hits for ${hit}.`);if(s.player.hp===0)s.killedBy??=source;
  }};
  return ctx;
 }
@@ -56,7 +56,7 @@ export function depthHazards(ctx:Ctx,traps:()=>void){
   for(const n of neighbors4(f))for(const g of features.filter(g=>!g.spent&&same(g,n))){if(g.kind==='oil'&&!g.burning)g.burning=3;if(g.kind==='barrel')light(ctx,g);}
   f.burning!--;if(!f.burning){f.spent=true;delete f.burning;}
  }
- if(s.tide&&s.player.hp>0){s.tideTurns=(s.tideTurns??0)+1;if(s.tideTurns>s.tide.turns){s.player.hp=Math.max(0,s.player.hp-s.tide.damage);s.log.push(`The tide hits for ${s.tide.damage}.`);}else if(s.tideTurns===s.tide.turns)s.log.push('The tide is at the door: next turn it floods this floor.');}
+ if(s.tide&&s.player.hp>0){s.tideTurns=(s.tideTurns??0)+1;if(s.tideTurns>s.tide.turns){s.player.hp=Math.max(0,s.player.hp-s.tide.damage);s.log.push(`The tide hits for ${s.tide.damage}.`);if(s.player.hp===0)s.killedBy??='the rising tide';}else if(s.tideTurns===s.tide.turns)s.log.push('The tide is at the door: next turn it floods this floor.');}
  for(const nest of s.enemies.filter(e=>e.kind==='nest'&&e.hp>0)){
   if(s.roguelike&&!nest.alerted)continue;
   nest.timer=(nest.timer??nestPeriod)-1;if(nest.timer>0)continue;nest.timer=nestPeriod;
