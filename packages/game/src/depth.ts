@@ -2,6 +2,7 @@
 // the tide and the four depth enemies. Deterministic: rehearsal and paid play share it.
 import {armorReduction} from '../../shared/src/equipment';
 import {bombDamage,dartDamage,flashRadius,flashTurns,maxSupplies,nestAlive,nestPeriod,nestTotal,ratHp,supplyCatalog,type SupplyKind} from '../../shared/src/depth-components';
+import {visibleTiles} from './roguelike';
 import {distance,walkable,seeThrough,featureAt,type RunState,type Enemy,type Point,type FeatureState} from './state';
 export type Ctx={s:RunState;guard:boolean;late:boolean;exploded:Set<string>;hitPlayer:(damage:number,source:string)=>void};
 export function makeCtx(s:RunState,guard:boolean):Ctx{
@@ -140,7 +141,8 @@ export function planDepthEnemy(s:RunState,e:Enemy,distances:Map<string,number>):
  }
  if(e.kind==='archer'){
   const range=6;
-  if(e.x===s.player.x||e.y===s.player.y){
+  // Readability: a sentry only aims from a tile the player can currently see.
+  if((e.x===s.player.x||e.y===s.player.y)&&(!s.roguelike||visibleTiles(s).has(`${e.x},${e.y}`))){
    const dir={x:Math.sign(s.player.x-e.x),y:Math.sign(s.player.y-e.y)},line=lineFrom(s,e,dir,range);
    const reach=line.findIndex(p=>same(p,s.player));
    if(reach>=1&&!line.slice(0,reach).some(p=>s.enemies.some(o=>o.hp>0&&same(o,p))||featureAt(s,p,'barrel'))){e.aim=true;e.lane=line;e.intent={x:e.x,y:e.y};return true;}
