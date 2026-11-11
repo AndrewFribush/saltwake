@@ -89,3 +89,13 @@ Playing Saltwake as a stranger on a local sandbox (web 18970, API 18971), fixing
 - The generated layout costs **84 coins** (12 enemies 30, 5 traps 5, 7 treasure spots 7, features 40) and needs 7 owned goods. The Open step showed only the total. (The generator defaults belong to the dungeon-depth lane, so I flagged them there.)
 
 **Fixed:** pan controls moved into the map's top-right corner. Drafts autosave about 0.7 s after each edit and on close, and the footer says so. The Open step breaks the placement cost down and says to remove some to open for less. The coach mentions the generator as the fastest start.
+
+## Round 6: a coherent earn path, and the run log
+
+**Earn path.** Before: wages stopped at 6 coins (3 jobs, and only while holdings were under 6), but one batch of ingredients costs 8, so a broke player could never reach a first craft without buying in. Now:
+- Recovery work is open to anyone who can't yet afford a batch: holdings under 8 (2 herbs + 2 flasks at catalog value). This rule lives in the contract, with a mirror in `workbench.ts`.
+- New testnet deployments (`init_public_testnet`) allow 4 jobs per newcomer and reserve 160 wage credits (40 full newcomer paths), so four 2-coin jobs reach exactly 8.
+- Old state still loads. The demo seeds are unchanged.
+- A contract test now walks a zero-asset wallet through the whole path: 4 wages (8 coins) → a 5th job is refused → buy 2 herbs + 2 flasks → brew → sell both tonics to the bank (6) → open a no-treasure dungeon (2). Total coins stay at the seeded 330, so nothing is created.
+
+**Run log.** It never updated after you entered: "Entered Floor 1." stayed in the status line through whole fights. The server hid every log line naming an enemy that wasn't on screen at that moment, which includes every enemy you'd just killed. Now only enemies you have never seen stay hidden. The server records which enemies each player has seen. Checked in play: "You hit floor-0-slot-0 for 1. / floor-0-slot-0 hits for 3." now appears turn by turn.

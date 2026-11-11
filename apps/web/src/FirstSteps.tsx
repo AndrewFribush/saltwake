@@ -17,12 +17,12 @@ export function FirstSteps({world,hidden}:{world:any;hidden:boolean}){
  const sold=wasDone(profile,'sell')||(world.listings??[]).some((l:{seller:string})=>l.seller===profile);
  const delved=(world.runs??[]).some((r:{terminal:string|null})=>r.terminal)||wasDone(profile,'delve');
  const built=(world.editions??[]).some((e:{maker:string})=>e.maker===profile);
- const offer=world.recoveryOffer as {eligible:boolean;wage:string}|undefined;
+ const offer=world.recoveryOffer as {eligible:boolean;wage:string;jobsLeft:number}|undefined;
  const steps:Step[]=[
-  ...(offer?.eligible?[{id:'wage',title:`Earn a wage (${offer.wage} coins)`,text:'Short of coin? Ivo at the Copper Kettle pays for a recovery job: three timed stirs, no ingredients needed.',done:false}]:[]),
+  ...(offer?.eligible?[{id:'wage',title:`Earn a wage (${offer.wage} coins)`,text:`Short of coin? Ivo at the Copper Kettle pays for a recovery job: three timed stirs, no ingredients needed. Keep going until you can afford a batch of ingredients (8 coins); ${offer.jobsLeft} ${offer.jobsLeft===1?'job':'jobs'} left.`,done:false}]:[]),
   {id:'stock',title:'Stock up on ingredients',text:`At Quayside market, buy 2 herbs and 2 flasks from the merchant counter (8 coins).${Number(world.credits)<8?` You have ${world.credits}: earn or sell first, or look for cheaper player offers.`:''}`,done:stocked},
   {id:'brew',title:'Brew tonics',text:'Talk to Ivo at the Copper Kettle. Hit all three gold marks for fine tonics, which are worth more.',done:brewed},
-  {id:'sell',title:'Sell or trade',text:'The market has a standing order for fine tonics. Or offer goods to other players: click someone in town to trade.',done:sold},
+  {id:'sell',title:'Sell or trade',text:'The bank buys tonics at the market counter (Sell tab), and a standing order pays more for fine ones. Or offer goods to other players: click someone in town to trade.',done:sold},
   {id:'delve',title:'Delve for treasure',text:'At the old catacombs, pack gear and pay an entry fee. Escape with treasure; die and your gear is lost.',done:delved},
   ...(world.shopContract?[{id:'shop',title:'Open a shop',text:'Press “Build here” above the map to place a shop of your own in this district, then stock it with goods to sell.',done:(world.shops??[]).some((x:{owner:string})=>x.owner===profile)}]:[]),
   {id:'build',title:'Build a dungeon',text:'At the Delvers’ guild, walk to the drafting table (✎). Draw floors, rehearse for free, then open it: other players pay you to enter.',done:built},

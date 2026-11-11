@@ -80,7 +80,9 @@ impl Economy {
             {
                 return Err("RecoveryJobCap".into());
             }
-            if self.profile_holdings(&actor) >= 6 {
+            // Recovery work is for anyone who cannot yet afford one batch of ingredients,
+            // so the earn path always reaches a first craft: 2 herbs + 2 flasks at catalog value.
+            if self.profile_holdings(&actor) >= RECOVERY_HOLDINGS_LIMIT {
                 return Err("RecoveryHoldings".into());
             }
             if self.recovery.budget.0 < self.recovery.wage.0 {
@@ -228,3 +230,5 @@ impl Economy {
         Ok(id)
     }
 }
+/// One batch of ingredients at catalog value (2 herbs + 2 flasks = 8 coins).
+pub const RECOVERY_HOLDINGS_LIMIT: u64 = 8;
