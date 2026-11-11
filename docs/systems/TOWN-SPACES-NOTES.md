@@ -84,6 +84,12 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - Rehearsed on the local sandbox: `rehearse2.sandbox` with two funders → DEPLOYED (hash 31890e0a…, 29.79 NEAR, land-v1, coin price 0.01 NEAR, recovery budget 160). The generated server files pass `checkTestnetApproval` once the RPC/account are substituted with testnet values. A first rehearsal exposed that the deploy is included before final; the code check now waits (bounded) and the leftover journal correctly blocked a rerun.
 - README section "Redeploy the testnet contract" has the exact commands.
 
+## Round 8: two live wallet players; browsing presence
+
+- `--wallet-local-alias http://localhost:<port>` (local wallet mode only, loopback http only; refused otherwise and never with secure cookies): the API accepts that second origin for host/origin checks and `/api/config`, and `WalletSessions` signs a challenge bound to the origin the player used (finishing from the other origin is refused). Vite needs `SALTWAKE_KEEP_HOST=1` so the API sees the browser's Host. README section "Two local wallet players at once".
+- Live session (127.0.0.1 = player1, localhost = player2, local wallet sandbox): both signed in; player2 registered and bought 10 coins with NEAR; they saw each other and chatted; player1 offered a herb privately (`reservations` = wallet:player2.sandbox), player2 saw "Offered to you" and bought it (coins 8→10 / 10→8); both paid into the same dungeon at once (edition active=2) and gave up (summary "You gave up and were led out.").
+- Presence: the server announces room occupancy (`rooms` event, names only, ≤5 per room) to everyone when someone enters or leaves a player building. The notice board shows "X is browsing now" (or "in the entrance hall") per building; inside a shop, a visitor standing at a display shelf gets their name over the shelf. Checked live with the two wallet players.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.

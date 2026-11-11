@@ -31,6 +31,7 @@ async function post(path:string,body:unknown){
 }
 
 export function useTownPresence(here:Here){
+ const [rooms,setRooms]=useState<Record<string,string[]>>({});
  const [you,setYou]=useState<string>();const [others,setOthers]=useState<Record<string,PresencePlayer>>({});const [chat,setChat]=useState<ChatMessage[]>([]);const [online,setOnline]=useState(false);
  const latest=useRef(here);latest.current=here;const lastSent=useRef(0);const pending=useRef<ReturnType<typeof setTimeout>>(undefined);const ready=useRef(false);
  const flush=()=>{pending.current=undefined;if(!ready.current)return;lastSent.current=Date.now();const h=latest.current;void post('move',h??{district:null,x:0,y:0,facing:'down'}).catch(()=>{});};
@@ -45,6 +46,7 @@ export function useTownPresence(here:Here){
   on('join',upsert);on('move',upsert);
   on('leave',d=>setOthers(o=>{const {[d.id]:_,...rest}=o;return rest;}));
   on('chat',m=>setChat(c=>[...c,m].slice(-40)));
+  on('rooms',r=>setRooms(r&&typeof r==='object'?r:{}));
   source.onerror=()=>{setOnline(false);ready.current=false;};
   const beat=setInterval(()=>{if(ready.current)flush();},HEARTBEAT_MS);
   return()=>{source.close();clearInterval(beat);clearTimeout(pending.current);ready.current=false;};
@@ -54,7 +56,7 @@ export function useTownPresence(here:Here){
  useEffect(()=>{setOthers({});setChat([]);},[here?.district,here?.room,here===null]);
  const say=async(text:string)=>{await post('chat',{text});};
  const list=useMemo(()=>Object.values(others),[others]);
- return {you,others:list,chat,online,say};
+ return {you,others:list,chat,online,say,rooms};
 }
 
 function OtherAvatar({player,cell}:{player:PresencePlayer;cell:number}){
