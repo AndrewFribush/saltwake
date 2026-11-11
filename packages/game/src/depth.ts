@@ -1,7 +1,7 @@
 // Rules v12 run mechanics: kegs, fire, cracked walls, chasms, springs, altars, supplies,
 // the tide and the four depth enemies. Deterministic: rehearsal and paid play share it.
 import {armorReduction} from '../../shared/src/equipment';
-import {bombDamage,dartDamage,flashRadius,flashTurns,maxSupplies,nestAlive,nestPeriod,nestTotal,ratHp,supplyCatalog,type SupplyKind} from '../../shared/src/depth-components';
+import {clockOn,bombDamage,dartDamage,flashRadius,flashTurns,maxSupplies,nestAlive,nestPeriod,nestTotal,ratHp,supplyCatalog,type SupplyKind} from '../../shared/src/depth-components';
 import {visibleTiles} from './roguelike';
 import {distance,walkable,seeThrough,featureAt,type RunState,type Enemy,type Point,type FeatureState} from './state';
 export type Ctx={s:RunState;guard:boolean;late:boolean;exploded:Set<string>;hitPlayer:(damage:number,source:string)=>void};
@@ -57,6 +57,7 @@ export function depthHazards(ctx:Ctx,traps:()=>void){
   f.burning!--;if(!f.burning){f.spent=true;delete f.burning;}
  }
  if(s.tide&&s.player.hp>0){s.tideTurns=(s.tideTurns??0)+1;if(s.tideTurns>s.tide.turns){s.player.hp=Math.max(0,s.player.hp-s.tide.damage);s.log.push(`The tide hits for ${s.tide.damage}.`);if(s.player.hp===0)s.killedBy??='the rising tide';}else if(s.tideTurns===s.tide.turns)s.log.push('The tide is at the door: next turn it floods this floor.');else if(s.tide.turns-s.tideTurns===10||s.tide.turns-s.tideTurns===5)s.log.push(`The water is rising: ${s.tide.turns-s.tideTurns} turns until this floor floods.`);}
+ s.floorTurn=(s.floorTurn??0)+1;
  updatePlates(s);
  for(const nest of s.enemies.filter(e=>e.kind==='nest'&&e.hp>0)){
   if(s.roguelike&&!nest.alerted)continue;
@@ -100,6 +101,8 @@ export function useSupply(ctx:Ctx,kind:SupplyKind,target:Point|undefined):boolea
 }
 /** Plates hold their channel on while any creature stands on them. */
 export function updatePlates(s:RunState){
+ const t=s.floorTurn??0;
+ for(const f of s.features??[])if(f.kind==='clock'){const on=clockOn(f,t);s.signals??={};if(!!s.signals[f.channel]!==on)s.log.push(`Clock ${f.channel}: ${on?'on':'off'}.`);s.signals[f.channel]=on;}
  for(const f of s.features??[])if(f.kind==='plate'&&!f.spent){const on=(s.player.x===f.x&&s.player.y===f.y)||s.enemies.some(e=>e.hp>0&&e.x===f.x&&e.y===f.y);s.signals??={};if(!!s.signals[f.channel]!==on)s.log.push(`Pressure plate ${f.channel}: ${on?'on':'off'}.`);s.signals[f.channel]=on;}
 }
 export function collectCache(s:RunState){
