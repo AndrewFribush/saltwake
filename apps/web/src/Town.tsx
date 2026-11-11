@@ -4,7 +4,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {townSize,townStart,type PlaceId,type TownPoint} from '../../../packages/game/src/town';
 import {districts,districtPlaces,districtPath,districtStep,neighbor,type DistrictId} from '../../../packages/game/src/town-districts';
 import './tiles.css';
-import {PresenceAvatars,TownChat,useTownPresence,useRoomPresence,setRoomCrowd,type Facing} from './TownPresence';
+import {PresenceAvatars,TownChat,useTownPresence,useRoomPresence,setRoomCrowd,playerLabel,type Facing} from './TownPresence';
 import {PlayerTrade,type TradeContext} from './PlayerTrade';
 const cell=40;
 export function Town({onEnter,disabled=false,openings,stock,children,shops=[],onEnterShop,onBuild,trade}:{trade?:TradeContext;onEnter:(place:PlaceId)=>void;disabled?:boolean;openings:number;stock:number;children?:React.ReactNode;shops?:Shopfront[];onEnterShop?:(id:string)=>void;onBuild?:(district:DistrictId)=>void}){
@@ -52,7 +52,7 @@ export function Town({onEnter,disabled=false,openings,stock,children,shops=[],on
     <PresenceAvatars players={presence.others} cell={cell}/>
     <g className="town-avatar" transform={`translate(${x} ${y})`}><CharacterSprite x={-22} y={-22} width={44} height={46}/></g>
    </svg>
-   {places.map(p=><button key={p.id} className={`place-sign ${p.id}`} disabled={disabled} style={{left:`${(p.x+p.width/2)/townSize.width*100}%`,top:`${(p.y-.65)/townSize.height*100}%`}} onClick={()=>travel(p.id)} aria-label={`Visit ${p.name}`}><strong>{p.name}</strong><span>{p.shopId?p.purpose:p.id==='gate'?`${openings} funded openings`:p.id==='market'?`${stock} goods for sale`:p.id==='workshop'?'Craft & earn':p.id==='guild'?'Fund an expedition':'Satchel & journal'}</span></button>)}
+   {places.map(p=><button key={p.id} className={`place-sign ${p.id}`} disabled={disabled} style={{left:`${(p.x+p.width/2)/townSize.width*100}%`,top:`${(p.y-.65)/townSize.height*100}%`}} onClick={()=>travel(p.id)} aria-label={`Visit ${p.name}`}><strong>{p.name}</strong><span>{p.shopId?`${playerLabel(p.keeper)} · ${p.purpose}`:p.id==='gate'?`${openings} funded openings`:p.id==='market'?`${stock} goods for sale`:p.id==='workshop'?'Craft & earn':p.id==='guild'?'Fund an expedition':'Satchel & journal'}</span></button>)}
    <div className="district-compass" aria-label="Neighboring districts">{[{dx:0,dy:-1,label:'↑',point:{x:12,y:0}},{dx:1,dy:0,label:'→',point:{x:23,y:8}},{dx:0,dy:1,label:'↓',point:{x:12,y:15}},{dx:-1,dy:0,label:'←',point:{x:0,y:8}}].map(({dx,dy,label,point})=>{const n=neighbor(district,dx,dy);return n&&<button key={label} disabled={disabled} onClick={()=>towardEdge(point,dx,dy)}>{label} {n.name}</button>;})}</div>
    <TownChat presence={presence} districtName={districtInfo.name} field={field} disabled={disabled} onPlayer={trade?setTradeWith:undefined}/>
    {trade&&tradeWith&&!disabled&&<PlayerTrade partner={tradeWith} distance={partner?Math.abs(partner.x-position.x)+Math.abs(partner.y-position.y):null} trade={trade} announce={presence.say} onApproach={()=>{if(partner)setRoute(districtPath(district,position,{x:partner.x,y:partner.y},shops));field.current?.focus({preventScroll:true});}} onClose={()=>{setTradeWith(undefined);field.current?.focus({preventScroll:true});}}/>}
