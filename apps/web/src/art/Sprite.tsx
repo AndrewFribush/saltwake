@@ -1,7 +1,8 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {spriteUrl,textureVars,type SpriteName} from './sprites';
 import {installHudJuice} from './Juice';
-installHudJuice();
+import {installSound} from './Sound';
+installHudJuice();installSound();
 
 export type Facing='up'|'down'|'left'|'right';
 

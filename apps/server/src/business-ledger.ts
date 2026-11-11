@@ -6,7 +6,7 @@ import {currentCostState,costDisposals,editionCostReport} from './cost-ledger';
 import {shopRecord} from './shop-record';
 
 const sum=(xs:(string|null|undefined)[])=>xs.reduce<bigint>((n,s)=>n+(s===null||s===undefined?0n:BigInt(s)),0n);
-const labels:Record<LedgerCash['category'],string>={trade:'Player trades',bank:'Bank trades',npc:'Seeded NPC order (subsidized)',entry:'Dungeon entry fees paid',maker:'Entry fees earned',placement:'Dungeon placement fees',wage:'Recovery wages',buyin:'Bought with NEAR (labelled issuance)'};
+const labels:Record<LedgerCash['category'],string>={trade:'Player trades',bank:'Bank trades',npc:'Seeded NPC order (subsidized)',entry:'Dungeon entry fees paid',maker:'Entry fees earned',placement:'Dungeon placement fees',wage:'Recovery wages',buyin:'Bought with NEAR (labelled issuance)',commission:'Commissions'};
 
 /** A player's business ledger, assembled only from confirmed receipts (businessAccount), the cost journal
  * (acquisition cost per good, or unknown) and authoritative edition, run, shop and batch records. Owner-only. */
@@ -17,6 +17,9 @@ export function businessLedger(world:EconomySnapshot,db:Store,profile:string):Bu
  for(const e of account.entries)if(!e.pending)add(e.category,e.direction,e.amount);
  // Wages: a finished recovery batch paid its reserved wage to the worker (authoritative batch record).
  for(const b of world.batches)if(b.actor===profile&&b.recovery&&b.status==='finished'&&/^\d+$/.test(b.wage_reserved))add('wage','in',b.wage_reserved);
+ // Commissions: coins you put into orders (paid for delivered goods, or still escrowed while open) and coins you earned filling others' orders.
+ for(const c of world.commissions??[])if(c.buyer===profile){const out=BigInt(c.unit_price)*BigInt(c.filled)+(c.status==='open'?BigInt(c.escrow):0n);if(out>0n)add('commission','out',out.toString());}
+ for(const op of db.operations()){const a=op.command.action;if(op.command.actor===profile&&a.type==='fill_commission'&&op.status==='Applied'&&op.receipt?.status==='Applied'&&op.receipt.result===a.commission_id)add('commission','in',(BigInt(a.expected_unit_price)*BigInt(a.item_ids.length)).toString());}
  const bought=world.buy_ins?.[profile];if(bought&&/^\d+$/.test(bought)&&bought!=='0'){const g:LedgerCash={category:'buyin',direction:'in',amount:bought,count:1,label:labels.buyin};groups.set('buyinin',g);}
  const cash=[...groups.values()].sort((a,b)=>a.direction.localeCompare(b.direction)||Number(BigInt(b.amount)-BigInt(a.amount)));
  const state=currentCostState(db,world),disposals=costDisposals(db).filter(d=>d.owner===profile);
