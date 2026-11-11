@@ -1,20 +1,20 @@
 // Seeded starting drafts for creators (and synthetic practice). The output is an ordinary,
 // fully editable draft built only from catalog components; it is never a fixed campaign.
-import {validateCustomFloor,type CustomFloor} from '../../shared/src/custom-layout';
+import {validateCustomFloor,floorFormat,type CustomFloor} from '../../shared/src/custom-layout';
 import {depthReachable,featureCatalog,featureCost,enemyCost,defaultFeature,type Feature,type EnemyKind,type SupplyKind,type AltarBoon} from '../../shared/src/depth-components';
 import {defaultExitRule} from '../../shared/src/exit-rules';
 import type {CreatorPlacement} from '../../shared/src/creator-rewards';
 type P={x:number;y:number};type Room={x:number;y:number;w:number;h:number};
 function rng(seed:number){let n=(seed>>>0)||1;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};}
 export type GeneratedDraft={floors:CustomFloor[];placements:CreatorPlacement[][]};
-export type GeneratorOptions={floors?:number;width?:number;height?:number;danger?:1|2|3;treasure?:boolean;budget?:FloorBudget};
+export type GeneratorOptions={vaults?:boolean;floors?:number;width?:number;height?:number;danger?:1|2|3;treasure?:boolean;budget?:FloorBudget};
 /** Per-floor caps used to keep generated drafts affordable. */
 export type FloorBudget={enemies:number;traps:number;treasure:number;featureCoins:number;tide:boolean};
 export type GeneratorPreset='small'|'medium'|'large';
 export const generatorPresets:Record<GeneratorPreset,{label:string;options:GeneratorOptions}>={
  small:{label:'Small · 1 floor',options:{floors:1,width:15,height:11,danger:1,budget:{enemies:2,traps:0,treasure:1,featureCoins:2,tide:false}}},
- medium:{label:'Medium · 2 floors',options:{floors:2,width:19,height:12,danger:2,budget:{enemies:3,traps:1,treasure:1,featureCoins:7,tide:true}}},
- large:{label:'Large · 3 floors',options:{floors:3,danger:2}},
+ medium:{label:'Medium · 2 floors',options:{vaults:true,floors:2,width:19,height:12,danger:2,budget:{enemies:3,traps:1,treasure:1,featureCoins:7,tide:true}}},
+ large:{label:'Large · 3 floors',options:{vaults:true,floors:3,danger:2}},
 };
 /** Placement coins and owned treasure goods a draft needs before it can open. */
 export function estimateDraft(d:GeneratedDraft):{coins:number;goods:number}{
@@ -32,7 +32,7 @@ export function fitBudget(seed:number,coins:number,goods:number):{preset:Generat
 function trimFloor(f:CustomFloor,ps:CreatorPlacement[],b:FloorBudget){
  // Keep cracked walls (they guard reachability of hidden rooms), then the cheapest-first remainder within the coin cap.
  let coins=0;const keep=new Set<string>();
- for(const x of f.features!)if(x.kind==='crack'){keep.add(x.id);coins+=featureCatalog.crack.cost;}
+ for(const x of f.features!)if(x.kind==='crack'||x.kind==='lock'||x.kind==='key'){keep.add(x.id);coins+=featureCatalog[x.kind].cost;}
  for(const x of f.features!)if(x.kind!=='crack'&&coins+featureCatalog[x.kind].cost<=b.featureCoins){keep.add(x.id);coins+=featureCatalog[x.kind].cost;}
  f.features=f.features!.filter(x=>keep.has(x.id));
  let enemies=0,traps=0,treasure=0;const slots:number[]=[];
@@ -42,7 +42,7 @@ function trimFloor(f:CustomFloor,ps:CreatorPlacement[],b:FloorBudget){
  if(!b.tide)delete f.tide;
 }
 const key=(p:P)=>`${p.x},${p.y}`;
-function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,danger:number):{floor:CustomFloor;placements:CreatorPlacement[]}|null{
+function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,danger:number,vault=false):{floor:CustomFloor;placements:CreatorPlacement[]}|null{
  const int=(a:number,b:number)=>a+Math.floor(r()*(b-a+1));const pick=<T,>(xs:readonly T[])=>xs[Math.floor(r()*xs.length)];
  const g=Array.from({length:H},()=>Array<string>(W).fill('#'));
  const rooms:Room[]=[];
@@ -79,7 +79,7 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
   for(let yy=y;yy<y+h;yy++){if(g[yy][x-2]==='.')doors.push({x:x-1,y:yy});if(g[yy][x+w+1]==='.')doors.push({x:x+w,y:yy});}
   if(!doors.length)continue;
   for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){g[yy][xx]='.';secret.push({x:xx,y:yy});}
-  const door=pick(doors);features.push(defaultFeature('crack',fid(),door.x,door.y));
+  const door=pick(doors);if(vault){g[door.y][door.x]='.';features.push({...defaultFeature('lock',fid(),door.x,door.y),color:'brass'} as Feature);}else features.push(defaultFeature('crack',fid(),door.x,door.y));
  }
  const tiles=g.map(row=>row.join(''));
  const secretKeys=new Set(secret.map(key));
@@ -99,6 +99,7 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
    const edge=[...Array(m.h).keys()].map(dy=>({x:m.x+m.w-1,y:m.y+dy})).find(inside);if(edge){used.add(key(edge));features.push(defaultFeature('barrel',fid(),edge.x,edge.y));}}
  }
  // Features: secret stash, kegs and oil to exploit, a spring or altar, sometimes a chasm.
+ if(features.some(f=>f.kind==='lock')){const k=take(far);if(k)features.push({...defaultFeature('key',fid(),k.x,k.y),color:'brass'} as Feature);else return null;}
  if(secret.length){const s=pick(secret);used.add(key(s));features.push(r()<.5?defaultFeature('cache',fid(),s.x,s.y):{...defaultFeature('fountain',fid(),s.x,s.y),charges:2} as Feature);}
  const supply:SupplyKind=pick(['bomb','dart','flash']);
  const c=take(p=>!far(p)||r()<.3);if(c)features.push({...defaultFeature('cache',fid(),c.x,c.y),supply,count:supply==='bomb'?2:supply==='dart'?3:1} as Feature);
@@ -119,7 +120,7 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  const last=depth===count-1;
  const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices:[],exit_rule:{...defaultExitRule,require_clear:false},features,...(depth>0?{tide:{turns:Math.max(35,Math.round(tiles.join('').split('.').length*0.8)),damage:Math.min(3,depth)}}:{})};
  if(last)floor.exit_rule={extract:true,require_clear:false};
- return validateCustomFloor(floor,'depth').length?null:{floor,placements};
+ return validateCustomFloor(floor,floorFormat(floor)).length?null:{floor,placements};
 }
 /** Generate a seeded multi-floor starting draft: rooms, a hidden stash, hazards and mixed enemies. */
 export function generateDraft(seed:number,options:GeneratorOptions={}):GeneratedDraft{
@@ -127,7 +128,7 @@ export function generateDraft(seed:number,options:GeneratorOptions={}):Generated
  const r=rng(seed);const floors:CustomFloor[]=[],placements:CreatorPlacement[][]=[];
  for(let depth=0;depth<count;depth++){
   let made:ReturnType<typeof generateFloor>=null;
-  for(let attempt=0;attempt<40&&!made;attempt++)made=generateFloor(r,depth,count,W,H,danger);
+  for(let attempt=0;attempt<40&&!made;attempt++)made=generateFloor(r,depth,count,W,H,danger,!!options.vaults&&depth>=1);
   if(!made)throw Error('Could not generate a valid floor; try another seed.');
   if(options.budget)trimFloor(made.floor,made.placements,options.budget);
   floors.push(made.floor);placements.push(options.treasure===false?made.placements.map(p=>({...p,reward:null})):made.placements);

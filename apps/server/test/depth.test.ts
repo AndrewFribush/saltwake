@@ -23,3 +23,21 @@ for(const outcome of ['extracted','died'] as const)test(`v12 paid play: hidden s
  else{assert.equal(settled.items.find(i=>i.id==='buyer-club')!.location.kind,'bank');assert.equal(settled.items.find(i=>i.id==='maker-tonic-0')!.location.kind,'edition_fixed');}
  }finally{db.close();rmSync(dir,{recursive:true,force:true});await f.sandbox.tearDown();}
 });
+test('v13 paid play: key opens a locked vault; the funded tonic extracts',{timeout:90000},async()=>{
+ const f=await fixture(),dir=mkdtempSync(join(tmpdir(),'depth13-'));const db=new Store(join(dir,'db'));
+ try{
+ const chain=new NearChain(f.provider,KeyPairSigner.fromSecretKey(f.genesis.privateKey as KeyPairString),f.contractId,f.contractId);const box=new Outbox(db,chain),runs=new Runs(db,box);
+ // Vault at x=5 (rows 1-2) behind a brass lock at 4,1; key at 1,3.
+ const floor:CustomFloor={tiles:['#######','#....##','###.#.#','#...###','#######'].map(r=>r),spawn:{x:1,y:1},exit:{x:3,y:3},sockets:[{x:5,y:2}],tuning:[],devices:[],exit_rule:{extract:true,require_clear:false},features:[{id:'lock',x:4,y:1,kind:'lock',color:'brass'},{id:'key',x:1,y:3,kind:'key',color:'brass'}]};
+ floor.tiles=['#######','#....##','###.#.#','#...###','#######'];floor.tiles[1]='#.....#';floor.tiles[2]='###.#.#';
+ box.enqueue('publish',{actor:'maker',action:{type:'publish',terms:{...terms(Number(await chain.clock())),rules_version:13,modules:[encodeCustomModule(floor,'keys')],sockets:[{id:'vault',room:0,slot:0,enemy:'none',trap:false,reward:'tonic'}]},fee:'1',funding:['maker-tonic-0']}});assert.equal((await box.process('publish')).status,'Applied');
+ box.enqueue('admit',{actor:'buyer',action:{type:'admit',edition_id:'edition-0',expected_version:'1',expected_fee:'1',loadout_ids:['buyer-club'],seed:'1'}});assert.equal((await box.process('admit')).status,'Applied');
+ const run=runs.materialize('admit',await f.view('snapshot') as EconomySnapshot);let seq=0;const act=(action:Parameters<Runs['action']>[4])=>{const view=runs.action(run.id,'buyer','step-'+seq,seq,action);seq=view.seq;return view;};
+ assert.throws(()=>act({type:'move',x:2,y:1}) && act({type:'move',x:3,y:1}) && act({type:'move',x:4,y:1}));
+ for(const [x,y] of [[3,2],[3,3],[2,3],[1,3]])act({type:'move',x,y});assert.deepEqual(runs.view(run.id,'buyer').state.keys,['brass']);
+ for(const [x,y] of [[2,3],[3,3],[3,2],[3,1],[4,1],[4,1],[5,1],[5,2]])act({type:'move',x,y});
+ act({type:'pickup',itemId:'maker-tonic-0'});for(const [x,y] of [[5,1],[4,1],[3,1],[3,2],[3,3]])act({type:'move',x,y});
+ assert.equal(act({type:'extract'}).state.status,'extracted');await box.recover();
+ const settled=await f.view('snapshot') as EconomySnapshot;assert.deepEqual(settled.items.find(i=>i.id==='maker-tonic-0')!.location,{kind:'owned',profile:'buyer'});
+ }finally{db.close();rmSync(dir,{recursive:true,force:true});await f.sandbox.tearDown();}
+});

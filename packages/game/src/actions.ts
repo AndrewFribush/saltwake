@@ -5,7 +5,7 @@ import {inventoryAction,type InventoryAction} from './inventory';
 import {distance,walkable,attackDamage,type RunState} from './state';
 import {resolveEnemies} from './combat';
 import {visibleTiles} from './roguelike';
-import {bumpFeature,collectCache,interact,makeCtx,shoveTarget,supplyTargetError,useSupply,hurt,explodeBomber,who} from './depth';
+import {bumpFeature,collectCache,interact,makeCtx,shoveTarget,supplyTargetError,useSupply,hurt,explodeBomber,who,updatePlates} from './depth';
 import type {SupplyKind} from '../../shared/src/depth-components';
 export type Action={type:'move';x:number;y:number}|{type:'attack'|'shove';enemyId:string}|{type:'guard'}|{type:'wait'}|InventoryAction|{type:'extract'}|{type:'continue'}|{type:'boon';choice:'edge'|'rest'}|{type:'interact'}|{type:'supply';supply:SupplyKind;x?:number;y?:number};
 function resolveAction(s:RunState,a:Action):RunState {
@@ -44,7 +44,7 @@ function resolveAction(s:RunState,a:Action):RunState {
  if(a.type==='shove'&&n.depth){const e=n.enemies.find(e=>e.id===a.enemyId)!,t=shoveTarget(n,e)!;e.x=t.to.x;e.y=t.to.y;if(t.fall){e.hp=0;n.log.push(`You shove ${who(e)} into the chasm.`);n.enemies=n.enemies.filter(e=>e.hp>0);}else{e.stunned=Math.max(e.stunned??0,1);e.primed=false;e.aim=false;e.lane=[];n.log.push(`You shove ${who(e)}; it staggers.`);}}
  else if(a.type==='shove'){const e=n.enemies.find(e=>e.id===a.enemyId)!;e.x+=e.x-n.player.x;e.y+=e.y-n.player.y;n.log.push(`You shove ${who(e)}.`);}
  if(['pickup','equip','use','drop'].includes(a.type)&&'itemId' in a&&!inventoryAction(n,a))return s;
- if(a.type==='move'){n.player.x=a.x;n.player.y=a.y;const device=n.devices?.find(d=>d.kind==='switch'&&d.x===a.x&&d.y===a.y);if(device?.kind==='switch'){n.signals??={};n.signals[device.channel]=device.mode==='toggle'?!signalValue(n.signals,device.channel):device.mode==='set';n.log.push(`Switch ${device.channel}: ${n.signals[device.channel]?'on':'off'}.`);}if(n.depth)collectCache(n);}
+ if(a.type==='move'){n.player.x=a.x;n.player.y=a.y;const device=n.devices?.find(d=>d.kind==='switch'&&d.x===a.x&&d.y===a.y);if(device?.kind==='switch'){n.signals??={};n.signals[device.channel]=device.mode==='toggle'?!signalValue(n.signals,device.channel):device.mode==='set';n.log.push(`Switch ${device.channel}: ${n.signals[device.channel]?'on':'off'}.`);}if(n.depth){collectCache(n);updatePlates(n);}}
  if(a.type==='attack'){
   const e=n.enemies.find(e=>e.id===a.enemyId)!;const damage=attackDamage(n);
   if(n.depth){const ctx=makeCtx(n,false);const lit=e.kind==='bomber'&&e.primed;hurt(ctx,e,damage,'You',false);if(lit&&e.hp<=0)explodeBomber(ctx,e);if(n.player.hp<=0)n.status='died';}
