@@ -7,9 +7,11 @@ import type {InjectedWalletAdapter} from './wallet-transport';
 import './fixed-windows.css';
 import './saltwake-polish.css';
 import './navigation.css';
+import './playtest.css';
 
 type Config={authMode:'demo';label:string}|{authMode:'wallet';origin:string;network:string;contractId:string};
-const WALLET_NETWORKS=new Set(['testnet']);
+// localnet: dev-only wallet play against scripts/wallet-sandbox.ts with the dev test signer.
+const WALLET_NETWORKS=new Set(import.meta.env.DEV?['testnet','localnet']:['testnet']);
 
 /** The server decides the mode: local sandbox = operator demo profiles; testnet = wallet sign-in only.
  * A wallet-mode server never falls back to demo profiles. */
@@ -32,6 +34,7 @@ function WalletShell({config}:{config:Extract<Config,{authMode:'wallet'}>}){
  useEffect(()=>{
   if(location.origin!==config.origin){setError(`Open the game at ${config.origin} (wallet sign-in is bound to that exact address).`);return;}
   if(!WALLET_NETWORKS.has(config.network)){setError('Unsupported wallet network: '+config.network);return;}
+  if(config.network==='localnet')return; // no public wallet for a local sandbox; the dev test signer is the wallet
   let live=true,made:NearWalletSelectorAdapter|undefined;
   import('./near-wallet-selector-adapter').then(async m=>{made=await m.createWalletAdapter({network:config.network,contractId:config.contractId,networkOptions:m.TESTNET_NETWORK});if(live){setWallets(m.SUPPORTED_WALLETS);setAdapter(made);}else made.dispose();}).catch((e:Error)=>live&&setError('Wallet setup failed: '+e.message));
   return()=>{live=false;made?.dispose();};
