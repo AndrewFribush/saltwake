@@ -117,4 +117,11 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 
 Checked on the demo town: notice-board outcome chips render on the pinned notes (`after-board-outcome-chips.jpg`).
 
-Next step: polish as lanes land UI; maker steward ledger with a busier demo edition.
+### 16. Business ledger, living title card, first-visit pan
+- Business ledger (Inventory → Business, town lane): ruled parchment ledger, inked totals, dotted rows, money in green and out red, entries separated (CSS only).
+- Title card is now alive: stars twinkle, harbour water shimmers, windows flicker, the hero bobs, the rat scuttles and the crab sidles (CSS animations inside the title SVG; off under reduced motion). The onboarding HUD no longer repeats "Saltwake" beside the wordmark.
+- First visit (once per browser, `localStorage['saltwake.harbor-seen']`): the camera starts zoomed on the harbour, pans across the square and settles on the full district in 5.5 s; signs fade in at the end. Skipped under reduced motion.
+- Not on main yet: the playtest revise-edition badges/results banner and the town lane's Town history view. I will skin them when they land.
+- Checks: typecheck, game 181, web 31, server 166, build pass.
+
+Next step: revise-edition death/escape badges and results banner; Town history timeline.

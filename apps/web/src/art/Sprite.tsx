@@ -5,6 +5,8 @@ export type Facing='up'|'down'|'left'|'right';
 
 /** Ambient light follows the player's local clock: morning, day, evening, night (html[data-daypart]). */
 export function daypart(h=new Date().getHours()){return h>=6&&h<10?'morning':h>=10&&h<17?'day':h>=17&&h<21?'evening':'night';}
+/** First visit: a short camera pan across the harbor (once per browser; html[data-first-visit]). */
+if(typeof document!=='undefined'){try{if(!localStorage.getItem('saltwake.harbor-seen')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.dataset.firstVisit='1';const done=()=>{try{localStorage.setItem('saltwake.harbor-seen','1');}catch{}delete document.documentElement.dataset.firstVisit;};document.addEventListener('animationend',e=>{if((e as AnimationEvent).animationName==='sw-harbor-pan')done();});setTimeout(done,9000);}}catch{}}
 if(typeof document!=='undefined'){const set=()=>{document.documentElement.dataset.daypart=new URLSearchParams(location.search).get('daypart')??daypart();};set();setInterval(set,5*60_000);}
 
 // Install texture variables once so every stylesheet can use var(--tx-*).

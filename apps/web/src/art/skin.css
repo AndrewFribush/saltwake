@@ -474,3 +474,23 @@ html[data-daypart=night] .town-avatar,html[data-daypart=night] .presence-avatar{
 html[data-daypart=evening] .saltwake .room-board::after,html[data-daypart=night] .saltwake .room-board::after{background:radial-gradient(ellipse 60% 50% at 50% 30%,#ffc8602e,transparent 70%),radial-gradient(ellipse at 50% 50%,transparent 45%,#000a 100%)}
 
 .saltwake .town-field .district-compass{z-index:2}.saltwake .town-field .town-chat{z-index:3}
+
+/* ---------- Business ledger (town lane) ---------- */
+.saltwake .business-ledger{background:repeating-linear-gradient(transparent 0 23px,#b89a5e55 23px 24px),var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border-radius:2px;box-shadow:inset 3px 0 0 #b8281c88,inset 0 0 0 1px #b89a5e,0 3px 8px #0008;padding:8px 10px 8px 16px;line-height:24px}
+.saltwake .business-ledger :is(p,li,small,label,h4){color:#3a2a18;line-height:24px}
+.saltwake .business-ledger h4{font-family:var(--sw-head);color:#5a2a14}
+.saltwake .business-ledger b{color:#7a2e10;font-variant-numeric:tabular-nums}
+.saltwake .business-ledger .ledger-warning{color:#6a5a3a}
+.saltwake .business-ledger .ledger-row{font-variant-numeric:tabular-nums;border-bottom:1px dotted #b89a5e88}
+.saltwake .business-ledger .ledger-row.in{color:#2f5a1e}.saltwake .business-ledger .ledger-row.out{color:#8a2a18}
+.saltwake .business-ledger article{border-top:2px solid #b89a5e88;padding-top:4px}
+.saltwake .business-ledger select{color:var(--sw-paper)}
+.saltwake .business-ledger .page-controls button{color:var(--sw-paper)}
+
+/* ---------- First visit: a slow pan across the harbor ---------- */
+html[data-first-visit] .saltwake .town-field{overflow:hidden}
+html[data-first-visit] .saltwake .town-field .harbor-map{animation:sw-harbor-pan 5.5s cubic-bezier(.45,0,.25,1) both;transform-origin:0 50%}
+html[data-first-visit] .saltwake .town-field .place-sign,html[data-first-visit] .saltwake .town-field .district-compass{animation:sw-signs-in 5.5s ease-out both}
+@keyframes sw-harbor-pan{0%{transform:scale(1.7) translate(0,-6%)}45%{transform:scale(1.7) translate(-38%,-6%)}100%{transform:none}}
+@keyframes sw-signs-in{0%,80%{opacity:0}100%{opacity:1}}
+.saltwake .game-shell>.player-hud>strong:first-child{display:none}
