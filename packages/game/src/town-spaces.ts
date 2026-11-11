@@ -25,3 +25,10 @@ export function withBuildingUse(layout:InteriorLayout,kind:BuildingKind,edition?
  const portal=existing??freeFixtureTile(withEdition,portalFixture);
  return portal?{...withEdition,fixtures:[...withEdition.fixtures,portal]}:withEdition;
 }
+/** Display shelves are decor fixtures (`decor-display-<8 hex>`, within the contract's 40-character decor id limit) that show the shop's real listed goods. */
+export const displayId=()=>`decor-display-${Array.from({length:8},()=>Math.floor(Math.random()*16).toString(16)).join('')}`;
+export const isDisplay=(f:{id:string})=>f.id.startsWith('decor-display-');
+/** Spreads active stock stacks over the shelves in placement order; every stack is on exactly one shelf. */
+export function displayAssignments<T>(shelves:readonly {id:string}[],stacks:readonly T[]):Map<string,T[]>{
+ const out=new Map(shelves.map(s=>[s.id,[] as T[]]));stacks.forEach((stack,i)=>{if(shelves.length)out.get(shelves[i%shelves.length].id)!.push(stack);});return out;
+}
