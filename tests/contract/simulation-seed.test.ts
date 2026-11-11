@@ -2,7 +2,13 @@ import test from 'node:test';import assert from 'node:assert/strict';import {rea
 import {Sandbox,GenesisAccount} from 'near-sandbox';import {Account,JsonRpcProvider,type KeyPairString} from 'near-api-js';
 import {fixture} from './helpers';
 test('normal worlds keep the 256-receipt cap; the simulation seed adds labelled profiles and a larger cap',{timeout:150000},async()=>{
- const f=await fixture();try{assert.equal(await f.view('receipt_capacity'),256);}finally{await f.sandbox.tearDown();}
+ const f=await fixture();try{assert.equal(await f.view('receipt_capacity'),256);
+  // Operator restock is the contract account's own call only; it mints goods into the bank and records the total.
+  await assert.rejects(f.outsider.callFunction({contractId:f.contractId,methodName:'operator_restock',args:{item_type:'herb',count:4},gas:100_000_000_000_000n}));
+  assert.equal(await f.view('item_issuance'),'0');
+  await f.call('operator_restock',{item_type:'herb',count:4});
+  const s=await f.view('snapshot');assert.equal(s.items.filter((i:any)=>i.id.startsWith('issued-')&&i.location.kind==='bank'&&i.item_type==='herb').length,4);assert.equal(await f.view('item_issuance'),'4');
+ }finally{await f.sandbox.tearDown();}
  const g=GenesisAccount.createDefault();const sandbox=await Sandbox.start({});
  try{const provider=new JsonRpcProvider({url:sandbox.rpcUrl});const a=new Account(g.accountId,provider,g.privateKey as KeyPairString);
   await a.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));
