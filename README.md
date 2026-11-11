@@ -59,3 +59,32 @@ Includes typecheck, WASM build, game tests, actual-WASM contract tests, server/r
 ## Update an already-running local sandbox
 
 After rebuilding the contract, stop only the API process (keep the sandbox running), then run `npx tsx scripts/upgrade-local.ts` and restart `npm run server`. This helper requires loopback RPC, takes the existing database writer lock, refuses unresolved operations, deploys code without reinitializing, and verifies the entire economy snapshot is unchanged. It is only for this isolated local prototype.
+
+## Redeploy the testnet contract (needs Andrew's approval)
+
+`scripts/testnet-redeploy.ts` puts the current contract on a **fresh** testnet account in one bounded run: it creates the account and one or two funder accounts through the testnet faucet, tops up the contract account (the 1.3 MB contract needs about 13 NEAR of storage), deploys the built WASM, checks the deployed code hash, calls `init_public_testnet`, writes the server's `--testnet` config and runtime approval, and runs a read-only smoke check (`snapshot`, `land_rules`, `coin_offer`). Testnet only; mainnet accounts and RPCs are refused. Keys stay in git-ignored `.state/redeploy/<account>/` and are never printed.
+
+1. Build and prepare (no network writes; prints the proposal, public keys and the approval template):
+
+   ```sh
+   npm run build:contract
+   npx tsx scripts/testnet-redeploy.ts --account saltwake-YYYYMMDD.testnet --funder saltwake-YYYYMMDD-f1.testnet --funder saltwake-YYYYMMDD-f2.testnet
+   ```
+
+2. Approve: copy `approvalTemplate` from that output into `.state/redeploy/<account>/approval.json`, set `expiresAt` (no later than 2026-11-16T23:59:59Z) and keep `approvedBy: "Andrew"`. The approval pins the exact accounts, RPC, WASM hash and send budget (3 faucet requests + 4 transactions for two funders) plus the server's runtime budget.
+
+3. Execute (the one command to approve):
+
+   ```sh
+   npx tsx scripts/testnet-redeploy.ts --account saltwake-YYYYMMDD.testnet --funder saltwake-YYYYMMDD-f1.testnet --funder saltwake-YYYYMMDD-f2.testnet --execute
+   ```
+
+   Every send is journaled in `.state/redeploy/<account>/journal.jsonl` before it is made. If any step fails, the script stops; a second `--execute` for the same account refuses until someone checks the chain and journal (no blind retries). On success it prints the smoke results and the two files to start the server with:
+
+   ```sh
+   npm run server -- --testnet --config .state/testnet-<account>.json --approval .state/testnet-<account>-approval.json --rpc-cache-ms 20000
+   ```
+
+   The web client reads the contract id from the server, so it follows the new account automatically. Existing testnet players start fresh on the new contract (new state).
+
+Rehearsal against a local sandbox (loopback only; the sandbox root emulates the faucet and accounts are named `<name>.<root>`): `npx tsx scripts/testnet-redeploy.ts --rpc http://127.0.0.1:<port> --account r1.sandbox --funder f1.sandbox` then `--execute` with an approval whose `approvedBy` is `local-rehearsal`.
