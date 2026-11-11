@@ -185,4 +185,8 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Passages: links deeper draw as a drop hatch with ↓, links back up as stairs with ↑ (one line in Run.tsx).
 - Checks: typecheck, game 193, web 31, server 169, build pass.
 
-Next step: keep styling new UI from other lanes.
+### 27. Sealed arenas
+- In play, a room whose every way out needs it cleared shows an iron frame and a "⛓ SEALED" tag while foes remain; on arrival a banner reads "Sealed arena · defeat every foe to leave"; when the last foe falls the frame turns green and "Arena cleared · the way out opens" plays with the door chord (`ArenaLayer` in art/RunFx.tsx). Gallery `?vault=arena` rehearses the generator's arena (seed 2, floor 4) (`sealed-arena.jpg`). The cleared moment is implemented from state transitions but not yet watched live.
+- Checks: typecheck, web 31, build pass.
+
+Next step: player-shop interior decor seen by a visitor; Puzzle & passages panel when it lands.

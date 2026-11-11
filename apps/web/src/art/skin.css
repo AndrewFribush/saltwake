@@ -693,3 +693,13 @@ main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
 .saltwake .interior-paint-grid .paint-cell>.fixture-sprite{position:absolute;inset:8%;width:auto;height:auto}
 .saltwake .interior-paint-grid .paint-cell>.fixture-keeper{position:absolute;inset:-2% 14% 30%;width:auto;height:auto}
 .saltwake .interior-paint-grid .paint-cell>.fixture-sprite.with-keeper{inset:34% 4% 10%}
+
+/* ---------- Sealed arena ---------- */
+.arena-layer{position:absolute;inset:0;z-index:7;pointer-events:none;transition:box-shadow .6s}
+.arena-layer.locked{box-shadow:inset 0 0 0 4px #3a3f40,inset 0 0 0 6px #8f9279,inset 0 0 40px #000a}
+.arena-layer.locked::before{content:'⛓ SEALED';position:absolute;top:6px;right:8px;padding:2px 8px;border-radius:2px;background:#1a1c1ccc;box-shadow:inset 0 0 0 1px #8f9279;font:800 11px/16px system-ui;letter-spacing:.08em;color:#d8dccf}
+.arena-layer.cleared{box-shadow:inset 0 0 0 3px #8df0c588,inset 0 0 30px #8df0c533}
+.arena-banner{position:absolute;left:50%;top:38%;transform:translateX(-50%);white-space:nowrap;padding:6px 16px;border-radius:3px;background:#120d09e6;box-shadow:inset 0 0 0 1px #d9b866aa,0 6px 18px #000a;font:600 clamp(14px,2vw,22px)/1.2 var(--sw-head);letter-spacing:.04em;color:#f3d98a;animation:sw-arena 2.6s ease-out both}
+.arena-layer.cleared .arena-banner{color:#c8f5e2;box-shadow:inset 0 0 0 1px #8df0c5aa,0 6px 18px #000a}
+@keyframes sw-arena{0%{opacity:0;transform:translate(-50%,8px) scale(.96)}12%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.arena-banner{animation:none}}
