@@ -139,7 +139,10 @@ const lockedDoor=[
 const hatch=[
  '................','................','..XXXXXXXXXXXX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..','..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..',
  '..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..','..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XXXXXXXXXXXX..','.......Ek.......','......EEEk......'];
-export const spriteMaps={leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
+const crest=[
+ '.....kkkkkk.....','...kkyyyyyykk...','..kyYkkkkkkYyk..','.kyYk..kk..kYyk.','.kyk..kyyk..kyk.','kyYk...kk...kYyk','kyk.kkkyykkk.kyk','kyk...kyyk...kyk',
+ 'kyk...kyyk...kyk','kyk.k.kyyk.k.kyk','kyYkyk.kk.kykYyk','.kyk.kyyyyk.kyk.','.kyYk.kkkk.kYyk.','..kyuucuucuuyk..','...kkcuucuukk...','.....kkkkkk.....'];
+export const spriteMaps={crest,leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
 /** Shopkeeper: the hero drawing with a blue coat and grey hair. */
@@ -207,7 +210,7 @@ export const textureVars:Record<string,string>={
  '--tx-floor-light':flagstones(41,['#8f8a74','#98927b','#8a846d'],'#6d6855','#aaa48c'),
  '--tx-slate':slate(13),
  '--tx-shingle':shingle(),'--tx-timber':timber(21),
- '--tx-flame':flameStrip,'--tx-coin':dataUrl(pixelSvg(coin,P)),
+ '--tx-flame':flameStrip,'--tx-crest':dataUrl(pixelSvg(crest,P)),'--tx-coin':dataUrl(pixelSvg(coin,P)),
 };
 /** Raw data URLs (without url()) for SVG <image href>. */
 export const textureHref=(name:string)=>textureVars[name].slice(5,-2).replace(/^"|"$/g,'');

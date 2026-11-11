@@ -347,3 +347,27 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .saltwake .trade-notice{border-left:3px solid var(--sw-brass);padding-left:8px}
 .device-art{z-index:2}
 .device-art.switch{inset:6%}
+
+/* ---------- Builder guide cards, library, rehearsal end ---------- */
+.saltwake .component-reference li{border-radius:4px;box-shadow:inset 0 0 0 1px #d9b86630,0 1px 0 #0008;background:linear-gradient(#1c2f2b,#142325)}
+.saltwake .component-reference li>div{display:flex;align-items:center;gap:8px}
+.saltwake .component-reference li b{font-family:var(--sw-head);color:#f3d98a;font-size:15px}
+.saltwake .component-reference li small{margin-left:auto;color:#e6cf98;background:#0c1618;border-radius:2px;padding:0 6px;box-shadow:inset 0 0 0 1px #d9b86640}
+.saltwake .component-reference em{color:#e6cf98;font-style:normal;font-weight:700}
+.component-art,.component-reference .item-icon{flex:0 0 36px;width:36px;height:36px;position:relative;border-radius:3px;background:var(--tx-floor-a) center/100% 100%;image-rendering:pixelated;box-shadow:inset 0 0 0 1px #0008}
+.component-art .component-sprite{position:absolute;inset:6%}
+.component-art.f-tide{background:var(--tx-water) center/100% 100%}
+.saltwake .blueprint-text{background:#0b1517;color:var(--sw-paper);border:1px solid #070d0c;box-shadow:inset 0 2px 3px #0008,0 0 0 1px #9c8a5a44;border-radius:3px;font:12px/1.4 ui-monospace,Menlo,monospace}
+.saltwake .draft-source{border-left:3px solid #9a8fd0;padding-left:8px;font-style:italic}
+.saltwake .clone-row{border-radius:3px;box-shadow:inset 0 0 0 1px #d9b86626;background:#0f1c1f}
+.saltwake .trial-end{background:var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border:0;border-radius:2px;box-shadow:inset 0 0 0 2px #b89a5e,inset 0 0 0 4px #e8dbb7,0 6px 16px #000a;padding:10px 12px}
+.saltwake .trial-end :is(b,h3,h4){color:#5a2a14;font-family:var(--sw-head);text-shadow:none}
+.saltwake .trial-end :is(p,span,small,li){color:#3a2a18}
+.saltwake .treasure-needs{border-left:3px solid var(--sw-brass);padding-left:8px}
+.component-art.f-oil{background:radial-gradient(ellipse 34% 26% at 62% 38%,#5d5078 0 40%,transparent 70%),radial-gradient(ellipse 46% 40% at 46% 56%,#241c30 0 55%,#3a2f4c 62%,transparent 74%),var(--tx-floor-a) center/100% 100%}
+.component-art.f-pit{background:radial-gradient(ellipse 46% 44% at 50% 52%,#000 0 58%,#141917 66%,#2f342d 74%,transparent 80%),var(--tx-floor-a) center/100% 100%}
+
+/* ---------- Top bar wordmark ---------- */
+.saltwake .game-shell>.player-hud::before{content:'Saltwake';display:flex;align-items:center;gap:8px;flex-shrink:0;padding:0 14px 0 44px;height:38px;background:var(--tx-crest) 2px 50%/34px 34px no-repeat;image-rendering:pixelated;font:600 22px/1 var(--sw-head);letter-spacing:.08em;color:#f3d98a;text-shadow:0 2px 0 #5a3a14,0 4px 10px #000a;border-right:1px solid #d9b86633;margin-right:4px}
+.saltwake .world-hint>span{font-family:var(--sw-head);color:#f3d98a}
+@media(max-width:700px){.saltwake .game-shell>.player-hud::before{content:'';padding:0 0 0 36px;background-size:30px 30px;border-right:0;margin-right:0}}

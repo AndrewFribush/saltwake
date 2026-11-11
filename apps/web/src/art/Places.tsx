@@ -39,3 +39,10 @@ export function RoomHero({x,y,facing,columns,rows}:{x:number;y:number;facing:Fac
  const walking=useMoving(x,y);
  return <span aria-hidden="true" className="room-hero" style={{left:`${x/columns*100}%`,top:`${y/rows*100}%`,width:`${100/columns}%`,height:`${100/rows}%`}}><HeroSvg facing={facing} walking={walking}/></span>;
 }
+
+/** Builder guide card art: maps a component's display name onto the matching sprite (or a CSS-drawn tile). */
+const cardArt:[RegExp,SpriteName|'oil'|'pit'|'tide'][]=[[/pursuer|rat\b/i,'rat'],[/charger|boar/i,'boar'],[/sentry/i,'sentry'],[/crab/i,'crab'],[/brute/i,'brute'],[/nest/i,'nest'],[/keg/i,'keg'],[/crack/i,'crack'],[/oil/i,'oil'],[/chasm|pit/i,'pit'],[/spring|fountain/i,'fountain'],[/altar/i,'altar'],[/cache|suppl/i,'cache'],[/spike/i,'spikesArmed'],[/tide/i,'tide'],[/fixed reward/i,'loot'],[/random reward/i,'chest'],[/plate/i,'plate'],[/lever|switch/i,'leverOff'],[/locked/i,'lockedDoor'],[/key/i,'key'],[/gate|door/i,'gateClosed'],[/drop|hatch/i,'hatch']];
+export function ComponentArt({name}:{name:string}){
+ const hit=cardArt.find(([re])=>re.test(name))?.[1];if(!hit)return null;
+ return <span aria-hidden="true" className={`component-art ${typeof hit==='string'&&['oil','pit','tide'].includes(hit)?`f-${hit}`:''}`}>{!['oil','pit','tide'].includes(hit)&&<Sprite name={hit as SpriteName} className="component-sprite"/>}</span>;
+}

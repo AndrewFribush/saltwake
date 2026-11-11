@@ -2,6 +2,8 @@ import React,{useState} from 'react';
 import {enemyCatalog,enemyKinds,featureCatalog,featureKinds,supplyCatalog} from '../../../packages/shared/src/depth-components';
 import {catalog} from '../../../packages/shared/src/catalog';
 import {itemUse} from '../../../packages/shared/src/equipment';
+import {ComponentArt} from './art/Places';
+import {ItemIcon} from './ItemIcon';
 
 /** What each building block asks of the player, and what the maker controls. Generated from the live catalogs,
  * so a new enemy or feature appears here with its summary even before it gets hand-written advice. */
@@ -45,6 +47,6 @@ export function ComponentReference(){
  const groups=cards(),names=Object.keys(groups);const [group,setGroup]=useState(names[0]);
  return <div className="component-reference">
   <nav className="builder-steps" aria-label="Component groups">{names.map(n=><button type="button" key={n} aria-pressed={group===n} onClick={()=>setGroup(n)}>{n}</button>)}</nav>
-  <ul>{groups[group].map(c=><li key={c.name}><div><b>{c.name}</b><small>{c.cost}</small></div><p>{c.what}</p><p><em>Player decides:</em> {c.decision}</p><p><em>You control:</em> {c.control}</p></li>)}</ul>
+  <ul>{groups[group].map(c=><li key={c.name}><div>{(['sword','armor','fineTonic'] as const).find(t=>catalog[t].name===c.name)?<ItemIcon type={(['sword','armor','fineTonic'] as const).find(t=>catalog[t].name===c.name)!}/>:<ComponentArt name={c.name}/>}<b>{c.name}</b><small>{c.cost}</small></div><p>{c.what}</p><p><em>Player decides:</em> {c.decision}</p><p><em>You control:</em> {c.control}</p></li>)}</ul>
  </div>;
 }
