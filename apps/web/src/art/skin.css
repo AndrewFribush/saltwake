@@ -213,3 +213,53 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .depth-feature.f-barrel{background-image:var(--sp-keg)}.depth-feature.f-crack{background-image:var(--sp-crack)}.depth-feature.f-fountain{background-image:var(--sp-fountain)}
 .depth-feature.f-altar{background-image:var(--sp-altar)}.depth-feature.f-cache{background-image:var(--sp-cache)}
 .fb-preview-tile{background:var(--tx-floor-a) center/100% 100%!important;image-rendering:pixelated}
+
+/* ---------- Town-spaces, playtest and dungeon-depth surfaces ---------- */
+/* Overlay panels in town (trade, notice board) share the panel frame. */
+.saltwake .player-trade{border:0;border-radius:4px;box-shadow:var(--sw-frame);background:linear-gradient(#1b2e2c,#122023)!important}
+/* The harbor notice board reads as a cork board with pinned paper notes. */
+.saltwake .player-trade.town-board{background:var(--tx-cork) 0 0/48px 48px!important;image-rendering:pixelated;box-shadow:inset 0 0 0 4px #5a3a22,inset 0 0 0 6px #2a1a10,0 8px 22px #000a}
+.saltwake .town-board .town-board-head h3{color:#fff0c8;text-shadow:0 2px 0 #000c}
+.saltwake .town-board>p,.saltwake .town-board .town-board-head+p{background:#1a120ccc;color:#f0e2bf;padding:4px 6px;border-radius:2px}
+.saltwake .town-board .empty-state,.saltwake .town-board .board-entry{position:relative;background:var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border:0;border-radius:1px;box-shadow:2px 3px 0 #0006;padding:10px 10px 8px;margin:10px 4px;transform:rotate(-.6deg)}
+.saltwake .town-board .board-entry:nth-child(even){transform:rotate(.7deg)}
+.saltwake .town-board .empty-state::before,.saltwake .town-board .board-entry::before{content:'';position:absolute;top:-5px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff8a7a,#b8281c 60%,#5e120c);box-shadow:0 2px 0 #0007}
+.saltwake .town-board .board-entry :is(h4,p,small,span,strong,b),.saltwake .town-board .empty-state{color:#3a2a18}
+.saltwake .town-board .board-entry.closed{filter:grayscale(.6) brightness(.85)}
+/* Paper notices inside rooms. */
+.saltwake .room-notice{background:var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border:0;border-left:0;box-shadow:2px 3px 0 #0006;padding:12px 14px;font-family:var(--sw-head);font-size:15px;line-height:1.5}
+/* Display shelves list goods on wooden shelves. */
+.saltwake .shelf-goods li{background:linear-gradient(transparent calc(100% - 6px),#5a3a22 calc(100% - 6px),#3b2a1b);padding-bottom:8px}
+.saltwake .shelf-icon{filter:drop-shadow(0 2px 0 #000a)}
+.saltwake .room-chat{border-radius:4px;box-shadow:var(--sw-frame);background:#0f1c1fe6}
+/* Run summary: an expedition report on parchment, gains green, losses red. */
+.saltwake .run-summary{background:var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border:0;border-radius:2px;box-shadow:inset 0 0 0 2px #b89a5e,inset 0 0 0 4px #e8dbb7,0 6px 16px #000a;padding:12px 14px}
+.saltwake .run-summary :is(h2,b){color:#5a2a14;text-shadow:none;font-family:var(--sw-head)}
+.saltwake .run-summary :is(p,small,li,strong){color:#3a2a18}
+.saltwake .run-summary li.gain{color:#2f5a1e}.saltwake .run-summary li.loss{color:#8a2a18}
+.saltwake .run-summary li.gain::marker{content:'＋ ';color:#2f5a1e}.saltwake .run-summary li.loss::marker{content:'− ';color:#8a2a18}
+/* Turn log: a ledger, newest line highlighted. */
+.saltwake .run-log{background:#0f1a1c;border-radius:3px;box-shadow:inset 0 0 0 1px #d9b86630;padding:4px 0}
+.saltwake .run-log li{font-variant-numeric:tabular-nums;border-bottom:1px solid #ffffff0a}
+.saltwake .run-log li.newest{background:linear-gradient(90deg,#d9b86622,transparent);animation:sw-logline .35s ease-out}
+@keyframes sw-logline{from{background-color:#d9b86655;transform:translateX(-4px)}}
+/* First steps reads as a quest log. */
+.saltwake .first-steps .step{border:0;border-radius:3px;box-shadow:inset 0 0 0 1px #d9b86630,0 1px 0 #0008;background:linear-gradient(#20352f,#192b27)}
+.saltwake .first-steps .step.now{background:linear-gradient(#ecd07f,#c49c48)!important;box-shadow:inset 0 1px 0 #fff8,0 0 0 1px #2a1d0c,0 0 12px #e8c56a55}
+.saltwake .first-steps .step b{font-family:var(--sw-head);font-size:14px}
+/* Builder step strip and coach. */
+.saltwake .builder-steps{gap:2px;padding:2px;background:#0c1618;border-radius:4px;box-shadow:inset 0 0 0 1px #d9b86630}
+.saltwake .builder-coach{background:var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border-left:4px solid #b8913f;box-shadow:0 2px 0 #0008}
+.saltwake .builder-coach :is(b,strong){color:#6b3a14}
+.saltwake .coach-dots i{border-radius:1px}
+.saltwake .more-tools select,.saltwake select{background:#0f1c1f linear-gradient(#1c2f2b,#132225);border:1px solid #070d0c;box-shadow:inset 0 0 0 1px #9c8a5a55;border-radius:3px;color:var(--sw-paper)}
+.saltwake input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]){background:#0b1517;border:1px solid #070d0c;box-shadow:inset 0 2px 3px #0008,0 0 0 1px #9c8a5a44;border-radius:3px;color:var(--sw-paper)}
+.saltwake input:focus-visible,.saltwake select:focus-visible{outline:2px solid var(--sw-brass);outline-offset:1px}
+/* Coin purchases and the purse change indicator. */
+.saltwake .buy-coins{border-radius:4px;box-shadow:var(--sw-frame);background:linear-gradient(#22332c,#16262a)}
+.saltwake .purse-delta{font-weight:800;text-shadow:0 1px 0 #000;animation:sw-delta 1.4s ease-out}
+@keyframes sw-delta{0%{transform:translateY(6px) scale(1.3);opacity:0}20%{opacity:1;transform:none}}
+/* Loot found on the floor and the homecoming report. */
+.saltwake .game-stage>.loot-prompt{border-radius:4px;box-shadow:var(--sw-frame)}
+.saltwake .game-stage>.homecoming{border-radius:4px;box-shadow:var(--sw-frame)}
+.expedition:has(.run-summary) .threat-mark{display:none}
