@@ -63,6 +63,13 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - Merged main after the look-feel landing (d085054); board, tour, banners, dungeon mark and pin still render; no console errors.
 - Land lifecycle not changed: abandoning/reclaiming idle plots would need an activity timestamp in contract state (a migration) and an economic rule for who may reclaim; left as a proposal.
 
+## Round 5: demonstration town
+
+- `scripts/demo-town.ts`, run by `npm run sandbox` by default (`--plain` or `--empty` skip it). After the starter setup it starts an in-process copy of the API on the new epoch's own server database and drives it like separate browsers (one cookie jar per demo character): the proprietor publishes "The drowned stair" (drafting-table Medium preset, no treasure) and builds entrances for it and the starter edition plus "Proprietor's pantry" (3 display shelves; herbs, flasks, fine tonics); the wayfarer publishes "Rat warren" (Small preset, cost checked against its coins) and builds its entrance; the mercenary and scavenger open one-shelf shops with their own clubs; the delver and newcomer pay into the two preset dungeons bare-handed and abandon, so the board shows settled runs. Every building has an authored notice. Terms use the same floor shaping as the drafting table (`designFloor` copy in the script; FloorBuilder untouched).
+- Test `apps/server/test/demo-town.test.ts`: no credit or item issuance, 6 buildings within the 3-plot limit, 3 entrances + 3 stocked shops on the board, 2 abandoned runs, notices present.
+- The notice board says, in the local demo, that the first buildings, stock and runs are demonstration supply. README updated.
+- Ran the real `npm run sandbox` end to end: board lists Rat warren / Hollow gate / The drowned stair with "Latest: abandoned", and the three shelf shops.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.
