@@ -99,3 +99,26 @@ Playing Saltwake as a stranger on a local sandbox (web 18970, API 18971), fixing
 - A contract test now walks a zero-asset wallet through the whole path: 4 wages (8 coins) → a 5th job is refused → buy 2 herbs + 2 flasks → brew → sell both tonics to the bank (6) → open a no-treasure dungeon (2). Total coins stay at the seeded 330, so nothing is created.
 
 **Run log.** It never updated after you entered: "Entered Floor 1." stayed in the status line through whole fights. The server hid every log line naming an enemy that wasn't on screen at that moment, which includes every enemy you'd just killed. Now only enemies you have never seen stay hidden. The server records which enemies each player has seen. Checked in play: "You hit floor-0-slot-0 for 1. / floor-0-slot-0 hits for 3." now appears turn by turn.
+
+## Round 7: creator kit, two different dungeons
+
+**Built for the creator workflow:**
+- **Undo/redo:** this already covered every edit through the history. It now also works with ⌘/Ctrl+Z and ⇧⌘Z / Ctrl+Y outside text fields.
+- **Copy a published dungeon** (Library). Any player-built edition becomes a new editable draft with its layout, encounters and reward *types*. Treasure, fees and records stay with the original. Developer preset rooms are marked as not copyable. The draft carries "Based on … by … (edition-N)", stored as an optional `source` on the blueprint. That attribution survives export and import and is not verified.
+- **Share as text:** "Copy blueprint text" copies to the clipboard and shows the text, and "Import pasted text" runs the same checks as a file import. File export/import were already there.
+- **Component reference** (Guide → Components). Every enemy, feature, trap/timer and reward gets a card: cost, what it does, *Player decides*, *You control*. The cards are generated from the live catalogs, so new components show up automatically.
+- **Test again loop:** when a rehearsal ends there's a panel ("You died on floor 1, turn 8.") with **Test again**, **Edit floor N where it ended** (returns to Draw with the death/exit tile highlighted) and one-click kits (unarmed, club, sword, armored).
+
+**Played as the proprietor:**
+- **Sentry vault (stealth):** a wall splits the floor. A cracked wall hides a vault with a sword guarded by a crossbow sentry, two chasms sit in the outer room, and the exit is in the outer room. It opened for 9 coins with the sword funded.
+- **Powder pit brawl (arena):** an open room with a brute, a charger, a powder crab, two kegs, oil and a salt spring. It killed me on turn 8 in rehearsal, so I retried with armor. It opened for 17 coins.
+- Then I copied the vault from the Library, exported it as text and pasted it back as "Shared vault".
+
+**What blocked me, now fixed:**
+- **Stealth design was impossible by default.** The stairs need every enemy dead, so the vault couldn't be escaped without killing the hidden sentry, and the toggle was buried in More tools → Exits. The Draw step now has "Stairs (E) open only after every enemy on this floor is defeated", with a hint to untick it for sneak-past designs.
+- **Finding the right good in Treasure meant paging through 20 goods.** It now says "Your fixed rewards need: 1 Sword" with **Assign 1 from your satchel**, and warns when you don't own enough.
+- **Confusing names and markers:** new drafts were all named "My catacombs", and brute and powder crab both showed "B". New drafts are numbered, and each enemy has its own letter (P/C/A/K/B/N).
+- **Coach:** it insisted on walls for an intentionally open arena. Placing encounters or features now completes that step.
+- **Overflow:** the inspector overflowed the window, and now scrolls.
+
+**Real run of the vault (the delver, paid 3):** I bumped the cracked wall open ("The cracked wall gives way"), and the sentry repositioned and fired. I took the sword, walked back around the chasms, and escaped on turn 29 with 10 health without killing the sentry. Settlement was applied: "Carried out: Sword". The stealth design plays as intended once the stairs no longer require a cleared floor.

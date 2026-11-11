@@ -143,3 +143,20 @@
 .cost-breakdown{color:#c9b98a;font-size:11px}
 .studio-stock .item-icon{width:24px;height:24px}.studio-stock{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.studio-stock button{display:flex!important;align-items:center;justify-content:space-between;gap:6px}
 .studio-stock .empty-state{grid-column:1/-1}
+.trial-end{position:absolute;right:0;top:calc(var(--window-header) + 4px);width:var(--window-rail);z-index:7;box-sizing:border-box;padding:8px;background:#2b3a2c;border:1px solid #d0b470;border-radius:4px;display:flex;flex-direction:column;gap:6px}
+.trial-end b{font:16px Georgia;color:#e2c783}
+.trial-end .studio-row{position:static!important;height:auto!important;flex-wrap:wrap}
+.trial-end button[aria-pressed=true]{background:#d0b470!important;color:#142522!important}
+.draft-source{font-size:12px;color:#c9b98a;border-left:3px solid #d0b470;padding-left:6px}
+.blueprint-text{width:100%;box-sizing:border-box;font:11px ui-monospace,monospace;background:#10211b;color:#e6d9b8;border:1px solid #657153}
+.clone-row{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #3d4f45}
+.clone-row span{display:flex;flex-direction:column}.clone-row small{color:#a9b4a2;font-size:11px}
+.studio-library h4{margin:8px 0 2px;font-size:13px;color:#e2c783}
+.component-reference ul{list-style:none;margin:4px 0;padding:0;display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:52vh}
+.component-reference li{padding:6px;border:1px solid #3d4f45;border-radius:4px;background:#1f342d;font-size:12px}
+.component-reference li div{display:flex;justify-content:space-between}.component-reference li b{color:#efe3c2}.component-reference li small{color:#e2c783}
+.component-reference p{margin:3px 0}.component-reference em{color:#c9b98a;font-style:normal;font-weight:600}
+.game-stage .builder-inspector{overflow-y:auto!important;min-height:0}
+.stairs-rule{display:flex;gap:6px;align-items:flex-start;font-size:12px;padding:5px 6px;border:1px solid #3d4f45;border-radius:4px;background:#1f342d;margin:4px 0}
+.trial-end .studio-row span{font-size:12px}
+.treasure-needs{padding:6px;border:1px solid #d0b470;border-radius:4px;background:#2b3a2c;font-size:12px;margin:4px 0}.treasure-needs p{margin:2px 0}
