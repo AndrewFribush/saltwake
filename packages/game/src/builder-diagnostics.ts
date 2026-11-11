@@ -1,8 +1,9 @@
-import {validateCustomFloor,type CustomFloor} from '../../shared/src/custom-layout';
+import {validateCustomFloor,floorFormat,type CustomFloor} from '../../shared/src/custom-layout';
+import {depthReachable} from '../../shared/src/depth-components';
 export type FloorDiagnostic={message:string;at?:{x:number;y:number}};
 /** Editor repair hints; authoritative structural validation remains the shared validator. */
 export function floorDiagnostics(value:unknown):FloorDiagnostic[]{
- const errors=validateCustomFloor(value,(value as CustomFloor)?.exit_rule!==undefined?'missions':(value as CustomFloor)?.devices!==undefined?'mechanisms':(value as CustomFloor)?.tuning!==undefined?'tuned':(value as CustomFloor)?.links!==undefined?'graph':'sized');if(!errors.length)return [];
+ const errors=validateCustomFloor(value,value&&typeof value==='object'&&!Array.isArray(value)?floorFormat(value as CustomFloor):'sized');if(!errors.length)return [];
  if(!value||typeof value!=='object')return errors.map(message=>({message}));
  const f=value as CustomFloor;const issues:FloorDiagnostic[]=[];
  const height=f.tiles?.length??0,width=f.tiles?.[0]?.length??0;
@@ -17,7 +18,8 @@ export function floorDiagnostics(value:unknown):FloorDiagnostic[]{
   if(occupied.has(key))issues.push({message:`${name} overlaps ${occupied.get(key)}. Move one marker to another floor tile.`,at:{...p}});
   occupied.set(key,name);
  }
- if(point(f.spawn)&&f.tiles[f.spawn.y][f.spawn.x]==='.'){
+ if(Array.isArray(f.features)&&point(f.spawn)){const {missing,first}=depthReachable(f.tiles,f.spawn,f.features.filter(x=>x&&typeof x==='object'));if(first)issues.push({message:`${missing} floor tiles cannot be reached from arrival, even through cracked walls. Connect them, add a cracked wall, or remove a chasm.`,at:first});}
+ else if(point(f.spawn)&&f.tiles[f.spawn.y][f.spawn.x]==='.'){
   const q=[f.spawn],seen=new Set([`${f.spawn.x},${f.spawn.y}`]);
   for(const p of q)for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n={x:p.x+dx,y:p.y+dy},key=`${n.x},${n.y}`;if(f.tiles[n.y]?.[n.x]==='.'&&!seen.has(key)){seen.add(key);q.push(n);}}
   let first:{x:number;y:number}|undefined,count=0;

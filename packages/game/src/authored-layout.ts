@@ -6,22 +6,24 @@ import {poolConfigurationErrors,placementPool,creatorSockets,type CreatorPlaceme
 import {catalog} from '../../shared/src/catalog';
 import type {ItemType} from '../../shared/src/types';
 import {encounterRules} from './component-catalog';
-import {validateFloorGraph,validateCustomFloor,type CustomFloor} from '../../shared/src/custom-layout';
+import {validateFloorGraph,validateCustomFloor,floorFormat,type CustomFloor} from '../../shared/src/custom-layout';
+import {enemyCatalog,enemyKinds,validateDepthNetwork,type EnemyKind} from '../../shared/src/depth-components';
 import type {Socket} from '../../shared/src/types';
 import type {RoomLayout} from './state';
 /** Shared by creator rehearsal and authoritative play. Contains no item creation. */
 export function authoredLayout(floors:readonly CustomFloor[],sockets:readonly Socket[]):RoomLayout[]{
  const budgetErrors=authoringBudgetErrors(floors);if(budgetErrors.length)throw Error(budgetErrors.join('; '));
- for(const floor of floors){const errors=validateCustomFloor(floor,floor.exit_rule!==undefined?'missions':floor.devices!==undefined?'mechanisms':floor.tuning!==undefined?'tuned':floor.links?'graph':'sized');if(errors.length)throw Error(errors.join('; '));}
- const graphErrors=[...validateFloorGraph(floors),...validateMechanismNetwork(floors),...validateExitNetwork(floors)];if(graphErrors.length)throw Error(graphErrors.join('; '));
+ for(const floor of floors){const errors=validateCustomFloor(floor,floorFormat(floor));if(errors.length)throw Error(errors.join('; '));}
+ const depth=floors.some(f=>f.features!==undefined);if(depth&&floors.some(f=>f.features===undefined))throw Error('Every depth floor must declare its features.');
+ const graphErrors=[...validateDepthNetwork(floors),...validateFloorGraph(floors),...validateMechanismNetwork(floors),...validateExitNetwork(floors)];if(graphErrors.length)throw Error(graphErrors.join('; '));
  const ids=new Set<string>(),positions=new Set<string>();
  for(const s of sockets){const key=`${s.room}:${s.slot}`;
-  if(!s.id||ids.has(s.id)||positions.has(key)||!Number.isInteger(s.room)||!Number.isInteger(s.slot)||!floors[s.room]?.sockets[s.slot]||!['none','pursuer','charger'].includes(s.enemy)||typeof s.trap!=='boolean')throw Error('Invalid authored encounter');
+  if(!s.id||ids.has(s.id)||positions.has(key)||!Number.isInteger(s.room)||!Number.isInteger(s.slot)||!floors[s.room]?.sockets[s.slot]||!(depth?['none',...enemyKinds]:['none','pursuer','charger']).includes(s.enemy)||typeof s.trap!=='boolean')throw Error('Invalid authored encounter');
   ids.add(s.id);positions.add(key);
  }
  for(const [room,floor] of floors.entries())for(const t of floor.tuning??[]){const socket=sockets.find(s=>s.room===room&&s.slot===t.slot);if(!socket)throw Error('Tuning requires a declared encounter.');const errors=tuningCompatibility(t,socket.enemy,socket.trap);if(errors.length)throw Error(errors.join('; '));}
- return floors.map((floor,room)=>({... (floor.exit_rule!==undefined?{exitRule:structuredClone(floor.exit_rule)}:{}),... (floor.devices!==undefined?{devices:structuredClone(floor.devices)}:{}),id:`custom-${room}`,title:`Floor ${room+1}`,tiles:[...floor.tiles],spawn:{...floor.spawn},exit:{...floor.exit},...(floor.links?{links:structuredClone(floor.links)}:{}),
-  enemies:sockets.filter(s=>s.room===room&&s.enemy!=='none').map(s=>{const p=floor.sockets[s.slot],t=floor.tuning?.find(t=>t.slot===s.slot);return {...p,...(t?.damage!==undefined?{damage:t.damage}:{}),...(t?.alert!==undefined?{alertRadius:t.alert}:{}),id:s.id,kind:s.enemy as 'pursuer'|'charger',hp:t?.hp??encounterRules[s.enemy as 'pursuer'|'charger'].hp,intent:{...p},alerted:false};}),
+ return floors.map((floor,room)=>({... (floor.exit_rule!==undefined?{exitRule:structuredClone(floor.exit_rule)}:{}),... (floor.devices!==undefined?{devices:structuredClone(floor.devices)}:{}),...(floor.features!==undefined?{features:structuredClone(floor.features)}:{}),...(floor.tide!==undefined?{tide:{...floor.tide}}:{}),id:`custom-${room}`,title:`Floor ${room+1}`,tiles:[...floor.tiles],spawn:{...floor.spawn},exit:{...floor.exit},...(floor.links?{links:structuredClone(floor.links)}:{}),
+  enemies:sockets.filter(s=>s.room===room&&s.enemy!=='none').map(s=>{const p=floor.sockets[s.slot],t=floor.tuning?.find(t=>t.slot===s.slot);return {...p,...(t?.damage!==undefined?{damage:t.damage}:{}),...(t?.alert!==undefined?{alertRadius:t.alert}:{}),id:s.id,kind:s.enemy as EnemyKind,hp:t?.hp??(s.enemy==='pursuer'||s.enemy==='charger'?encounterRules[s.enemy].hp:enemyCatalog[s.enemy as EnemyKind].hp),...(s.enemy!=='pursuer'&&s.enemy!=='charger'&&t?.alert===undefined?{alertRadius:enemyCatalog[s.enemy as EnemyKind].alert}:{}),...(s.enemy!=='pursuer'&&s.enemy!=='charger'&&t?.damage===undefined?{damage:enemyCatalog[s.enemy as EnemyKind].damage}:{}),intent:{...p},alerted:false};}),
   traps:sockets.filter(s=>s.room===room&&s.trap).map(s=>{const t=floor.tuning?.find(t=>t.slot===s.slot),period=t?.trap_period??2,activeTurns=t?.trap_active??1,phase=t?.trap_offset??0;return {...floor.sockets[s.slot],id:s.id+'-trap',armed:phase<activeTurns,...(t?{period,activeTurns,phase,damage:t.trap_damage??3}:{})};}),
  }));
 }
@@ -49,5 +51,6 @@ export function creatorRehearsal(floors:readonly CustomFloor[],placements:readon
  if((typeof sample==='string'?[sample]:sample&&typeof sample==='object'&&!Array.isArray(sample)?Object.values(sample):[null]).some(type=>typeof type!=='string'||!Object.hasOwn(catalog,type)))throw Error('Unsupported rehearsal sample');
  const poolErrors=poolConfigurationErrors(placements);if(poolErrors.length)throw Error(poolErrors.join('; '));
  const sockets=creatorSockets(placements).map(s=>placements[s.room][s.slot].reward==='random'?{...s,reward:typeof sample==='string'?sample:Object.hasOwn(sample,placementPool(placements[s.room][s.slot]))?sample[placementPool(placements[s.room][s.slot])]:'tonic'}:s);
- return authoredRehearsal(floors.map(f=>({...f,tuning:f.tuning??[],devices:f.devices??[],exit_rule:f.exit_rule??{...defaultExitRule}})),sockets,kit);
+ const depth=floors.some(f=>f.features!==undefined||f.tide!==undefined)||sockets.some(s=>!['none','pursuer','charger'].includes(s.enemy));
+ return authoredRehearsal(floors.map(f=>({...f,tuning:f.tuning??[],devices:f.devices??[],exit_rule:f.exit_rule??{...defaultExitRule},...(depth?{features:f.features??[]}:{})})),sockets,kit);
 }
