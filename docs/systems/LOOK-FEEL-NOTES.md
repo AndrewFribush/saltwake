@@ -169,4 +169,8 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Town history charts (landed with this merge): parchment figure cards; series in dark inks with distinct dash patterns as well as colours.
 - Checks: typecheck, game 188, web 31, server 168, build pass.
 
-Next step: check a generated lure vault in real play when a seed with one is handy; polish as lanes land UI.
+### 24. Lure vault and ambush in real play
+- Gallery modes `?vault=lure` and `?vault=ambush` rehearse a real generated Large draft (seeds 1 and 2, floor 2) with the delver placed beside the trigger. Stepping onto the lure plate opens the vault gate; the wire turns solid and the gate dusts open (`lure-vault-plate-held.jpg`). The ambush trip switch and its gate connect the same way.
+- Tuned: wires are 3 px with a dark underlay so they read on light and dark floor; dashed while off, solid and glowing while on.
+
+Next step: cosmetic hero palettes, shared through presence as a small id.
