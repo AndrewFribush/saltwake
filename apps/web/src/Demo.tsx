@@ -36,7 +36,11 @@ import type {Item,EditionTerms} from '../../../packages/shared/src/types';
 type RunView={id:string;seq:number;edition?:string;fee?:string;state:RunState;deadline:string;roomTitle:string;roomCount:number;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean;terminal:string|null;settlement:any};
 type World={shops?:Shopfront[];shopContract?:boolean;wallet?:WalletView;listings?:unknown[];npc_order?:unknown;profile:string;credits:string;items:Item[];editions:{record?:EditionRecordData;id:string;maker:string;terms:EditionTerms;fee:string;version:string;closed:boolean;active:number;status:string;bundles:number;remainingValue:number;reservedValue:number;extractedValue?:string;consumedValue?:string;bankedValue?:string;pendingConsumptionValue:number;valueBalanced:boolean|null;originalValue:string;refreshValue:string}[];runs:RunView[];operations:{id:string;status:string;reason?:string;result?:string}[]};
 class ApiError extends Error{constructor(message:string,readonly status:number){super(message);}}
-async function demoApi(path:string,body?:unknown){const r=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new ApiError(data.error??'Request failed',r.status);return data;}
+async function demoApi(path:string,body?:unknown){const r=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await r.json().catch(()=>{throw offline();});if(!r.ok)throw new ApiError(data.error??'Request failed',r.status);return data;}
+// The server is down or restarting (no JSON at all, e.g. the dev proxy's empty 500): say so in words and keep polling.
+export const OFFLINE_NOTICE='Lost contact with the server. Retrying every few seconds…';
+export function offline(){return Object.assign(Error(OFFLINE_NOTICE),{offline:true});}
+const isOffline=(e:unknown)=>e instanceof TypeError||(e as {offline?:boolean})?.offline===true;
 export type WalletDemoConnection = {
  profile: string; storageScope: string; sessionControls: React.ReactNode;
  request: (path:string,body?:unknown)=>Promise<any>;
@@ -64,10 +68,10 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
  setSelected(ids=>ids.filter(id=>w.items.some(i=>i.id===id)));
  // A retried/recovered command resolves outside this component; drop its stale banner once nothing is pending.
  if(!sessionStorage.getItem(pendingKey))setNotice(n=>n.startsWith(PENDING_NOTICE)?'':n);};
- useEffect(()=>{let stopped=false;(walletConnection?Promise.resolve():api('session',{})).then(()=>{if(!stopped)return refresh();}).catch(e=>setNotice(e.message));const timer=setInterval(()=>{if(!inflight.current&&!polling.current){polling.current=true;void refresh().catch(async e=>{
+ useEffect(()=>{let stopped=false;(walletConnection?Promise.resolve():api('session',{})).then(()=>{if(!stopped)return refresh();}).catch(e=>setNotice(e.message));const timer=setInterval(()=>{if(!inflight.current&&!polling.current){polling.current=true;void refresh().then(()=>setNotice(n=>n===OFFLINE_NOTICE?'Back in contact with the server.':n)).catch(async e=>{
   // A server restart clears demo sessions: take a new one and ask for the same character again (if still free).
   if(!walletConnection&&e instanceof ApiError&&e.status===401){try{await api('session',{});const last=sessionStorage.getItem('saltwake.last-profile');if(last)await api('profile',{profile:last}).catch(()=>{});await refresh();setNotice('Reconnected after a server restart.');return;}catch{}}
-  setNotice(e.message);}).finally(()=>{polling.current=false;});}},3000);return()=>{stopped=true;worldGeneration.current++;clearInterval(timer);};},[]);
+  setNotice(isOffline(e)?OFFLINE_NOTICE:e.message);}).finally(()=>{polling.current=false;});}},3000);return()=>{stopped=true;worldGeneration.current++;clearInterval(timer);};},[]);
  const work=async(fn:()=>Promise<unknown>)=>{if(inflight.current||childBusy)return;inflight.current=true;setBusy(true);try{await fn();await refresh();setNotice('');}catch(e){setNotice((e as Error).message);}finally{inflight.current=false;setBusy(false);}};
  const command=async(action:unknown)=>{
   const key=pendingCommandKey(world?.profile);const saved=sessionStorage.getItem(key);const pending=saved?JSON.parse(saved):{id:crypto.randomUUID(),action};

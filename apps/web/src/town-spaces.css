@@ -27,3 +27,8 @@
 .history-chart .line{stroke-width:2}.history-chart .s1{stroke:#e3cb8e;color:#e3cb8e}.history-chart .s2{stroke:#8ec7e3;color:#8ec7e3}.history-chart .s3{stroke:#e38e9a;color:#e38e9a}.history-chart .s4{stroke:#9fd39a;color:#9fd39a}
 .chart-legend{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:2px 0;font-size:.75rem}
 .town-square{list-style:none;margin:4px 0;padding:4px 6px;border:1px solid #e3cb8e66;border-radius:3px;font-size:.78rem;display:grid;gap:2px}.town-square span{color:#e3cb8e}
+/* Town life: square banner, clock sign, district posts, cosmetic townsfolk */
+.town-banner{margin:2px 0 4px;padding:3px 8px;border:1px solid #e3cb8e55;border-radius:3px;background:#14291fcc;color:#f3e6c4;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.town-banner>span[aria-hidden]{color:#e3cb8e}.town-banner .banner-count{opacity:.6}
+.clock-sign{margin:0;font-size:.72rem;opacity:.8;font-style:italic}
+.townsfolk-name{font:500 10px/1 system-ui,sans-serif;fill:#cfc6ad;stroke:#10211b;stroke-width:3px;paint-order:stroke;font-style:italic}
+.district-post ul{margin:2px 0 6px;padding-left:16px;font-size:.8rem;display:grid;gap:3px}.district-post h4{margin:6px 0 2px}

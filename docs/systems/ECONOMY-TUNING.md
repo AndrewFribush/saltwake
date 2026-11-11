@@ -202,3 +202,5 @@ Decision needed from Andrew: whether the operator issues goods at all, at what r
 | Players' purses at end | 133 | ≈ 71 |
 
 Holding the price at cost did not save artisans: buyers, already drained by restock purchases flowing into the bank, bought fewer tonics at 4+, so stock piled up (30 unsold) and artisans ended with less. It confirms the restock finding: without a bank outflow, goods issuance pulls coins out of players' hands faster than trade can return them.
+
+**Correction (2026-11-11, later):** the "Ask floor 4 (cost)" column above was measured with a simulation bug: the line that stores the artisans' ask (`ask.set`) had been swallowed into a comment, so every artisan asked 5 regardless of sales. Fixed in `scripts/simulate.ts`; the table needs a rerun before anyone relies on it. The "Ask floor 3" column predates the bug. A bank-outflow lever (bank-funded NPC tonic orders, OFF by default) is designed but not built; see TOWN-SPACES-NOTES.md round 15.
