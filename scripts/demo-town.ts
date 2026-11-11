@@ -16,11 +16,11 @@ import type {EditionTerms} from '../packages/shared/src/types';
 
 /** Same floor shaping the drafting table applies before publication (FloorBuilder designFloor). */
 const designFloor=(f:CustomFloor,depth:boolean):CustomFloor=>{const m={...f,tuning:f.tuning??[],devices:f.devices??[],exit_rule:f.exit_rule??{...defaultExitRule}};if(depth)return {...m,features:f.features??[]};const {features:_f,tide:_t,...rest}=m;return rest;};
-export function presetPublication(seed:number,preset:GeneratorPreset,title:string,now:number){
- const draft=generateDraft(seed,{...generatorPresets[preset].options,treasure:false});const depth=usesDepth(draft.floors,draft.placements.flat().map(p=>p.enemy));
+export function presetPublication(seed:number,preset:GeneratorPreset,title:string,now:number,treasure=false){
+ const draft=generateDraft(seed,{...generatorPresets[preset].options,treasure});const depth=usesDepth(draft.floors,draft.placements.flat().map(p=>p.enemy));
  const schedule=publicationSchedule({delayMinutes:'0',openMinutes:'1440',runMinutes:'15',capacity:'4'},now);
- const terms:EditionTerms={title,rules_version:depth?12:11,modules:draft.floors.map(f=>encodeCustomModule(designFloor(f,depth),depth?'depth':'missions')),sockets:creatorSockets(draft.placements),opens_at_ms:schedule.opens_at_ms,closes_at_ms:schedule.closes_at_ms,no_reward:true,difficulty_tag:'standard',style_tag:'combat',run_duration_ms:schedule.run_duration_ms,max_runs:schedule.max_runs};
- return {terms,cost:estimateDraft(draft).coins};
+ const terms:EditionTerms={title,rules_version:depth?12:11,modules:draft.floors.map(f=>encodeCustomModule(designFloor(f,depth),depth?'depth':'missions')),sockets:creatorSockets(draft.placements),opens_at_ms:schedule.opens_at_ms,closes_at_ms:schedule.closes_at_ms,no_reward:!treasure,difficulty_tag:'standard',style_tag:'combat',run_duration_ms:schedule.run_duration_ms,max_runs:schedule.max_runs};
+ return {terms,cost:estimateDraft(draft).coins,placements:draft.placements};
 }
 function room(edit:(r:InteriorLayout)=>InteriorLayout,shelves:number,note?:string){
  let r=edit(defaultInterior('market'));
