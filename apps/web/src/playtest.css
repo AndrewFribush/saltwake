@@ -137,3 +137,7 @@
 .buy-notice{font-size:12px;margin:0;color:#e8f0d8}
 .buy-row label{font-size:12px;display:flex;align-items:center;gap:4px}
 .buy-coins.compact{padding:5px;gap:3px;margin:4px 0}.buy-coins.compact .trade-note{margin:0}
+/* Map panning sits in the map's top-right corner instead of on top of the brush row. */
+.game-stage .studio-drawing>.studio-row.map-pan{top:4px;bottom:auto;left:auto;right:4px;height:auto;z-index:6;background:#142522e6;padding:3px 5px;border:1px solid #657153;border-radius:4px}
+.game-stage .studio-drawing>.studio-row.map-pan button{padding:2px 6px!important;font-size:11px}
+.cost-breakdown{color:#c9b98a;font-size:11px}
