@@ -3,7 +3,7 @@
  * It reads RunState snapshots and never changes game state. */
 import React,{useEffect,useRef,useState} from 'react';
 import type {RunState,Enemy} from '../../../../packages/game/src/state';
-import {doorOpen} from '../../../../packages/shared/src/mechanisms';
+import {doorOpen,signalValue} from '../../../../packages/shared/src/mechanisms';
 import {emit} from './Sound';
 import {heroFrame,Sprite,useMoving,walkFrame,type Facing} from './Sprite';
 import {tintedSprite,type SpriteName} from './sprites';
@@ -77,7 +77,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
  const walking=useMoving(s.player.x,s.player.y);
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
- return <><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
+ return <><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
   {(s.blasts??[]).filter(b=>b.x>=viewport.x&&b.y>=viewport.y).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
   {fx.ghosts.map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
   {enemies.map(e=>{const flip=fx.enemyFlip.get(e.id)??(e.x>s.player.x),max=fx.maxHp.get(e.id)??e.hp,lunge=fx.enemyLunge.get(e.id),hit=fx.enemyHit.has(e.id);
@@ -106,4 +106,17 @@ export function EntryCeremony({roomIndex,turn,title}:{roomIndex:number;turn:numb
   {roomIndex===0&&turn===0&&<><span className="entry-door left"/><span className="entry-door right"/></>}
   <span className="entry-title">{roomIndex===0&&turn===0?title:`Floor ${roomIndex+1}`}</span>
  </div>;
+}
+
+/** Faint wire from each seen switch or pressure plate to the gates (and nothing else) on its channel. */
+export function WireLayer({s,viewport}:{s:RunState;viewport:{x:number;y:number;columns:number;rows:number}}){
+ const seen=(p:{x:number;y:number})=>!s.roguelike||!!s.explored?.includes(`${s.roomIndex}:${p.x},${p.y}`);
+ const inputs=[...(s.devices??[]).filter(d=>d.kind==='switch').map(d=>({x:d.x,y:d.y,channel:d.channel})),...(s.features??[]).filter(f=>f.kind==='plate'&&!f.spent).map(f=>({x:f.x,y:f.y,channel:(f as any).channel as string}))].filter(seen);
+ const gates=(s.devices??[]).filter(d=>d.kind==='door').filter(seen);
+ const lines=inputs.flatMap(a=>gates.filter(g=>g.channel===a.channel).map(g=>({a,g,on:signalValue(s.signals,a.channel),open:doorOpen(g,s.signals??{})})));
+ if(!lines.length)return null;
+ const cx=(x:number)=>x-viewport.x+.5,cy=(y:number)=>y-viewport.y+.5;
+ return <svg className="wire-layer" aria-hidden="true" viewBox={`0 0 ${viewport.columns} ${viewport.rows}`} preserveAspectRatio="none">
+  {lines.map((l,i)=><g key={i} className={`wire ${l.on?'on':''}`}><path d={`M${cx(l.a.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.g.y)}`}/><circle cx={cx(l.a.x)} cy={cy(l.a.y)} r=".09"/><circle cx={cx(l.g.x)} cy={cy(l.g.y)} r=".09"/></g>)}
+ </svg>;
 }

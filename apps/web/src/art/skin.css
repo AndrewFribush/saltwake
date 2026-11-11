@@ -642,3 +642,27 @@ main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
 .saltwake .plot-tour-hint::before{content:'';position:absolute;top:-5px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff8a7a,#b8281c 60%,#5e120c)}
 /* In a run, an empty "visible enemies" pager is noise: the heading and turn text already say the coast is clear. */
 .saltwake .expedition>aside>.game-pages:has(>.empty-state:only-child),.saltwake .expedition>aside .empty-state{display:none}
+
+/* ---------- Plate/lever to gate wires (seen only), route checks, wiring list, Check badge ---------- */
+.wire-layer{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);z-index:2;pointer-events:none;overflow:visible}
+.wire path{fill:none;stroke:#e8c56a;stroke-dasharray:.22 .14;opacity:.8;vector-effect:non-scaling-stroke;stroke-width:2px}
+.wire circle{fill:#d9b866;opacity:.7}
+.wire.on path{stroke:#ffe9a0;opacity:.95;stroke-dasharray:none;filter:drop-shadow(0 0 2px #ffd75e)}
+.wire.on circle{fill:#ffe9a0}
+.saltwake .route-check{border:0;border-radius:4px;background:linear-gradient(#1b2e2c,#132225);box-shadow:inset 0 0 0 1px #d9b86640,0 2px 0 #0008;padding:8px 10px}
+.saltwake .route-check>b,.saltwake .route-check .studio-row b{font-family:var(--sw-head);color:#f3d98a;font-size:14px}
+.saltwake .route-check li{padding:3px 0 3px 4px;border-bottom:1px dotted #ffffff14}
+.saltwake .route-check li::before{display:inline-grid;place-items:center;width:16px;height:16px;margin-right:6px;border-radius:50%;font:900 10px/1 system-ui;color:#10181a}
+.saltwake .route-check li.ok::before{content:'✓';background:#8fd37a;color:#10241a}
+.saltwake .route-check li.blocked::before{content:'✕';background:#e2563c;color:#fff}
+.saltwake .route-check li.unknown::before{content:'?';background:#e8c56a;color:#2a1d0c}
+.saltwake .route-check li.blocked{color:#ffc4b4}
+.saltwake .builder-steps button{position:relative}
+/* History charts on parchment */
+.saltwake .history-chart{background:var(--tx-parchment) 0 0/32px 32px;border-radius:2px;box-shadow:inset 0 0 0 1px #b89a5e,0 2px 0 #0008;padding:6px 8px}
+.saltwake .history-chart figcaption{font-family:var(--sw-head);color:#5a2a14;font-size:14px}
+.saltwake .history-chart .axis{stroke:#8a7a58}
+.saltwake .history-chart .tick{fill:#5a4a30}
+.saltwake .history-chart .s1{stroke:#a8701c;color:#a8701c}.saltwake .history-chart .s2{stroke:#2e5a8a;color:#2e5a8a}.saltwake .history-chart .s3{stroke:#a82838;color:#a82838}.saltwake .history-chart .s4{stroke:#2f6a24;color:#2f6a24}
+.saltwake .history-chart .s2{stroke-dasharray:5 3}.saltwake .history-chart .s3{stroke-dasharray:2 2}.saltwake .history-chart .s4{stroke-dasharray:8 2 2 2}
+.saltwake .chart-legend li{color:#3a2a18}

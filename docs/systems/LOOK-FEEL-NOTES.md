@@ -163,4 +163,10 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - First real dungeon run (paid entry on the local sandbox): the run aside no longer shows a "Nothing here yet." box when no enemy is in sight; the way-out line and turn text already say so (`first-run.jpg`). Builder first open was checked in earlier passes (coach, steps, area tools).
 - Checks: typecheck, web 31, build pass (game/server unchanged since part 1).
 
-Next step: price history/charts, route/Wiring lists and ⚠ Check badge when they land.
+### 23. Route checks, wiring, plate-to-gate wires, history charts
+- Builder Check step: "Routes to the stairs" and "Wiring" panels framed; each floor/channel line has a round status badge (✓ green, ✕ red, ? amber) so state does not depend on colour alone.
+- In play: a faint dashed brass wire runs (elbowed) from every seen lever or pressure plate to the gates on its channel; it turns solid and glows while the channel is on. Only things the player has seen are connected, so it reveals nothing new. Makes lure vaults and ambush rooms readable (`gallery-wires.jpg`). `WireLayer` in art/RunFx.tsx; no component edits.
+- Town history charts (landed with this merge): parchment figure cards; series in dark inks with distinct dash patterns as well as colours.
+- Checks: typecheck, game 188, web 31, server 168, build pass.
+
+Next step: check a generated lure vault in real play when a seed with one is handy; polish as lanes land UI.
