@@ -17,7 +17,8 @@
     "verify": "npm run typecheck && npm run build:contract && npm test && npm run test:web && npm run test:contract && npm run test:server && npm run build",
     "server": "tsx apps/server/src/main.ts",
     "sandbox": "tsx scripts/demo-sandbox.ts",
-    "sim:depth": "tsx scripts/depth-sim.ts"
+    "sim:depth": "tsx scripts/depth-sim.ts",
+    "simulate": "tsx scripts/simulate.ts"
   },
   "dependencies": {
     "@near-wallet-selector/core": "10.1.4",

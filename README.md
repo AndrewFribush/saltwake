@@ -100,3 +100,12 @@ SALTWAKE_KEEP_HOST=1 SALTWAKE_API_PORT=18973 npx vite apps/web --host 127.0.0.1 
 ```
 
 Open `http://127.0.0.1:18972/?devSigner=player1.<contract>` and `http://localhost:18972/?devSigner=player2.<contract>`. Each signs in with its own message bound to the origin it used.
+
+## Watch a simulated week (fast-forward)
+
+```sh
+npm run build:contract
+npm run simulate -- --days 7
+```
+
+Starts an isolated local sandbox with the demonstration town, then bot players act through the real API and contract, one round per simulated day: newcomers take recovery jobs, artisans buy ingredients and brew, shop owners stock shelves, delvers buy tonics, pay into dungeons and play them with the dungeon bot policies (escape, die), sell their finds to the bank, merchants resell, and makers cut or raise entry fees from observed demand. Each day prints coins in purses and the bank, fees, wages, trades, brews, run outcomes, unsold stock and a conservation check (coins only move; any issuance is a separate labelled line). A week takes about a minute. The sandbox then stays up: start `npm run server` and `npm run dev -- --port 18930 --strictPort`, open the harbor notice board and choose **Town history** to read the day-by-day report, labelled SIMULATION. Chain time does not jump, and bots read their own full run state to pick moves.
