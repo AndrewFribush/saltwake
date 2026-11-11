@@ -1,0 +1,15 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+WORKBENCH=Artisan workbench
+
+2 herbs + 2 flasks → 2 tonics. Hit all 3 timed windows for fine quality; timeout yields normal. Ingredients lock until settled.
+
+Craft selected ingredientsRecovery job · earn 2 coins
+
+Selected 0/2 herbs and 0/2 flasks. Choose exactly 2 of each from stored goods.
+
+Your holdings are 33; recovery work requires less than 6. 3 jobs left · Labor funds 4.
+WORKBENCH_FIT={"width":1366,"height":768,"scroll":false,"offscreen":[]}
+WORKBENCH_FIT={"width":390,"height":844,"scroll":false,"offscreen":[]}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

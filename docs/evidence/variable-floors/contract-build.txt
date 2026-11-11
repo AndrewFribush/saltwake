@@ -1,0 +1,6 @@
+Retained output from the completed variable-floors build in this session; not rerun.
+Command: cargo build --manifest-path contracts/economy/Cargo.toml --target wasm32-unknown-unknown --release --locked --offline
+Exit code: 0
+
+   Compiling dungeon-economy v0.1.0 (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/contracts/economy)
+    Finished `release` profile [optimized] target(s) in 4.77s

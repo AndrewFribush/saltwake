@@ -1,0 +1,30 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+PROFILE=maker
+FIT={"width":1366,"scroll":false,"out":[]}
+FIT={"width":390,"scroll":false,"out":[]}
+REHEARSAL=Test kit
+Unarmed · no gear
+Club + tonic
+Sword + tonic
+Club + armor + tonic
+Back to editor
+Restart
+Map
+Bag
+Journal
+Rehearsal · 1/2
+Health 5/12 · Turn 1
+12 HP
+Guard [G]
+Wait [Space]
+Attack floor-0-slot-0
+Extract
+Continue deeper
+Watch the shadows
+
+Health 5. Position 1, 1. Turn 1. Spikes hit floor-0-slot-0 for 5. floor-0-slot-0: Recovering: no action this turn.
+
+floor-0-slot-0: 12 health · 12 hits with unarmed. Recovering: no action this turn.
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

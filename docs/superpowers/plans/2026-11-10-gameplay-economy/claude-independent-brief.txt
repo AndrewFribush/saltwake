@@ -1,0 +1,206 @@
+Andrew asks: write thorough bite-sized build steps for a wonderful dungeon/economy gameplay loop, INCLUDING human playtesting, refinement cycles, technical verification. Codex and Claude must independently plan, review each other's work, merge. This is YOUR independent plan; Codex's new plan is withheld. No tools, no edits, no playtest claims. Return a substantive Markdown implementation plan (about 2000-3000 words), IDs, dependencies, exact files, acceptance evidence, practical task sizes, human test script, stop/refine gates, minimum deliverable vs later expansion. Do not invent current implementation.
+
+USER-FIXED: grid/tile game, fixed screen/windows no page scroll; doors entered by walking. Human makers fund treasure upfront, keep admission fees on ordinary outcomes, can refresh stock; central issuer/operator is bank, not the dungeon-making business. Unconsumed dungeon-origin loot returns to pool on death; town-origin gear lost to bank; consumed goods remain spent. Closure leftovers go to bank, no maker refund. Found gear usable in-run. Every reward funded and reserved; copies support concurrency; max_runs=4 is CONCURRENT cap not lifetime admissions. No-reward paid attractions valid. Artisans play short per-batch minigames, shops have finite stock/prices. Andrew chose TRANSPARENCY to address maker incentives: average time, average loot etc, not changing death disposition. Local-only simulation; no paid API, production, deployment, testnet, messages to people. Human sessions require humans; agents cannot certify fun. Do not promise everyone profits. Preserve transaction/restart/idempotency guards.
+
+CURRENT: TS React/Vite; TS game engine; TS authoritative server SQLite/outbox; Rust NEAR economy local sandbox. Source fixtures below. Paid rules v1-v3, authored builder and seeded chambers. UI town/shops/artisan/guild/gate, limited bank-funded recovery jobs, server crafting/shop/run settlement implemented. Existing practice rejected as too basic by Andrew; no fun acceptance yet. Eight catalog goods; two enemy behaviors; guard, potion, loot, one rest/edge boon. New transparency implemented and verified: edition counts/outcomes, mean+median extracted reference loot (loss=zero), durations newly recorded (legacy unknown), coverage, samples, fixed-window four-page view. History across edition fee changes/refreshes labeled. It does not prove incentive safety. Maker results exclude acquisition costs. Initial new tactical experiment under consideration: club shove, one authored floor with optional cache, escape without full clear but enemy response first. This is proposed; no gameplay code for it yet. Mandatory oil, new recipes/commissions/replays are not approved requirements. Planning request now authorizes your plan, not changing user rules. Old checklist 30/48 is historical; don't mark gates complete based on old test counts.
+
+Map: packages/game/src/{actions,combat,state,inventory,generation,funded-layout,craft}.ts; apps/web/src/{Demo,Run,Shop,Crafting,Maker,FloorBuilder,GamePanels,EditionRecord}.tsx; apps/server/src/{runs,http,craft,wallet,edition-record,outbox,db}.ts; packages/shared/src/{types,catalog,custom-layout,protocol,matcher,edition-record}.ts; contracts/economy/src/{lib,model,runs,market,craft}.rs (check exact Rust filenames from supplied list). Tests packages/game/test, apps/server/test, tests/contract. npm run test:game/typecheck/build/test:server/test:contract; npm run build:contract. Existing docs/transparency-verification.md and docs/integration-verification.md. Old GDD ../design/dungeon-economy/GAME-DESIGN-v1.2-reviewed.md.
+
+FILE packages/game/src/actions.ts
+import {explore} from './roguelike';
+import {atClearedExit,enterRoom,hasNextRoom} from './generation';
+import {inventoryAction,type InventoryAction} from './inventory';
+import {distance,walkable,type RunState} from './state';
+import {resolveEnemies} from './combat';
+export type Action={type:'move';x:number;y:number}|{type:'attack';enemyId:string}|{type:'guard'}|{type:'wait'}|InventoryAction|{type:'extract'}|{type:'continue'}|{type:'boon';choice:'edge'|'rest'};
+export function act(s:RunState,a:Action):RunState {
+ if(!a||typeof a!=='object'||!['move','attack','guard','wait','pickup','equip','use','drop','extract','continue','boon'].includes(a.type))return s;
+ if(['pickup','equip','use','drop'].includes(a.type)&&(!('itemId' in a)||typeof a.itemId!=='string'))return s;
+ const allowed=a.type==='move'?['type','x','y']:a.type==='attack'?['type','enemyId']:a.type==='boon'?['type','choice']:['pickup','equip','use','drop'].includes(a.type)?['type','itemId']:['type'];
+ if(Object.keys(a).some(k=>!allowed.includes(k)))return s;
+ if(s.status!=='active')return s;
+ if(a.type==='boon'){if(!s.roguelike||s.boon||s.roomIndex!==0||!atClearedExit(s)||!['edge','rest'].includes(a.choice)||(a.choice==='edge'&&s.player.hp<=3))return s;const n=structuredClone(s);n.boon=a.choice;n.player.hp=a.choice==='rest'?Math.min(12,n.player.hp+4):n.player.hp-3;n.log.push(a.choice==='rest'?'You rest at the shrine: recovered 4 health.':'You take the blood edge: lost 3 health, gained 1 attack damage.');return n;}
+ if(a.type==='extract'||a.type==='continue'){
+  if(!atClearedExit(s)||(a.type==='continue'&&!hasNextRoom(s)))return s;
+  const n=structuredClone(s);n.turn++;
+  if(a.type==='extract'){n.status='extracted';n.log.push('Extracted safely.');}else enterRoom(n,n.roomIndex+1);explore(n);
+  return n;
+ }
+ if(a.type==='move'&&(!walkable(s,a)||distance(s.player,a)!==1||s.enemies.some(e=>e.x===a.x&&e.y===a.y)))return s;
+ if(a.type==='attack'&&!s.enemies.some(e=>e.id===a.enemyId&&distance(s.player,e)===1))return s;
+ const n=structuredClone(s);
+ if(['pickup','equip','use','drop'].includes(a.type)&&'itemId' in a&&!inventoryAction(n,a))return s;
+ if(a.type==='move'){n.player.x=a.x;n.player.y=a.y;}
+ if(a.type==='attack'){
+  const e=n.enemies.find(e=>e.id===a.enemyId)!;const damage=(n.player.weapon==='sword'?3:2)+(n.boon==='edge'?1:0);e.hp-=damage;
+  n.log.push(`You hit ${e.id} for ${damage}.`);n.enemies=n.enemies.filter(e=>e.hp>0);
+ }
+ n.turn++;resolveEnemies(n,a.type==='guard');explore(n);return n;
+}
+
+FILE packages/game/src/combat.ts
+import {distance,walkable,type RunState,type Point} from './state';
+export const same=(a:Point,b:Point)=>a.x===b.x&&a.y===b.y;
+// A mutable turn-local guard is shared by enemies and hazards: only one hit is halved.
+export function resolveEnemies(s:RunState,guard:boolean){
+ const hitPlayer=(damage:number,source:string)=>{
+  const raw=Math.max(1,damage-(s.player.armor?1:0));const hit=guard?Math.ceil(raw/2):raw;guard=false;
+  s.player.hp=Math.max(0,s.player.hp-hit);s.log.push(`${source} hits for ${hit}.`);
+ };
+ for(const e of [...s.enemies].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)){
+  if(s.player.hp<=0)break;
+  if(e.hp<=0)continue;
+  if(s.roguelike&&!e.alerted){if(distance(e,s.player)>5)continue;e.alerted=true;}
+  if(e.recovering){e.recovering=false;continue;}
+  if(e.kind==='charger'&&e.lane?.length){
+   for(const tile of e.lane){
+    if(same(tile,s.player)){hitPlayer(4,e.id);break;}
+    const other=s.enemies.find(other=>other.id!==e.id&&other.hp>0&&same(other,tile));
+    if(other){other.hp-=4;s.log.push(`${e.id} strikes ${other.id} for 4.`);break;}
+    e.x=tile.x;e.y=tile.y;
+   }
+   e.recovering=true;
+  }else if(distance(e,e.intent)===1&&same(e.intent,s.player)){
+   hitPlayer(3,e.id);
+  }else if(walkable(s,e.intent)&&!same(e.intent,s.player)&&!s.enemies.some(other=>other.id!==e.id&&other.hp>0&&same(other,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
+ }
+ for(const trap of s.traps){
+  if(trap.armed){
+   if(same(trap,s.player)&&s.player.hp>0)hitPlayer(3,'Spikes');
+   for(const e of s.enemies)if(e.hp>0&&same(trap,e)){e.hp-=3;s.log.push(`Spikes hit ${e.id} for 3.`);}
+  }
+  trap.armed=!trap.armed;
+ }
+ s.enemies=s.enemies.filter(e=>e.hp>0);
+ if(s.player.hp===0)s.status='died';
+ revealIntents(s);s.log=s.log.slice(-8);
+}
+export function revealIntents(s:RunState){
+ const key=(p:Point)=>`${p.x},${p.y}`;
+ const neighbors=(p:Point)=>[{x:p.x-1,y:p.y},{x:p.x+1,y:p.y},{x:p.x,y:p.y-1},{x:p.x,y:p.y+1}];
+ const distances=new Map<string,number>([[key(s.player),0]]);const queue:Point[]=[s.player];
+ for(let i=0;i<queue.length;i++)for(const next of neighbors(queue[i]))if(walkable(s,next)&&!distances.has(key(next))){distances.set(key(next),distances.get(key(queue[i]))!+1);queue.push(next);}
+ for(const e of s.enemies){
+  e.lane=[];
+  if(s.roguelike&&!e.alerted&&distance(e,s.player)>5){e.intent={x:e.x,y:e.y};continue;}
+  if(e.recovering){e.intent={x:e.x,y:e.y};continue;}
+  if(e.kind==='charger'&&(e.x===s.player.x||e.y===s.player.y)){
+   const dx=Math.sign(s.player.x-e.x),dy=Math.sign(s.player.y-e.y);
+   if(dx||dy){let p={x:e.x+dx,y:e.y+dy};while(walkable(s,p)){e.lane.push(p);p={x:p.x+dx,y:p.y+dy};}}
+   if(e.lane.some(p=>same(p,s.player))){e.intent=e.lane[0];continue;}e.lane=[];
+  if(s.roguelike&&!e.alerted&&distance(e,s.player)>5){e.intent={x:e.x,y:e.y};continue;}
+  }
+  const choices=neighbors(e).filter(p=>walkable(s,p)&&distances.has(key(p))&&!s.enemies.some(other=>other.id!==e.id&&same(other,p)));
+  choices.sort((a,b)=>distances.get(key(a))!-distances.get(key(b))!);
+  e.intent=choices[0]??{x:e.x,y:e.y};
+ }
+}
+
+FILE packages/game/src/state.ts
+import type {RunItem} from './inventory';
+export type Point={x:number;y:number};
+export type Enemy=Point & {id:string;hp:number;intent:Point;kind?:'pursuer'|'charger';alerted?:boolean;lane?:Point[];recovering?:boolean};
+export type RoomLayout={id:string;title:string;tiles:string[];spawn:Point;exit:Point;enemies:Enemy[];traps:(Point & {id:string;armed:boolean})[]};
+export type RunState={roguelike?:boolean;expeditionSeed?:number;explored?:string[];boon?:'edge'|'rest';layout?:RoomLayout[];room:string[];roomIndex:number;items:Record<string,RunItem>;originalTownIds:string[];reservedItemIds:string[];player:Point & {hp:number;weapon:'club'|'sword';armor:boolean};enemies:Enemy[];traps:(Point & {id:string;armed:boolean})[];turn:number;status:'active'|'died'|'extracted';log:string[]};
+export function createRun():RunState {return {roomIndex:0,items:{'town-club':{id:'town-club',type:'club',origin:'town',location:{kind:'weapon'}}},originalTownIds:['town-club'],reservedItemIds:[],room:['#########','#.......#','#..##...#','#.......#','#....#..#','#.......#','#########'],player:{x:1,y:1,hp:12,weapon:'club',armor:false},enemies:[],traps:[],turn:0,status:'active',log:['Explore the cellar. Walls do not spend a turn.']};}
+export function walkable(s:RunState,p:Point){return Number.isInteger(p.x)&&Number.isInteger(p.y)&&s.room[p.y]?.[p.x]==='.';}
+export function distance(a:Point,b:Point){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);}
+
+FILE packages/shared/src/catalog.ts
+export const catalog = {
+ club:{name:'Club',value:4}, sword:{name:'Sword',value:12}, armor:{name:'Armor',value:8},
+ herb:{name:'Herb',value:2}, iron:{name:'Iron',value:2}, flask:{name:'Flask',value:2},
+ tonic:{name:'Tonic',value:6}, fineTonic:{name:'Fine tonic',value:8}
+} as const;
+
+FILE apps/server/src/edition-record.ts
+import {catalog} from '../../../packages/shared/src/catalog';
+import type {EditionRecord} from '../../../packages/shared/src/edition-record';
+import type {EconomySnapshot} from '../../../packages/shared/src/types';
+import type {Store} from './db';
+import type {SavedRun} from './runs';
+
+const mean = (xs: number[]) => xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : null;
+const median = (xs: number[]) => {if(!xs.length)return null;const a=[...xs].sort((x,y)=>x-y);return (a[Math.floor((a.length-1)/2)]+a[Math.floor(a.length/2)])/2;};
+/** Confirmed outcomes only. No names, hidden assignments or loot locations leave this projection. */
+export function editionRecord(world: EconomySnapshot, db: Store, editionId: string): EditionRecord {
+  const runs=world.runs.filter(r=>r.edition===editionId);
+  const completed=runs.filter(r=>r.status!=='active'&&r.status!=='void');
+  const loot:number[]=[], durations:number[]=[];
+  for(const run of completed){
+    const saved=db.get<SavedRun>('run',run.id);
+    // A failed attempt yielded zero extracted loot, even if local history is unavailable.
+    if(run.status!=='extracted')loot.push(0);
+    else {
+      const op=saved?.settlement?db.operation(saved.settlement):undefined;
+      const a=op?.command.action;
+      if(op?.status==='Applied'&&op.receipt?.status==='Applied'&&op.receipt.op_id===op.id&&op.receipt.payload_hash===op.hash&&a?.type==='settle'&&a.run_id===run.id&&a.outcome==='extracted'){
+        const ids=a.disposition.dungeon_extracted;
+        const items=ids.map(id=>world.items.find(i=>i.id===id));
+        if(new Set(ids).size===ids.length&&items.every(i=>i!==undefined))loot.push(items.reduce((n,i)=>n+catalog[i!.item_type].value,0));
+      }
+    }
+    if(saved?.terminal===run.status&&Number.isSafeInteger(saved.startedAtMs)&&Number.isSafeInteger(saved.finishedAtMs)&&saved.finishedAtMs!>=saved.startedAtMs!){
+      durations.push((saved.finishedAtMs!-saved.startedAtMs!)/1000);
+    }
+  }
+  const count=(status:string)=>runs.filter(r=>r.status===status).length;
+  return {attempts:runs.length,completed:completed.length,active:count('active'),voided:count('void'),extracted:count('extracted'),died:count('died'),abandoned:count('abandoned'),expired:count('expired'),participants:new Set(completed.map(r=>r.player)).size,lootSamples:loot.length,averageLoot:mean(loot),medianLoot:median(loot),durationSamples:durations.length,averageSeconds:mean(durations),medianSeconds:median(durations)};
+}
+
+FILE packages/shared/src/types.ts
+export type ItemType='club'|'sword'|'armor'|'herb'|'iron'|'flask'|'tonic'|'fineTonic';
+export type ItemLocation =
+ | {kind:'owned';profile:string}|{kind:'listed';listing:string}
+ | {kind:'edition_fixed';edition:string;item_type:ItemType}|{kind:'edition_random';edition:string;table_id:string}
+ | {kind:'reserved';run:string;socket:string;source_pool:string}|{kind:'loadout';run:string;profile:string}
+ | {kind:'crafting';batch:string;source_owner:string}|{kind:'bank'}|{kind:'consumed';operation:string};
+export type Item={id:string;item_type:ItemType;location:ItemLocation};
+export type Socket={readonly id:string;readonly room:number;readonly slot:number;readonly enemy:'none'|'pursuer'|'charger';readonly trap:boolean;readonly reward:ItemType|null};
+export type EditionTerms={readonly title:string;readonly rules_version:number;readonly modules:readonly string[];readonly sockets:readonly Socket[];readonly opens_at_ms:string;readonly closes_at_ms:string;readonly no_reward:boolean;readonly difficulty_tag:string;readonly style_tag:string;readonly run_duration_ms:string;readonly max_runs:number};
+export type RandomTable={readonly table_id:string;readonly socket_ids:readonly string[];readonly item_ids:readonly string[]};
+export type RandomFunding={readonly table_id:string;readonly item_ids:readonly string[]};
+export type Command={readonly actor:string;readonly action:
+ |{readonly type:'debit';readonly amount:string}
+ |{readonly type:'publish';readonly terms:EditionTerms;readonly fee:string;readonly funding:readonly string[]}
+ |{readonly type:'admit';readonly edition_id:string;readonly expected_version:string;readonly expected_fee:string;readonly loadout_ids:readonly string[];readonly seed:string}
+ |{readonly type:'settle';readonly run_id:string;readonly outcome:'extracted'|'died'|'abandoned'|'expired';readonly disposition:Partition;readonly carried_dungeon_ids:readonly string[]}
+ |{readonly type:'void';readonly run_id:string;readonly reason:string;readonly disposition:Partition}
+ |{readonly type:'publish_random';readonly terms:EditionTerms;readonly fee:string;readonly fixed_funding:readonly string[];readonly random_tables:readonly RandomTable[]}
+ |{readonly type:'refresh';readonly edition_id:string;readonly fixed_funding:readonly string[];readonly random_funding:readonly RandomFunding[]}
+ |{readonly type:'set_fee';readonly edition_id:string;readonly new_fee:string}
+ |{readonly type:'list';readonly item_ids:readonly string[];readonly unit_price:string}
+ |{readonly type:'cancel_listing';readonly listing_id:string}
+ |{readonly type:'buy';readonly listing_id:string;readonly item_ids:readonly string[];readonly expected_unit_price:string}
+ |{readonly type:'bank_buy';readonly item_ids:readonly string[];readonly expected_unit_prices:readonly string[]}
+ |{readonly type:'bank_sell';readonly item_ids:readonly string[];readonly expected_unit_prices:readonly string[]}
+ |{readonly type:'fill_npc_order';readonly order_id:string;readonly item_ids:readonly string[];readonly expected_unit_price:string}
+ |{readonly type:'begin_craft';readonly batch_id:string;readonly input_ids:readonly string[];readonly challenge_commitment:string;readonly deadline_ms:string}
+ |{readonly type:'finish_craft';readonly batch_id:string;readonly tier:CraftTier;readonly reason:FinishReason}
+ |{readonly type:'begin_recovery';readonly batch_id:string;readonly bank_input_ids:readonly string[];readonly challenge_commitment:string;readonly deadline_ms:string}
+ |{readonly type:'finish_recovery';readonly batch_id:string;readonly tier:CraftTier;readonly reason:FinishReason}
+ |{readonly type:'finalize_close';readonly edition_id:string}};
+export type OperationStatus={status:'Applied'|'Rejected';op_id:string;payload_hash:string;result:string;run:EconomicRun|null}|{status:'Pending';op_id:string;tx_hash?:string}|{status:'Unknown';op_id:string;reason:string};
+
+export type Partition={readonly town_consumed:readonly string[];readonly town_returned:readonly string[];readonly town_forfeited:readonly string[];readonly dungeon_consumed:readonly string[];readonly dungeon_extracted:readonly string[];readonly dungeon_returned:readonly string[]};
+export type Assignment={socket:string;item_id:string;source_pool:string};
+export type EconomicRun={id:string;edition:string;player:string;fee:string;deadline_ms:string;seed:string;loadout_ids:string[];assignments:Assignment[];status:'active'|'extracted'|'died'|'abandoned'|'expired'|'void';terminal_reason:string|null};
+export type EconomicEdition={id:string;maker:string;terms:EditionTerms;terms_hash:string;fee:string;version:string;placement_paid:string;original_value:string;refresh_value:string;refresh_ids:string[];random_tables:RandomTable[];active_runs:string[];funded_ids:string[];closed:boolean;extracted_value:string;consumed_value:string;banked_value:string};
+export type Listing={id:string;seller:string;item_ids:string[];remaining_ids:string[];unit_price:string;status:'active'|'sold'|'cancelled'};
+export type NpcOrder={id:string;item_type:ItemType;unit_price:string;remaining:number;budget:string;seeded_demo_demand:boolean};
+export type BankPrice={item_type:ItemType;sale_price:string;buyback_price:string};
+export type EconomySnapshot={credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState};
+
+export type CraftTier='normal'|'fine';
+export type FinishReason='completed'|'expired';
+export type CraftBatch={id:string;actor:string;input_ids:string[];challenge_commitment:string;deadline_ms:string;recovery:boolean;wage_reserved:string;status:'active'|'finished';tier:CraftTier|null;reason:FinishReason|null;output_ids:string[]};
+export type RecoveryState={epoch:string;budget:string;wage:string;max_jobs_per_profile:number;jobs:Record<string,number>};
+
+RUST FILES
+contracts/economy/src/market.rs
+contracts/economy/src/settlement.rs
+contracts/economy/src/craft.rs
+contracts/economy/src/lib.rs
+contracts/economy/src/runs.rs
+contracts/economy/src/editions.rs
+contracts/economy/src/model.rs

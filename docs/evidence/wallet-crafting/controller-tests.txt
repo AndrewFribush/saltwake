@@ -1,0 +1,35 @@
+✔ persist challenge and begin atomically; require matching confirmed batch before play (7.416416ms)
+✔ three server-timed inputs finish fine exactly once and stay pending until confirmation (6.923583ms)
+✔ restart preserves explicit start; spoofed timings cannot improve tier; IDs and ownership enforced (5.009416ms)
+✔ deadline expires to normal once across restart, including a retry of the triggering input (5.027083ms)
+✔ worker expires an untouched batch after restart and late admission confirmation (5.683917ms)
+✔ rejected begins release profile but same request never rerolls or re-enqueues (4.303875ms)
+✔ enqueue failures roll back both challenge creation and final input (3.976208ms)
+✔ normal tier is derived from early and late server timings; final input rollback is atomic (4.652458ms)
+✔ premature expiry retries once only after confirmed chain deadline without reopening play (5.578125ms)
+✔ request history is bounded and independent profiles cannot affect one another (73.69275ms)
+✔ prepared player batch persists exact challenge, adopts chain deadline and finishes with bounded operation IDs (11.326417ms)
+✔ unknown direct batch recovers only through normal expiry and survives restart without fabricated challenge or admission (4.81ms)
+✔ discovery validates ownership and terminal observations prevent stale resurrection (6.726917ms)
+✔ discovered crafting reserves terminal capacity and interrupted terminal import rolls back atomically (160.774417ms)
+✔ direct changed submission supersedes local preparation without inventing minigame evidence (3.900042ms)
+✔ already full ordinary queue still admits a confirmed discovered batch terminal (132.090542ms)
+✔ player requests remain unsigned across retries/restart and accept only exact final receipts (7.216708ms)
+✔ an unresolved player request never blocks the independent operator signer stream (5.085084ms)
+✔ receipt identity conflicts and stored signed bytes cannot make a player request broadcast (3.781167ms)
+✔ account identities isolate operation IDs and wallet results and malformed starts are not user-submittable (3.012833ms)
+✔ confirmed player admission retains terminal capacity and cost observers never claim missing before evidence (163.673666ms)
+✔ an unsigned foreign closure cannot discharge another creator’s reserved terminal capacity (139.010125ms)
+✔ a stalled player receipt cannot stall operator signing or create duplicate polling requests (64.388667ms)
+✔ two owner-bound queued oracle terminals occupy both reserved slots without double-counting (127.082375ms)
+✔ stalled observations are bounded, retain their live slot and signal cancellation before late writes (24.479375ms)
+✔ a confirmed discovered run reserves a terminal slot without a fabricated admission operation (138.611459ms)
+✔ wallet craft preparation is account-bound, unsigned and retains terminal headroom (154.712583ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 972.073958

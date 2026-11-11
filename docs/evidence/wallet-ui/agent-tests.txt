@@ -1,0 +1,33 @@
+✔ no adapter renders honest onboarding without making requests or signing (4.669375ms)
+✔ sign-in and registration are distinct explicit onboarding actions in the fixed frame (0.694708ms)
+✔ wallet command seam uses exact caller request and refuses a stale identity (0.651ms)
+✔ craft begin keeps uncertain preparation pending; confirmed begin reads authoritative view (0.175417ms)
+✔ definitively rejected craft permits clearing UI retry while step events never invoke wallet approval (0.111958ms)
+✔ wallet UI retry scope separates contract and account without using demo keys (0.067875ms)
+✔ NEP413 binding and exact account-bound register/execute descriptors (17.580166ms)
+✔ changed account, network, or away-and-back revision during NEP413 signing invalidates proof (0.465291ms)
+✔ cancelled and rejected message signing never verifies or grants a local session (0.48375ms)
+✔ wrong configured network or challenge contract is rejected before signing (0.838583ms)
+✔ reject altered destination, method, deposit, gas, args and extra transaction fields (3.817333ms)
+✔ account change during transaction approval discards its result and does not receipt-sync (0.550833ms)
+✔ session invalidation and expiry during signing invalidate results (0.699542ms)
+✔ server session changed during approval blocks receipt sync (0.399292ms)
+✔ explicit approval cancellation/rejection permits same-ID retry; ambiguous SDK failure does not resubmit (1.868791ms)
+✔ logout invalidates pending proof and blocks new login until logout completes (0.274583ms)
+✔ wrong proof account and server session network are rejected before transaction approval (0.180459ms)
+✔ action is copied before awaits; concurrent approvals are rejected (0.627584ms)
+✔ browser Borsh SHA256 operation ID matches server identity helper (1.87025ms)
+✔ foreign account/request operation IDs reject before approval and after receipt confirmation (0.80175ms)
+✔ reload preserves uncertain approval and exact payload without resubmitting (0.620083ms)
+✔ durable write failure prevents approval and corrupt saved intents are not silently discarded (0.174166ms)
+✔ explicit wallet cancellation remains retryable after reload (0.566ms)
+✔ prepared crafting binds input copies, account batch, commitment and chain deadline before approval (2.934875ms)
+✔ identity change during preparation cannot open a crafting approval (0.283292ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 317.509417

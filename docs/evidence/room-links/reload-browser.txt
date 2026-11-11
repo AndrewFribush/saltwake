@@ -1,0 +1,12 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+RESTORED_TRAVEL=Rehearsal · 3/3
+Health 12/12 · Turn 1
+RESTORED_TRAVEL=Rehearsal · 1/3
+Health 12/12 · Turn 2
+RESTORED_TRAVEL=Rehearsal · 2/3
+Health 12/12 · Turn 3
+RESTORED_TRAVEL=Rehearsal · 1/3
+Health 12/12 · Turn 4
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

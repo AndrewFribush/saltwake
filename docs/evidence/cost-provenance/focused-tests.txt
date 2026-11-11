@@ -1,0 +1,15 @@
+✔ real contract purchase → craft → resale → funding retains cost and restart idempotency (6424.177333ms)
+✔ purchases establish exact basis and resale transfers basis once (1.412458ms)
+✔ craft preserves integer total and propagates any unknown input (0.268917ms)
+✔ funding expenses goods once and an ownership gap invalidates basis (0.172917ms)
+✔ town losses remove basis; extracted goods do not acquire an invented zero basis (0.153167ms)
+✔ journal survives restart after broadcast and duplicate confirmation without repeating costs (6.485458ms)
+✔ old applied receipts without a captured baseline stay unknown (2.109166ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6684.993

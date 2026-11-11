@@ -119,3 +119,22 @@ test('v3 authored geometry, funded positions, fog and settlement survive restart
   }finally{db.close();}
  }finally{f.close();}
 });
+
+test('run timing persists once and expiry excludes delayed worker/settlement time',()=>{
+ const f=setup();try{let now=1000;const runs=new Runs(f.db,f.box,()=>now);const row=runs.materialize('admit',f.snapshot);assert.equal(row.startedAtMs,1000);now=2000;assert.equal(runs.materialize('admit',f.snapshot).startedAtMs,1000);
+ now=1005000;runs.expire();const done=runs.get(row.id,'buyer');assert.equal(done.finishedAtMs,Number(er.deadline_ms));now=2000000;runs.expire();assert.equal(runs.get(row.id,'buyer').finishedAtMs,done.finishedAtMs);
+ }finally{f.close();}
+});
+
+test('run projection shows incoming charge warning inside sight while hiding offscreen source',()=>{const f=setup();try{const runs=new Runs(f.db,f.box,()=>1000),row=runs.materialize('admit',f.snapshot);row.state.roguelike=true;row.state.explored=[];row.state.player.x=1;row.state.player.y=1;row.state.room=['#########','#.......#','#.......#','#.......#','#.......#','#.......#','#########'];row.state.enemies=[{id:'unseen-charger',kind:'charger',hp:6,x:6,y:1,intent:{x:6,y:1},alerted:false}];row.state.layout![0].enemies=structuredClone(row.state.enemies);f.db.put('run',row.id,row);const view=runs.action(row.id,'buyer','wake',0,{type:'wait'});assert.deepEqual(view.state.enemies,[]);assert.ok(view.state.incomingDanger?.some(p=>p.x===1&&p.y===1));assert.ok(view.state.incomingDanger?.every(p=>p.x<=5));assert.ok(!JSON.stringify(view).includes('unseen-charger'));assert.equal(runs.action(row.id,'buyer','hit',1,{type:'wait'}).state.player.hp,8);}finally{f.close();}});
+
+for(const duration of [60000,3600000])test(`v8 ${duration}ms receipt deadline survives restart and expires exactly once`,async()=>{
+ const {encodeCustomModule}=await import('../../../packages/shared/src/custom-layout');const f=setup();try{
+ const floor={tiles:['#####','#...#','#...#','#...#','#####'],spawn:{x:1,y:1},exit:{x:3,y:3},sockets:[],tuning:[]};
+ f.snapshot.editions[0].terms={...f.snapshot.editions[0].terms,rules_version:8,modules:[encodeCustomModule(floor,'tuned'),encodeCustomModule(floor,'tuned')],sockets:[],no_reward:true,run_duration_ms:String(duration),max_runs:1};
+ const op=f.db.operation('admit')!;assert.equal(op.receipt?.status,'Applied');if(op.receipt?.status!=='Applied')throw Error('fixture');op.receipt.run={...er,assignments:[],deadline_ms:String(1000+duration)};f.db.putOperation(op);
+ let clock=1000;const runs=new Runs(f.db,f.box,()=>clock);runs.materialize('admit',f.snapshot);f.db.close();const db=new Store(join(f.dir,'db'));try{
+ const restarted=new Runs(db,new Outbox(db,{} as any),()=>clock);assert.equal(restarted.view('run-1','buyer').deadline,String(1000+duration));clock=999+duration;restarted.expire();assert.equal(restarted.get('run-1','buyer').terminal,undefined);clock++;restarted.expire();restarted.expire();assert.equal(restarted.get('run-1','buyer').terminal,'expired');assert.equal(db.operations().filter(o=>o.command.action.type==='settle').length,1);
+ }finally{db.close();}
+ }finally{f.close();}
+});

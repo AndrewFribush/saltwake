@@ -1,0 +1,308 @@
+TAP version 13
+# Subtest: club shove displaces once, cannot teleport back to stale intent and preserves input
+not ok 1 - club shove displaces once, cannot teleport back to stale intent and preserves input
+  ---
+  duration_ms: 1.901042
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:1:577'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected "actual" not to be reference-equal to "expected":
+    
+    {
+      enemies: [
+        {
+          hp: 4,
+          id: 'rat',
+          intent: {
+            x: 1,
+            y: 1
+          },
+          kind: 'pursuer',
+          x: 2,
+          y: 1
+        }
+      ],
+      items: {
+        'town-club': {
+          id: 'town-club',
+          location: {
+            kind: 'weapon'
+          },
+          origin: 'town',
+          type: 'club'
+        }
+      },
+      layout: [
+        {
+          enemies: [],
+          exit: {
+            x: 1,
+            y: 1
+          },
+          id: 'test',
+          spawn: {
+            x: 1,
+            y: 1
+          },
+          tiles: [
+            '#########',
+            '#.......#',
+            '#..##...#',
+            '#.......#',
+            '#....#..#',
+            '#.......#',
+            '#########'
+          ],
+          title: 'Test',
+    ...
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    roomIndex: 0
+    items:
+      town-club:
+        id: 'town-club'
+        type: 'club'
+        origin: 'town'
+        location:
+          kind: 'weapon'
+    originalTownIds:
+      0: 'town-club'
+    reservedItemIds:
+    room:
+      0: '#########'
+      1: '#.......#'
+      2: '#..##...#'
+      3: '#.......#'
+      4: '#....#..#'
+      5: '#.......#'
+      6: '#########'
+    player:
+      x: 1
+      y: 1
+      hp: 12
+      weapon: 'club'
+      armor: false
+    enemies:
+      0:
+        id: 'rat'
+        kind: 'pursuer'
+        hp: 4
+        x: 2
+        y: 1
+        intent:
+          x: 1
+          y: 1
+    traps:
+    turn: 0
+    status: 'active'
+    log:
+      0: 'Explore the cellar. Walls do not spend a turn.'
+    rulesVersion: 4
+    layout:
+      0:
+        id: 'test'
+        title: 'Test'
+        tiles: <Circular>
+        spawn:
+          x: 1
+          y: 1
+        exit:
+          x: 1
+          y: 1
+        enemies:
+        traps:
+  actual:
+    roomIndex: 0
+    items:
+      town-club:
+        id: 'town-club'
+        type: 'club'
+        origin: 'town'
+        location:
+          kind: 'weapon'
+    originalTownIds:
+      0: 'town-club'
+    reservedItemIds:
+    room:
+      0: '#########'
+      1: '#.......#'
+      2: '#..##...#'
+      3: '#.......#'
+      4: '#....#..#'
+      5: '#.......#'
+      6: '#########'
+    player:
+      x: 1
+      y: 1
+      hp: 12
+      weapon: 'club'
+      armor: false
+    enemies:
+      0:
+        id: 'rat'
+        kind: 'pursuer'
+        hp: 4
+        x: 2
+        y: 1
+        intent:
+          x: 1
+          y: 1
+    traps:
+    turn: 0
+    status: 'active'
+    log:
+      0: 'Explore the cellar. Walls do not spend a turn.'
+    rulesVersion: 4
+    layout:
+      0:
+        id: 'test'
+        title: 'Test'
+        tiles: <Circular>
+        spawn:
+          x: 1
+          y: 1
+        exit:
+          x: 1
+          y: 1
+        enemies:
+        traps:
+  operator: 'notStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:7:145)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: legacy, sword, blocked, remote and malformed shoves spend no turn
+ok 2 - legacy, sword, blocked, remote and malformed shoves spend no turn
+  ---
+  duration_ms: 0.116459
+  type: 'test'
+  ...
+# Subtest: shove onto armed spikes applies normal hazard phase once, unarmed flips without hit
+not ok 3 - shove onto armed spikes applies normal hazard phase once, unarmed flips without hit
+  ---
+  duration_ms: 0.246834
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:1:1450'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    4 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 4
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:9:187)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: shoved charger cannot traverse a disconnected old lane or silently re-aim
+not ok 4 - shoved charger cannot traverse a disconnected old lane or silently re-aim
+  ---
+  duration_ms: 0.143625
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:1:1768'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    2 !== 3
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 3
+  actual: 2
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:10:249)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: experimental extraction resolves incoming attack then extracts; death wins
+not ok 5 - experimental extraction resolves incoming attack then extracts; death wins
+  ---
+  duration_ms: 0.128458
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:1:2087'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'active'
+    - 'extracted'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'extracted'
+  actual: 'active'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:11:145)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: extraction pays trap response even when room is clear; no guard carries over
+not ok 6 - extraction pays trap response even when room is clear; no guard carries over
+  ---
+  duration_ms: 0.1185
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:1:2471'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'extracted'
+    - 'died'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'died'
+  actual: 'extracted'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/tactical.test.ts:12:184)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: legacy exit still needs full clear; experiment cannot extract remotely or descend uncleared
+ok 7 - legacy exit still needs full clear; experiment cannot extract remotely or descend uncleared
+  ---
+  duration_ms: 0.110458
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 2
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 132.544084

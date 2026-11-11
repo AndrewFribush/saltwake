@@ -1,0 +1,9 @@
+✔ Maker selections replenish fixed rewards and colliding random names into exact contract pools (6523.0135ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6730.119709

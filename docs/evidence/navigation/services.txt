@@ -1,0 +1,15 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+SERVICE 0 1366 {"scroll":false,"out":[]}
+SERVICE 0 390 {"scroll":false,"out":[]}
+SERVICE 1 1366 {"scroll":false,"out":[]}
+SERVICE 1 390 {"scroll":false,"out":[]}
+SERVICE 2 1366 {"scroll":false,"out":[]}
+SERVICE 2 390 {"scroll":false,"out":[]}
+SERVICE 4 1366 {"scroll":false,"out":[]}
+SERVICE 4 390 {"scroll":false,"out":[]}
+ESCAPE 0
+FOCUS Help
+ERRORS []
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

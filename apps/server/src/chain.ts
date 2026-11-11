@@ -1,3 +1,4 @@
+import {commandGas} from '../../../packages/shared/src/command-limits';
 import {JsonRpcProvider,KeyPairSigner,createTransaction,actions,baseDecode,baseEncode,encodeTransaction,decodeSignedTransaction} from 'near-api-js';
 import type {Command,OperationStatus} from '../../../packages/shared/src/types';
 import type {Chain} from './outbox';
@@ -9,7 +10,7 @@ export class NearChain implements Chain {
   const access=await this.provider.viewAccessKey({accountId:this.accountId,publicKey:key.toString(),finalityQuery:{finality:'final'}});
   const block=await this.provider.viewBlock({finality:'final'});
   const nonce=BigInt(access.nonce)+1n>BigInt(minNonce)?BigInt(access.nonce)+1n:BigInt(minNonce);
-  const tx=createTransaction(this.accountId,key,this.contractId,nonce,[actions.functionCall('execute',{op_id:id,command},100_000_000_000_000n,0n)],baseDecode(block.header.hash));
+  const tx=createTransaction(this.accountId,key,this.contractId,nonce,[actions.functionCall('execute',{op_id:id,command},commandGas(command.action),0n)],baseDecode(block.header.hash));
   const signed=await this.signer.signTransaction(tx);
   return {hash:baseEncode(signed.txHash),nonce:nonce.toString(),bytes:Buffer.from(encodeTransaction(signed.signedTransaction)).toString('base64')};
  }

@@ -30,6 +30,8 @@ export function encodeCommand(c:Command):Uint8Array{
  else if(a.type==='fill_npc_order'){byte(14);str(a.order_id);strings(a.item_ids);u64(a.expected_unit_price);}
  else if(a.type==='begin_craft'||a.type==='begin_recovery'){byte(a.type==='begin_craft'?15:17);str(a.batch_id);strings(a.type==='begin_craft'?a.input_ids:a.bank_input_ids);str(a.challenge_commitment);u64(a.deadline_ms);}
  else if(a.type==='finish_craft'||a.type==='finish_recovery'){byte(a.type==='finish_craft'?16:18);str(a.batch_id);byte(['normal','fine'].indexOf(a.tier));byte(['completed','expired'].indexOf(a.reason));}
+ else if(a.type==='create_shop'||a.type==='update_shop'){byte(a.type==='create_shop'?19:20);if(a.type==='update_shop'){str(a.shop_id);u64(a.expected_version);}str(a.title);str(a.district);byte(a.x);byte(a.y);str(a.interior);bool(a.open);}
+ else if(a.type==='stock_shop'){byte(21);str(a.shop_id);strings(a.item_ids);u64(a.unit_price);}
  else throw Error('Unknown action');
  return Buffer.concat(chunks);
 }

@@ -1,0 +1,12 @@
+{
+  "provider": "NEAR Testnet",
+  "accountId": "dungeon-economy-demo-20261110.testnet",
+  "rpcUrl": "https://test.rpc.fastnear.com",
+  "helper": "https://helper.testnet.near.org/account",
+  "publicKey": "ed25519:HLpytsfyqbbcU8rN1P9eNSdy9ka7D5YFUcDxsnpAnwDT",
+  "maximumFaucetRequests": 1,
+  "maximumTestnetNear": 10,
+  "noMainnet": true,
+  "noPaidService": true,
+  "status": "PREPARED_NOT_REQUESTED"
+}

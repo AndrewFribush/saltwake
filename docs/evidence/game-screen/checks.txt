@@ -1,0 +1,17 @@
+
+> dungeon-economy@0.1.0 typecheck
+> tsc --noEmit
+
+
+> dungeon-economy@0.1.0 build
+> vite build apps/web
+
+vite v6.4.6 building for production...
+transforming...
+✓ 69 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.36 kB │ gzip:  0.27 kB
+dist/assets/index-BaqGmSbc.css   53.55 kB │ gzip: 11.37 kB
+dist/assets/index-CPrgV_Ga.js   303.46 kB │ gzip: 98.33 kB
+✓ built in 488ms

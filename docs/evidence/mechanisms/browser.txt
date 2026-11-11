@@ -1,0 +1,12 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+PROFILE=maker
+FIT={"width":1366,"panel":"Place","scroll":false,"out":[]}
+FIT={"width":1366,"panel":"Edit","scroll":false,"out":[]}
+FIT={"width":1366,"panel":"Help","scroll":false,"out":[]}
+FIT={"width":390,"panel":"Place","scroll":false,"out":[]}
+FIT={"width":390,"panel":"Edit","scroll":false,"out":[]}
+FIT={"width":390,"panel":"Help","scroll":false,"out":[]}
+GATE_LABELS={"before":"3,1 floor · Door gate: closed","after":"3,1 floor · Door gate: open"}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

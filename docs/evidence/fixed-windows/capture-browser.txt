@@ -1,0 +1,9 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+WALLET_SAME={"x":144.109375,"y":152,"width":647.7734375,"height":529.9921875}/{"x":144.109375,"y":152,"width":647.7734375,"height":529.9921875}
+SESSION_SAME={"x":67.375,"y":148,"width":255.25,"height":208.84375}/{"x":67.375,"y":148,"width":255.25,"height":208.84375}
+ART_OVERFLOW=0
+ART_OUTSIDE=[]
+ASIDE_DIR=/Users/andrewfribush/.aside/u/0/sessions/2026-11-10_7rpwYXcOYzLErVwS
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

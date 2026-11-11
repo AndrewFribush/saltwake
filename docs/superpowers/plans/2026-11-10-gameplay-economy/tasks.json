@@ -1,0 +1,149 @@
+[
+  {
+    "id": "P01",
+    "title": "Freeze a reproducible baseline (no dependencies)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P02",
+    "title": "Pin the experimental rules and observations (P01)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P03",
+    "title": "Implement displacement in practice (P02)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P04",
+    "title": "Implement extraction under threat (P02; can develop separately from P03)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P05",
+    "title": "Author one encounter and reproducible routes (P03/P04)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P06a",
+    "title": "Capture a bounded diagnostic trace (P03\u2013P05)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P06b",
+    "title": "Make consequences readable in existing windows (P06a)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P07",
+    "title": "Observe first human sessions (P06b)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P08",
+    "title": "Refine one cause at a time (P07)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P09",
+    "title": "Define promotion boundary (G1)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P10",
+    "title": "Promote authoritative gameplay safely (P09)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P11",
+    "title": "Play one complete trade circuit (P10)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P12",
+    "title": "Improve one artisan/shop decision (P11)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P13a",
+    "title": "Specify economic cost provenance (P01; independent of combat)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P13b",
+    "title": "Implement and verify the provenance projection (P13a)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P13c",
+    "title": "Display qualified business results (P13b/P11)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P14",
+    "title": "Harden transparency and maker feedback (P11; existing feature preserved)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P15",
+    "title": "Test the full human loop (P11/P12/P14; P13c before profit claims)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P16",
+    "title": "Stress low-population and depleted-budget scenarios (P13a/P14; P13b for cost-projection checks)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P17",
+    "title": "Refine the weakest economic link (G2/P16)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  },
+  {
+    "id": "P18",
+    "title": "Independent final review and acceptance (P08/P10\u2013P17)",
+    "status": "superseded",
+    "evidence": [],
+    "superseded_by": "SYSTEMS-KIT-PLAN.md"
+  }
+]

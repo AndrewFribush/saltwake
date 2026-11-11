@@ -1,0 +1,10 @@
+✔ authored v3 mixed rewards publish, reserve real goods, materialize at authored positions, and replenish without touching reservations (5008.710334ms)
+✔ authored v4 mixed rewards publish, reserve real goods, materialize at authored positions, and replenish without touching reservations (4259.802833ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9666.142125

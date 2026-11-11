@@ -1,0 +1,46 @@
+✖ oversized legacy signed transactions never broadcast on retry or restart (8.705458ms)
+✖ oversized v9 publication signed transactions never broadcast on retry or restart (5.605917ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 164.541333
+
+✖ failing tests:
+
+test at apps/server/test/outbox.test.ts:1:5618
+✖ oversized legacy signed transactions never broadcast on retry or restart (8.705458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/outbox.test.ts:31:765)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/server/test/outbox.test.ts:1:5618
+✖ oversized v9 publication signed transactions never broadcast on retry or restart (5.605917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/outbox.test.ts:31:765)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

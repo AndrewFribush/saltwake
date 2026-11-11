@@ -1,0 +1,12 @@
+HTTP action response ms {"samples":19,"min":0.5878339999999298,"median":1.1498750000000655,"max":11.470208000000184}
+HTTP played extraction: turns 20 ; buyer credits 8; maker credits 91; sword owned; used tonic consumed; unvisited tonic returned
+✔ HTTP maker funding -> paid play -> consumed tonic -> extracted sword, session isolation and CSRF (6889.900459ms)
+✔ HTTP shop builder to stocked sale, scoped ownership and restart recovery (4479.807ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7129.226458

@@ -1,0 +1,38 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+KIT club Equipment & loot
+
+Bag 1/6 · Weapon: club · Armor: none
+
+Club
+town · weapon · preview-weapon
+Previous item
+1/2
+Next item
+1366 {"scroll":false,"out":[]}
+390 {"scroll":false,"out":[]}
+KIT sword Equipment & loot
+
+Bag 1/6 · Weapon: sword · Armor: none
+
+Sword
+town · weapon · preview-weapon
+Previous item
+1/2
+Next item
+1366 {"scroll":false,"out":[]}
+390 {"scroll":false,"out":[]}
+KIT armored Equipment & loot
+
+Bag 1/6 · Weapon: club · Armor: equipped
+
+Club
+town · weapon · preview-weapon
+Previous item
+1/3
+Next item
+1366 {"scroll":false,"out":[]}
+390 {"scroll":false,"out":[]}
+EDITOR_RETURNED=true
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

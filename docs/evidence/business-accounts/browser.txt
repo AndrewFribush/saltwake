@@ -1,0 +1,26 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+CASH_FLOW=Account
+Balances
+Pending
+Run fees
+Cash flow
+Cash movements
+Cash rules
+Receipts
+About
+Refresh wallet
+
+Recorded in 0 · out 5 · net -5 coins.
+
+Pending income: 0 coins.
+
+Partial cash history, not profit. Initial allocations and recovery wages are excluded. Choose Cash movements for entries or Cash rules for coverage.
+FIT={"width":1366,"height":768,"view":"Cash flow","scroll":false,"offscreen":[]}
+FIT={"width":1366,"height":768,"view":"Cash movements","scroll":false,"offscreen":[]}
+FIT={"width":1366,"height":768,"view":"Cash rules","scroll":false,"offscreen":[]}
+FIT={"width":390,"height":844,"view":"Cash flow","scroll":false,"offscreen":[]}
+FIT={"width":390,"height":844,"view":"Cash movements","scroll":false,"offscreen":[]}
+FIT={"width":390,"height":844,"view":"Cash rules","scroll":false,"offscreen":[]}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

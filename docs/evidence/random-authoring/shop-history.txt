@@ -1,0 +1,24 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+RECORD {"sales":[{"operationId":"p2-11e61e76-f2d7-4f37-9ffa-d2be8154609c","listingId":"listing-2","buyer":"p2","itemIds":["maker-fine-tonic-3"],"unitPrice":"3","total":"3"}],"recordedRevenue":"3","recordedItems":1,"stockItems":0,"coverage":"complete","unrecordedSoldItems":0,"cancelledListings":0,"missingListings":0}
+HISTORY_FIT 1366 {"scroll":false,"out":[]}
+HISTORY_FIT 390 {"scroll":false,"out":[]}
+HISTORY_UI Player-built provisioner
+Back to room
+Shop stock
+Stock & manage
+Receipts
+
+Recorded revenue: 3 coins · 1 items sold · 0 stocked.
+
+Receipts cover the sales visible in current listing records. Acquisition costs are not deducted.
+
+3 coins · p2
+
+1 goods at 3 each · listing-2
+
+p2-11e61e76-f2d7-4f37-9ffa-d2be8154609c: maker-fine-tonic-3
+
+Trades settle on the contract; only confirmed owned goods can be stocked.
+GSTACK_STEP_OK
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.

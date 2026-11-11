@@ -1,0 +1,185 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Save 35% on Moonlighter 2: The Endless Vault on Steam (https://store.steampowered.com/app/2350790/Moonlighter_2_The_Endless_Vault/)
+SOURCE=https://store.steampowered.com/app/2350790/Moonlighter_2_The_Endless_Vault/
+About This Game
+
+Live the double life of a resourceful merchant and fearless adventurer in this sequel to the hit rogue-lite Action-RPG!
+
+
+Stranded without a coin in the village of Tresna, Will must open shop again as he dives into an interdimensional adventure. Explore dangerous dungeons, loot ancient relics, sell them, and reinvest in the town's prosperity.
+
+The magical, addictive loop returns—bigger, bolder, and packed with shiny loot.
+
+
+Profitable perils await as dimensional exploration evolves. Strap on your trusty backpack and master dynamic combat with various weapon classes, armor sets, and powerful perks.
+
+Chart a path through unpredictable worlds, defeat relentless foes and formidable bosses, then carefully arrange your loot to unlock unique item synergies. Managing your backpack is key to financial success and maximizing profits.
+
+The deeper you go, the greater the rewards—and the risks.
+
+After every adventure, it's time to open for business. Customize your shop, set your prices, and read your customers to strike the perfect deal. Unlock sales perks, capitalize on special events, and optimize your displays to maximize profits.
+
+From battered scrap to priceless relics, every item's value is yours to decide.
+
+Take on the Endless Vault, a mysterious ancient artifact that pushes your skills to the limit.
+
+Overcome its ever-growing challenges to upgrade your town and earn increasingly valuable rewards. Will it be enough to reclaim your homeland from the evil Moloch, an interdimensional collector who has claimed your beloved village for himself?
+
+Dive into Moonlighter’s stunning visual leap into 3D. Explore vibrant environments, enjoy smoother, more dynamic combat, and experience the iconic cycle of daytime shopkeeping and nighttime treasure hunting like never before.
+
+READ MORE
+System Requirements
+MINIMUM:
+
+OS: Windows 10 64-bit
+
+PROCESSOR: AMD Ryzen 7 2700 or Intel Core i5-10400F
+
+MEMORY: 12 GB RAM
+
+GRAPHICS: AMD Radeon RX 5500 XT or NVidia GeForce GTX 1650 or Intel Arc A750
+
+DIRECTX: Version 11
+
+STORAGE: 6 GB available space
+
+ADDITIONAL NOTES: SSD (Recommended), HDD (Supported). Ultrawide screen supported.
+RECOMMENDED:
+
+OS: Windows 10 64-bit
+
+PROCESSOR: AMD Ryzen 5 3600 or Intel Core i5-12500
+
+MEMORY: 16 GB RAM
+
+GRAPHICS: AMD Radeon RX 5700 or NVidia GeForce RTX 3060 or Intel Arc A770
+
+DIRECTX: Version 12
+
+STORAGE: 6 GB available space
+
+ADDITIONAL NOTES: SSD (Recommended). Ultrawide screen supported.
+
+©11 BIT STUDIOS® is registered trademark of 11 BIT STUDIOS S.A. All rights reserved.
+Digital Sun™, Moonlighter™ 2: The Endless Vault and respective logos are trademarks of Digital Sun Studios S.L. All rights reserved.
+
+MOONLIGHTER 2: THE ENDLESS VAULT IS PART OF AN EVENT
+11 bit Publisher Sale 2026
+Now through Nov 14
+Explore event
+It’s time to stock up on games! The 11 bit studios Publisher Sale has officially kicked off on Steam, bringing discounts of up to 90% across our catalogue.
+Other games from this event
+-55%
+$44.99
+$20.24
+-55%
+$34.99
+$15.74
+-90%
+$29.99
+$2.99
+ 
+ 
+Other games from this event
+MORE FROM DIGITAL SUN
+Follow
+See All
+YOU MIGHT ALSO LIKE
+MAY 29, 2018
+Hack and Slash
+Pixel Graphics
+Roguelite
+Dungeon Crawler
+Roguelike
+Action Roguelike
+Management
+RPG
+Action RPG
+Adventure
+Procedural Generation
+Character Action Game
+Controller
+Singleplayer
+Exploration
+Top-Down
+Action
+Simulation
+Fantasy
+2D
+-90%
+$19.99
+$1.99
+$29.99
+$29.99
+-85%
+$6.99
+$1.04
+-60%
+$1.99
+$0.79
+Free Demo
+Available: Mar 25, 2027
+MORE LIKE MOONLIGHTER 2: THE ENDLESS VAULT
+See All
+$29.99
+$19.99
+$59.99
+Free To Play
+$29.99
+$49.99
+$29.99
+-25%
+$49.99
+$37.49
+View all
+What Curators Say
+95 Curators have reviewed this product. Click here to see them.
+Customer reviews for Moonlighter 2: The Endless Vault
+See language breakdown
+About user reviews
+Your preferences
+ENGLISH REVIEWS:
+Very Positive
+(1,800 reviews)
+Total reviews in all languages:
+3,535
+Very Positive
+Recent Reviews in all languages:
+138
+Mostly Positive
+Review Type
+Purchase Type
+Language
+Date Range
+Display
+Show graph
+Filters
+Your Languages
+
+© 2026 Valve Corporation. All rights reserved. All trademarks are property of their respective owners in the US and other countries.
+VAT included in all prices where applicable.
+
+STEAM
+About Steam
+Steam SSA
+Steamworks
+Steam Distribution
+Gift Cards
+VALVE
+About Valve
+Jobs
+Hardware
+Recycling
+LEGAL
+Privacy
+Accessibility
+Notices & Policies
+Cookies
+Refunds
+MORE
+Get Steam
+Get Mobile Apps
+Get Support
+My Account
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

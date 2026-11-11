@@ -1,0 +1,51 @@
+✖ wallet snapshot discovery materializes exact reservations without inventing receipts/timing and survives replay/restart (6007.877125ms)
+✔ absent-server late wallet discovery expires through the real oracle without stranded fees or goods (11030.324625ms)
+✔ externally terminal wallet runs cannot be resurrected by older snapshots after restart (6250.126125ms)
+✖ discovery rejects malformed copies of final snapshots with mismatched exact ownership (6445.112333ms)
+✖ existing discovered progress imports actual external terminal status without fabricated settlement evidence (5922.334958ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 2
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 35891.838042
+
+✖ failing tests:
+
+test at apps/server/test/player-discovery.test.ts:1:5436
+✖ wallet snapshot discovery materializes exact reservations without inventing receipts/timing and survives replay/restart (6007.877125ms)
+  Error: Run owner mismatch
+      at Runs.get (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/src/runs.ts:82:111)
+      at TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/player-discovery.test.ts:62:24)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)
+
+test at apps/server/test/player-discovery.test.ts:1:10990
+✖ discovery rejects malformed copies of final snapshots with mismatched exact ownership (6445.112333ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/player-discovery.test.ts:124:87)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /reserv|ownership/i,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at apps/server/test/player-discovery.test.ts:1:12391
+✖ existing discovered progress imports actual external terminal status without fabricated settlement evidence (5922.334958ms)
+  Error: Run owner mismatch
+      at Runs.get (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/src/runs.ts:82:111)
+      at <anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/src/runs.ts:114:19)
+      at Store.transaction (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/src/db.ts:18:78)
+      at Runs.action (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/src/runs.ts:113:18)
+      at TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/player-discovery.test.ts:132:14)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7)

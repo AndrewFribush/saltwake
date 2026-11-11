@@ -1,0 +1,2 @@
+   Compiling dungeon-economy v0.1.0 (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/contracts/economy)
+    Finished `release` profile [optimized] target(s) in 5.44s

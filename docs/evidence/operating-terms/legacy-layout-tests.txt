@@ -1,0 +1,41 @@
+✔ WASM v7 accepts bounded tuning, linear floors and exact funded reservations (5266.721917ms)
+✖ WASM v7 rejects malformed, null, unknown and inapplicable tuning atomically (47886.850583ms)
+✔ WASM v7 optional links require a complete valid graph and old tuning metadata stays ignored (14142.764334ms)
+✔ WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock (11262.110959ms)
+✔ WASM v6 accepts branches, returns, self links and leaf exits; reserves actual last-slot goods (5267.488709ms)
+✔ WASM v6 rejects invalid graphs, link schemas and marker collisions atomically (25098.063584ms)
+✔ WASM v3-v5 continue ignoring link metadata without graph interpretation (3621.023625ms)
+✔ WASM v4 publishes variable encounter positions, reserves a fifth-slot reward and rejects legacy reinterpretation (4196.982042ms)
+✔ WASM v5 accepts independent dimension bounds and four maximum floors with 64 sockets (2663.733375ms)
+✔ WASM v5 rejects malformed dimensions, markers, boundaries and legacy reinterpretation atomically (18041.321542ms)
+✔ WASM v5 validates actual per-floor slots and reserves exactly the funded last-slot reward (6745.008166ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 10
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 144432.985083
+
+✖ failing tests:
+
+test at tests/contract/custom-layout.test.ts:1:4044
+✖ WASM v7 rejects malformed, null, unknown and inapplicable tuning atomically (47886.850583ms)
+  AssertionError [ERR_ASSERTION]: 88
+  + actual - expected
+  
+  + 'Applied'
+  - 'Rejected'
+  
+      at TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/tests/contract/custom-layout.test.ts:80:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'Applied',
+    expected: 'Rejected',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

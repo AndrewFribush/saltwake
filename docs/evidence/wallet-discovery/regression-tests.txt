@@ -1,0 +1,38 @@
+✔ player requests remain unsigned across retries/restart and accept only exact final receipts (7.177875ms)
+✔ an unresolved player request never blocks the independent operator signer stream (3.191333ms)
+✔ receipt identity conflicts and stored signed bytes cannot make a player request broadcast (2.983208ms)
+✔ account identities isolate operation IDs and wallet result/start actions are not user-submittable (2.449375ms)
+✔ confirmed player admission retains terminal capacity and cost observers never claim missing before evidence (132.955625ms)
+✔ an unsigned foreign closure cannot discharge another creator’s reserved terminal capacity (123.830667ms)
+✔ a stalled player receipt cannot stall operator signing or create duplicate polling requests (70.953292ms)
+✔ two owner-bound queued oracle terminals occupy both reserved slots without double-counting (119.905875ms)
+✔ stalled observations are bounded, retain their live slot and signal cancellation before late writes (23.36325ms)
+✔ a confirmed discovered run reserves a terminal slot without a fabricated admission operation (111.984584ms)
+✔ only applied admissions materialize; hidden seed/rewards absent from run view (7.520208ms)
+✔ actions commit once, survive restart, reject stale sequence and expire once (6.187ms)
+✔ terminal view redacts receipt seed/assignments and expiry retries replay consistently (3.983083ms)
+✔ consumed potion and exact retry response survive process restart (4.089667ms)
+✔ v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart (5.611875ms)
+✔ v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns (5.337625ms)
+✔ v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent (3.372416ms)
+✔ v3 authored geometry, funded positions, fog and settlement survive restart (7.386833ms)
+✔ run timing persists once and expiry excludes delayed worker/settlement time (3.136041ms)
+✔ run projection shows incoming charge warning inside sight while hiding offscreen source (3.419875ms)
+✔ v8 60000ms receipt deadline survives restart and expires exactly once (4.754084ms)
+✔ v8 3600000ms receipt deadline survives restart and expires exactly once (4.916667ms)
+✔ wallet sign-in verifies standard signatures at finality, binds account and creates no demo claim (32.837833ms)
+✔ changed signed fields, another account, missing binding and cross-origin proofs reject (12.834625ms)
+✔ concurrent replay consumes the challenge before asynchronous key verification (3.341167ms)
+✔ restricted, absent and revoked keys cannot authenticate (2.083417ms)
+✔ expiry is checked after asynchronous verification and sessions expire independently (6.323625ms)
+✔ challenge replacement, capacities, configuration and restart fail closed (5.648625ms)
+✔ in-flight verifications retain capacity after response timeout until the RPC actually settles (24.009ms)
+✔ logout cancels unused and in-flight login proofs and their just-issued sessions (5.088292ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 726.585875

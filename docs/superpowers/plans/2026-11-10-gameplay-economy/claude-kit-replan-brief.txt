@@ -1,0 +1,200 @@
+Andrew explicitly stopped the previous plan: "You are not supposed to make specific adventures ... You're supposed to make a game system and building kit. Stop and redo the plan with that in mind." Review this corrected SYSTEMS/KIT plan ONLY. No code/tools. Identify whether it still smuggles authored-content-first thinking, misses builder/economy-system capabilities, or overclaims. Give prioritized corrections and a concise verdict (~600 words). Do not suggest changing fixed treasure-return/death rules. This is a replan, not authorization to implement.
+
+# Saltwake: game system, creator kit and player economy
+
+Status: revised plan for Andrew's review. Implementation stopped at his request; previous execution goal paused. This supersedes MERGED-PLAN.md as the proposed direction. No new implementation is authorized by this document itself.
+
+## Product definition
+
+We are making a game people can build and operate inside, not supplying a campaign of our own adventures.
+
+The core product is a reusable dungeon rules engine, a practical dungeon construction kit, and the civilian economy that supports player-created attractions. Creators assemble spaces, encounters, rewards and terms; adventurers choose and play those creations; artisans and merchants supply them. The operator provides the rules, bank/NPC economy and central issuance, not the player dungeon-making businesses.
+
+A fixed test layout is a disposable engineering fixture. It is never the product milestone, default content strategy or proof that players have expressive tools. Success means independent creators can make materially different enjoyable dungeons without an engineer changing code, and those dungeons support meaningful adventurer and business decisions.
+
+## What remains fixed
+
+- Tile/grid world and interiors; walk into doors; fixed windows; no page scrolling.
+- Makers fund their rewards, receive ordinary admission fees and can replenish stock. Central issuance validates/publishes their creations.
+- Town gear is lost to the bank on death; unconsumed dungeon-origin loot returns to the pool; consumed items remain spent. Closure leftovers go to the bank, not maker refunds.
+- Fixed rewards and funded random rolls, multiple funded copies/concurrent reservations, and in-run use of found goods.
+- No-treasure attractions are legitimate. Artisans work per batch and sell finite stock at chosen prices. Materials can be sourced cheaply from the NPC economy; no compulsory mining minigame.
+- Transparency: time, extracted loot, outcomes, denominators and sample sizes, distinct from cash earnings.
+- Preserve versioning, origin/ownership, escrow, quotes, reserves, idempotency and recovery.
+- Local work only; no paid calls, testnet, production, deployments or unsolicited recruitment messages.
+
+## Design principle: a vocabulary, not a prescribed adventure
+
+Every new mechanic must answer two questions: what interesting decision does it give the player, and what expressive control does it give the maker?
+
+A shove is one possible interaction primitive, not the organizing concept of the game. Optional rewards are a layout/placement capability, not one specific cache we place. Escape is a reusable rule whose conditions and risks must be legible. We evaluate combinations made by creators, including combinations we did not script.
+
+The first kit should expose bounded, understandable components rather than arbitrary scripts or an overwhelming catalog. Provide a small complete vocabulary, verify its interactions, and expand where creator sessions reveal missing expressive power. Do not add mandatory fuel or change death rules to manufacture economic demand.
+
+## Architecture and contracts
+
+1. **Rules engine:** versioned actions, targeting, movement, damage, statuses, intent, hazards, inventory and terminal outcomes. Definitions drive both authoritative execution and player explanations.
+2. **Content definitions:** data describing floors, entrances/exits, encounter placements, behavior parameters within safe bounds, triggers and reward sockets. Builders produce these definitions; the server validates the same schema. No secret exceptions for operator-authored content.
+3. **Creator tools:** draw, place, configure, inspect, validate, rehearse, revise and publish from fixed panels. Rehearsal uses the same declared rules as the eventual edition, with explicitly synthetic inventory.
+4. **Economy:** finite inventory, procurement, batch production, listings, admission, reservation, consumption, extraction, loss, closure and qualified accounts.
+5. **Operations/feedback:** immutable edition versions, public records, creator observations, discovery, refresh and retirement. Private test notes are not fabricated public engagement.
+
+Current anchors: packages/game/src; packages/shared/src/custom-layout.ts/types.ts; apps/web/src/FloorBuilder.tsx/Run.tsx/Shop.tsx/Crafting.tsx/Maker.tsx; apps/server/src/runs.ts/http.ts/edition-record.ts; contracts/economy/src. Existing code is audited and reused, not rewritten reflexively.
+
+## Work packages
+
+Every package ends with source review and relevant evidence. Cards are not complete merely because a screen exists. Dependencies are listed; estimates follow the capability audit rather than pretending this is a small fixed-adventure patch.
+
+### S01 — Audit the existing system and recent work
+Dependencies: none.
+- [ ] Inventory implemented mechanics, authoring controls, stock operations and missing connections.
+- [ ] Classify recent work as reusable system work, diagnostic tooling, test-only fixture, or unwanted product specialization.
+- [ ] Propose retaining/discarding each change. The named practice adventure must not remain the default product direction; do not silently delete prior work while planning.
+- [ ] Record current technical baseline, dirty-source manifest and established invariants.
+Deliverable: capability map and explicit disposition of the mistaken adventure work.
+
+### S02 — Define the first complete construction vocabulary
+Dependencies: S01.
+- [ ] Document maker controls already available and the smallest missing set needed to create different experiences: geometry, entry/exit, enemy behavior/placement, hazard timing, reward placement/rolls, floor sequence and economic terms.
+- [ ] Separate global game rules from per-dungeon choices. All configurable danger/economic terms must be visible and fixed at admission; no undisclosed arbitrary author scripting.
+- [ ] For each component specify its player decision, maker control, combinations, limits and UI explanation.
+- [ ] Make a coverage matrix of capabilities, not a list of named adventures.
+Deliverable: reviewed reusable component spec. Numerical defaults remain tunable, with versioned records.
+
+### S03 — Unify rule and content definitions
+Dependencies: S02.
+- [ ] Define shared schemas and validation for the construction vocabulary, including old content compatibility.
+- [ ] Remove duplicated assumptions between editor, rehearsal, server and published definitions where evidenced.
+- [ ] Ensure saved/admitted content pins rules and data; adding a mechanic cannot enable it in legacy runs accidentally.
+Deliverable: schema/version contract with roundtrip, invalid-data and legacy tests.
+
+### S04 — Deepen reusable player interactions
+Dependencies: S02/S03.
+- [ ] Implement the agreed action vocabulary with deterministic targeting, readable intent and clear action costs.
+- [ ] Verify interactions across enemies, hazards, terrain, equipment and items; pin displacement/committed-intent semantics if displacement is retained.
+- [ ] Verify escape, death, continuation and item disposition independently of any particular map.
+- [ ] Test small generated/parameterized arrangements and adversarial configurations. Preserve invalid-action/no-turn behavior.
+Deliverable: mechanically expressive engine primitives, not a special encounter.
+
+### S05 — Make authored layouts capable of meaningful choices
+Dependencies: S03.
+- [ ] Let creators construct routes, loops, optional areas, chokepoints and approachable reward placements using the grid tools.
+- [ ] Distinguish structural validity from design quality. Connectivity checks cannot certify fun or fair difficulty.
+- [ ] Explain unreachable areas, conflicting placements, unsafe arrival and inaccessible exit with locations and actionable fixes.
+Deliverable: a creator can realize and revise their intended spatial design without code edits.
+
+### S06 — Configure encounters and rewards in the builder
+Dependencies: S03/S04/S05.
+- [ ] Expose supported enemy/hazard/trigger properties with understandable limits and visual previews.
+- [ ] Configure fixed or funded random reward sockets, including zero reward. Reuse existing economy support; do not leave supported reward types inaccessible in authoring without explanation.
+- [ ] Show the interaction consequences of placement and configuration without hiding unfunded or invalid states.
+Deliverable: coherent placement/configuration workflow in fixed windows, with roundtrip and keyboard/pointer checks.
+
+### S07 — Make rehearsal a real design tool
+Dependencies: S04/S06.
+- [ ] Rehearse the current draft using its actual rules and configured encounters; clearly distinguish synthetic test inventory from funded publication.
+- [ ] Offer useful starting kit/test-position choices without changing the saved dungeon or granting goods.
+- [ ] Return from rehearsal to the same floor/selection and retained edits; restart/retry quickly; expose outcome/action trace for diagnosis.
+- [ ] Preserve undo/redo, draft persistence and recovery. Never publish as a side effect of rehearsal.
+Deliverable: build → play → diagnose → edit → replay works as one tool loop.
+
+### S08 — Playtest the building kit first
+Dependencies: S05–S07.
+- [ ] Andrew and then available willing creators choose what they want to make. Supply neutral capability explanations, not step-by-step layouts.
+- [ ] Observe intent, construction, confusion, workarounds, rehearsal and revision; record engineer interventions.
+- [ ] Have another person play a creation without the author explaining the route.
+- [ ] Ask creators what they could not express and players what they understood. A creator choosing no rewards is supported.
+Gate K1: creators can realize substantially different intentions without code edits. A polished developer-made map cannot pass this gate.
+
+### S09 — Refine tools and mechanics from creator/player evidence
+Dependencies: S08.
+- [ ] Separate a missing capability from a discoverability issue or poor tuning.
+- [ ] Fix the largest observed obstacle, change one main variable, and repeat build/play/revise sessions.
+- [ ] Test whether newly expressible combinations produce understandable choices, not merely more options.
+- [ ] After two unsuccessful rounds, review the system assumption; do not compensate with authored showcase content.
+Deliverable: accepted capability improvements with evidence and remaining limitations.
+
+### S10 — Integrate publication, procurement and capacity
+Dependencies: S03/S06; public-facing promotion of new mechanics requires K1 evidence.
+- [ ] Creators procure ordinary goods, select funding, see placement cost and complete-copy capacity, quote entry fee/opening period, validate and publish.
+- [ ] Rehearsal and published behavior match; only reward ownership/authority changes. Terms and layout versions are immutable for admitted runs.
+- [ ] Verify fixed/random reservations, no-reward editions, refresh, concurrent capacity, changed future prices and closure.
+- [ ] Preserve existing paid floor-count constraints unless a separate documented system decision changes them.
+Deliverable: a usable maker business workflow for player-authored definitions.
+
+### S11 — Validate arbitrary authored runs against the economy
+Dependencies: S10.
+- [ ] Test success, death, abandonment, expiry and void across multiple mechanically different authored definitions.
+- [ ] Verify consumables, found equipment, returned stock, fee routing and bank forfeitures by exact IDs.
+- [ ] Exercise duplicate/stale actions, uncertain transactions, disconnect/restart and terminal races.
+Deliverable: reusable authoritative execution and settlement, not a one-map integration proof.
+
+### S12 — Make preparation, play and return one player loop
+Dependencies: S04/S10/S11.
+- [ ] Choose a creation using actual terms/transparency, compare gear, pack a loadout, enter and act, then return to meaningful use/sale/restocking decisions.
+- [ ] Make threats, choices and consequences legible with the same character/tile system and fixed panels.
+- [ ] Make loss understandable and re-entry feasible through disclosed finite recovery support; distinguish knowledge from permanent purchased power.
+Deliverable: an adventurer can choose and learn unfamiliar player-created content without developer help.
+
+### S13 — Improve artisan and merchant play
+Dependencies: S01; integrate with S12.
+- [ ] Observe existing batch production, costs/quality, pricing, real stock, buying and selling.
+- [ ] Refine the per-batch interaction and shop decisions where evidence identifies repetition/confusion.
+- [ ] Make makers and adventurers actual counterpart buyers in local multi-profile tests; distinguish demonstration trades from organic demand.
+- [ ] Add recipes/orders only when a demonstrated need and complete funding/fulfillment rules justify them.
+Deliverable: supplying other players is an understandable, satisfying activity, not just extra menus.
+
+### S14 — Implement trustworthy business accounting
+Dependencies: S01; schema can proceed independently of gameplay.
+- [ ] Review Claude's draft critically before implementation: it incorrectly treats deprecated debit as a grant, assumes ordering, risks double-counting fees and gives a wrong bound for unknown costs.
+- [ ] Define actual-cost provenance and conservative unknown handling; verify receipts, sequence/coverage, transfer ownership and craft allocation without fractional-credit invention.
+- [ ] Show cash flow, funded expense, pending fees, stock/reference value and qualified contribution separately. Expense committed maker treasure once; never imply closure refunds.
+- [ ] Test resale, crafting, extraction, funding/refresh, losses and incomplete history through retry/rebuild.
+Deliverable: credible information for operating a business, no guaranteed profitability claim.
+
+### S15 — Make transparency and discovery serve player choice
+Dependencies: existing records; integrate S10–S14.
+- [ ] Preserve averages/medians, losses-as-zero, outcome counts, timing/loot coverage and sample-size disclosure.
+- [ ] Associate evidence with appropriate edition/rules/terms; explain fee/refresh mixing and avoid success-only claims.
+- [ ] Help players find creations matching preferences, including unfamiliar makers and no-reward content. Change ranking only for observed discovery problems.
+- [ ] Give makers useful feedback without rewarding kills or disclosing private/unvisited data.
+Deliverable: informed choice and actionable iteration, not manufactured popularity.
+
+### S16 — Playtest the complete creator/economy ecosystem
+Dependencies: S09/S11–S15.
+- [ ] Makers create/fund, artisans supply, adventurers choose/play, merchants trade, makers revise new editions.
+- [ ] Observe independent intentions and unfamiliar creations. Record absent demand, unsold stock, depleted funding, confusing costs and recovery friction.
+- [ ] Offer neutral stop/repeat choices. Keep assigned trials separate from voluntary activity; do not force people into three runs to manufacture retention.
+Gate K2: people can create, operate, play and revise through the same system without developer intervention. Enjoyment and repeat intent require actual people, not simulations.
+
+### S17 — Stress the economy and refine its weakest link
+Dependencies: S11/S14; human refinement follows S16.
+- [ ] Simulate bounded low-population/no-new-user scenarios, depleted bank budgets, high/low extraction, stock concentration, collusion and refunds.
+- [ ] Verify conservation, lifecycle accounting and honest unresolved states. Banked goods are transfers, not burns; subsidy is not organic earnings.
+- [ ] Address observed bottlenecks with the smallest tested change while retaining user-fixed incentives and ownership.
+Deliverable: known failure modes and measured improvements, not a claim that simulation proves a sustainable market.
+
+### S18 — Review, verify and accept the system
+Dependencies: S01–S17, with honest reporting of unresolved human evidence.
+- [ ] Independent source/evidence review of engine, kit, publication, trade and recovery; fix substantive findings.
+- [ ] Run relevant game/server/contract tests, typechecking/builds and fixed-window browser checks across creation, rehearsal, publication and return.
+- [ ] Reproduce more than one user-created design from saved definitions; no special-case code or untracked creator state required.
+- [ ] Record Andrew's verdict separately for dungeon play, building, and economic play, with unresolved issues and next experiments.
+Deliverable: a verified extensible game system and construction kit. No external release authorized.
+
+## Playtesting changes
+
+The unit of evaluation is no longer “did someone enjoy our adventure?” It is:
+
+- Can a creator express an intention, and what obstructs them?
+- Does another player understand and enjoy what they made?
+- Can the creator improve it using the tools and evidence?
+- Do preparation, supply, admission, rewards and trade create worthwhile decisions around it?
+
+Test fixtures remain necessary for correctness. They must be labeled as fixtures, generated/varied where useful, and kept separate from player content and business-demand evidence. Never describe an automated winning route as evidence of fun.
+
+## Disposition of the stopped implementation
+
+No further product edits are made in this replanning pass. Recent shove/escape code is an unaccepted reusable candidate pending S01/S02 review; the named practice scenario is a test fixture, not accepted game content. The modified default practice entry must be revisited in S01 before execution resumes. Cost design is unimplemented and needs corrections listed in S14. Existing transparency and preexisting builder/economy work remain intact.
+
+Next execution step, only after Andrew accepts the corrected direction: S01/S02, then build the reusable kit with creator playtesting early. Do not resume the old named-adventure sequence.

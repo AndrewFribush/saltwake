@@ -1,0 +1,10 @@
+Real local HTTP+WASM transport: NEP413 login, registration, prepared recovery approval, minigame settlement/wage, reload after broadcast response loss, exact receipt recovery without another approval, and settled craft replay. Test-only local signer adapter; not browser wallet SDK acceptance.
+✔ browser transport against real HTTP/chain signs login and crafting, then reconciles a lost approval after reload (6138.441459ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6503.856583

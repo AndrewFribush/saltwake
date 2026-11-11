@@ -1,0 +1,12 @@
+✔ only confirmed shop purchases count, duplicates cannot inflate income (0.727666ms)
+✔ missing historical receipts do not silently turn into zero economic sales (0.076333ms)
+✔ cancelled unsold stock never becomes fictional sales (0.087125ms)
+✔ a genuine resale in another listing counts again, while mismatched quotes do not (0.090833ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 229.683875

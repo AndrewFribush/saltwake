@@ -1,0 +1,1 @@
+Local shop code update/migration verified: all prior snapshot fields unchanged. Backup: .state/backups/pre-shops-1794364112360

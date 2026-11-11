@@ -1,0 +1,697 @@
+diff --git a/apps/server/src/http.ts b/apps/server/src/http.ts
+index 8dcdae9..c31d155 100644
+--- a/apps/server/src/http.ts
++++ b/apps/server/src/http.ts
+@@ -1,3 +1,4 @@
++import {editionRecord} from './edition-record';
+ import {createServer,type IncomingMessage} from 'node:http';
+ import {randomBytes} from 'node:crypto';
+ import {DemoSessions,DEMO_CUSTODY_LABEL,SessionError} from './auth';
+@@ -35,7 +36,7 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
+    }
+    if(url.pathname==='/api/world'&&req.method==='GET'){
+     await sync();const world=await snapshot();
+-    return reply(200,{profile,wallet:walletView(world,box.db,profile),craft:craft.view(profile),credits:world.credits[profile],items:world.items.filter(i=>i.location.kind==='owned'&&i.location.profile===profile),listings:world.listings,bankItems:world.items.filter(i=>i.location.kind==='bank'),listedItems:world.items.filter(i=>i.location.kind==='listed'),bank:world.bank,bank_prices:world.bank_prices,npc_order:world.npc_order,recovery:world.recovery,editions:world.editions.map(e=>({id:e.id,maker:e.maker,terms:e.terms,fee:e.fee,version:e.version,closed:e.closed,active:e.active_runs.length,placementPaid:e.placement_paid,pendingConsumptionValue:box.db.all<SavedRun>('run').filter(r=>r.economic.edition===e.id&&(!r.settlement||box.db.operation(r.settlement)?.status!=='Applied')).flatMap(r=>Object.values(r.state.items)).filter(i=>i.origin==='dungeon'&&i.location.kind==='consumed').reduce((n,i)=>n+catalog[i.type].value,0),pendingFees:world.runs.filter(r=>r.edition===e.id&&r.status==='active').reduce((n,r)=>n+Number(r.fee),0),completedRuns:world.runs.filter(r=>r.edition===e.id&&r.status!=='active').length,feedback:feedback.counts(e.id),...availability(e,world.items,Date.now()),settledRevenue:world.runs.filter(r=>r.edition===e.id&&!['active','void'].includes(r.status)).reduce((n,r)=>n+Number(r.fee),0)})),runs:box.db.all<SavedRun>('run').filter(r=>r.profile===profile).map(r=>runs.view(r.id,profile)),operations:box.db.operations().filter(o=>o.command.actor===profile).map(o=>({id:o.id,status:o.status,reason:o.reason,result:o.receipt?.status==='Applied'||o.receipt?.status==='Rejected'?o.receipt.result:undefined}))});
++    return reply(200,{profile,wallet:walletView(world,box.db,profile),craft:craft.view(profile),credits:world.credits[profile],items:world.items.filter(i=>i.location.kind==='owned'&&i.location.profile===profile),listings:world.listings,bankItems:world.items.filter(i=>i.location.kind==='bank'),listedItems:world.items.filter(i=>i.location.kind==='listed'),bank:world.bank,bank_prices:world.bank_prices,npc_order:world.npc_order,recovery:world.recovery,editions:world.editions.map(e=>({id:e.id,maker:e.maker,terms:e.terms,fee:e.fee,version:e.version,closed:e.closed,active:e.active_runs.length,placementPaid:e.placement_paid,pendingConsumptionValue:box.db.all<SavedRun>('run').filter(r=>r.economic.edition===e.id&&(!r.settlement||box.db.operation(r.settlement)?.status!=='Applied')).flatMap(r=>Object.values(r.state.items)).filter(i=>i.origin==='dungeon'&&i.location.kind==='consumed').reduce((n,i)=>n+catalog[i.type].value,0),pendingFees:world.runs.filter(r=>r.edition===e.id&&r.status==='active').reduce((n,r)=>n+Number(r.fee),0),completedRuns:world.runs.filter(r=>r.edition===e.id&&r.status!=='active').length,feedback:feedback.counts(e.id),record:editionRecord(world,box.db,e.id),...availability(e,world.items,Date.now()),settledRevenue:world.runs.filter(r=>r.edition===e.id&&!['active','void'].includes(r.status)).reduce((n,r)=>n+Number(r.fee),0)})),runs:box.db.all<SavedRun>('run').filter(r=>r.profile===profile).map(r=>runs.view(r.id,profile)),operations:box.db.operations().filter(o=>o.command.actor===profile).map(o=>({id:o.id,status:o.status,reason:o.reason,result:o.receipt?.status==='Applied'||o.receipt?.status==='Rejected'?o.receipt.result:undefined}))});
+    }
+    if(url.pathname==='/api/command'&&req.method==='POST'){
+     const body=await readAction();if(!/^[\w-]{1,40}$/.test(body.id))throw Error('Invalid request ID');
+diff --git a/apps/server/src/runs.ts b/apps/server/src/runs.ts
+index 37476e6..7e12a6d 100644
+--- a/apps/server/src/runs.ts
++++ b/apps/server/src/runs.ts
+@@ -11,7 +11,7 @@ import {disposition} from '../../../packages/game/src/disposition';
+ import type {EconomySnapshot,EconomicRun,Partition,Command} from '../../../packages/shared/src/types';
+ import {Store} from './db';
+ import {Outbox} from './outbox';
+-export type SavedRun={id:string;profile:string;economic:EconomicRun;state:RunState;seq:number;terminal?:'extracted'|'died'|'expired'|'abandoned'|'void';settlement?:string};
++export type SavedRun={id:string;profile:string;economic:EconomicRun;state:RunState;seq:number;startedAtMs?:number;finishedAtMs?:number;terminal?:'extracted'|'died'|'expired'|'abandoned'|'void';settlement?:string};
+ const slots=[{x:3,y:1},{x:1,y:3},{x:5,y:3},{x:7,y:4}];
+ export class Runs {
+  constructor(readonly db:Store,readonly outbox:Outbox,readonly clock=Date.now){}
+@@ -41,7 +41,7 @@ export class Runs {
+    addItem(state,{id,type:item.item_type,origin:'town',location:{kind}});if(kind==='weapon')state.player.weapon=item.item_type as 'club'|'sword';if(kind==='armor')state.player.armor=true;
+   }
+   for(const assignment of economic.assignments){const item=snapshot.items.find(i=>i.id===assignment.item_id);const socket=edition.terms.sockets.find(s=>s.id===assignment.socket);if(!item||!socket)throw Error('Missing reserved assignment');addItem(state,{id:item.id,type:item.item_type,origin:'dungeon',location:{kind:'floor',room:socket.room,...position(socket.room,socket.slot)!}});}
+-  enterRoom(state,0);explore(state);const row:SavedRun={id:economic.id,profile:economic.player,economic,state,seq:0};this.db.put('run',row.id,row);return row;
++  enterRoom(state,0);explore(state);const row:SavedRun={id:economic.id,profile:economic.player,economic,state,seq:0,startedAtMs:this.clock()};this.db.put('run',row.id,row);return row;
+  }
+  get(id:string,profile:string){const row=this.db.get<SavedRun>('run',id);if(!row||row.profile!==profile)throw Error('Run owner mismatch');return row;}
+  view(id:string,profile:string){const row=this.get(id,profile);const state=structuredClone(row.state);
+@@ -86,7 +86,7 @@ export class Runs {
+   const d=disposition(row.state,outcome==='extracted'?'extracted':outcome==='void'?'void':'died');
+   const partition:Partition={town_consumed:d.townConsumed,town_returned:d.townReturned,town_forfeited:d.townForfeited,dungeon_consumed:d.dungeonConsumed,dungeon_extracted:d.dungeonExtracted,dungeon_returned:d.dungeonReturned};
+   const action:Command['action']=outcome==='void'?{type:'void',run_id:row.id,reason:'Operator run failure',disposition:partition}:{type:'settle',run_id:row.id,outcome,disposition:partition,carried_dungeon_ids:d.dungeonExtracted};
+-  row.terminal=outcome;row.settlement='terminal-'+row.id;this.outbox.enqueue(row.settlement,{actor:row.profile,action});this.db.put('run',row.id,row);
++  row.terminal=outcome;row.finishedAtMs=outcome==='expired'?Math.min(this.clock(),Number(row.economic.deadline_ms)):this.clock();row.settlement='terminal-'+row.id;this.outbox.enqueue(row.settlement,{actor:row.profile,action});this.db.put('run',row.id,row);
+  }
+  retryExpiry(chainNow:number){for(const row of this.db.all<SavedRun>('run')){const previous=row.settlement?this.db.operation(row.settlement):undefined;if(row.terminal==='expired'&&previous?.status==='Rejected'&&previous.receipt?.status==='Rejected'&&previous.receipt.result==='PrematureExpiry'&&chainNow>=Number(row.economic.deadline_ms))this.db.transaction(()=>{const id='expiry-retry-'+row.id;this.outbox.enqueue(id,previous.command);row.settlement=id;this.db.put('run',row.id,row);});}}
+  expire(){for(const row of this.db.all<SavedRun>('run'))if(!row.terminal&&this.clock()>=Number(row.economic.deadline_ms))this.db.transaction(()=>this.finish(row,'expired'));}
+diff --git a/apps/server/test/run-recovery.test.ts b/apps/server/test/run-recovery.test.ts
+index 5760e49..a80028f 100644
+--- a/apps/server/test/run-recovery.test.ts
++++ b/apps/server/test/run-recovery.test.ts
+@@ -119,3 +119,9 @@ test('v3 authored geometry, funded positions, fog and settlement survive restart
+   }finally{db.close();}
+  }finally{f.close();}
+ });
++
++test('run timing persists once and expiry excludes delayed worker/settlement time',()=>{
++ const f=setup();try{let now=1000;const runs=new Runs(f.db,f.box,()=>now);const row=runs.materialize('admit',f.snapshot);assert.equal(row.startedAtMs,1000);now=2000;assert.equal(runs.materialize('admit',f.snapshot).startedAtMs,1000);
++ now=1005000;runs.expire();const done=runs.get(row.id,'buyer');assert.equal(done.finishedAtMs,Number(er.deadline_ms));now=2000000;runs.expire();assert.equal(runs.get(row.id,'buyer').finishedAtMs,done.finishedAtMs);
++ }finally{f.close();}
++});
+diff --git a/apps/web/src/App.tsx b/apps/web/src/App.tsx
+index 0c39d62..edb2522 100644
+--- a/apps/web/src/App.tsx
++++ b/apps/web/src/App.tsx
+@@ -1,3 +1,6 @@
+ import React from 'react';
++import './game-screen.css';
+ import {Demo} from './Demo';
++import './fixed-windows.css';
++import './saltwake-polish.css';
+ export function App(){return <main className="saltwake"><Demo/><footer>Saltwake · Local playable prototype. Synthetic coins and operator-controlled characters.</footer></main>;}
+diff --git a/apps/web/src/Crafting.tsx b/apps/web/src/Crafting.tsx
+index 390c6be..6415372 100644
+--- a/apps/web/src/Crafting.tsx
++++ b/apps/web/src/Crafting.tsx
+@@ -1,3 +1,4 @@
++import {Reading} from './GamePanels';
+ import React,{useEffect,useRef,useState} from 'react';
+ import type {CraftView} from '../../server/src/craft';
+ export function Crafting({world,selected,refresh,onChange,onBusyChange,blocked=false}:{world:any;selected:string[];refresh:()=>Promise<void>;onChange:(value:CraftView)=>void;onBusyChange:(busy:boolean)=>void;blocked?:boolean}){
+@@ -9,8 +10,8 @@ export function Crafting({world,selected,refresh,onChange,onBusyChange,blocked=f
+  }catch(e){setError((e as Error).message);}finally{lock.current=false;setBusy(false);onBusyChange(false);}};
+  const begin=(recovery=false)=>{const herbs=(world.bankItems??[]).filter((i:any)=>i.item_type==='herb').slice(0,2);const flasks=(world.bankItems??[]).filter((i:any)=>i.item_type==='flask').slice(0,2);void send('begin',{id:crypto.randomUUID(),inputIds:recovery?[...herbs,...flasks].map(i=>i.id):selected,recovery});};
+  const active=c&&['pending','active','finishing'].includes(c.status);const elapsed=c?.startedAtMs===null?0:Math.max(0,now-(c?.startedAtMs??now));
+- return <section aria-label="Paid batch crafting"><h2>Artisan workbench</h2><p>Two herbs + two flasks make two tonics. Hit the marked window on all three steps for fine quality. The server measures timing. A timeout yields normal tonics; ingredients stay locked until settlement.</p>
+- <p role="status">{error||c?.error||''}</p>{!active&&<><button disabled={busy||blocked||selected.length!==4} onClick={()=>begin()}>Craft selected ingredients</button><button disabled={busy||blocked||Number(world.recovery?.budget??0)<2} onClick={()=>begin(true)}>Recovery job · bank supplies · wage 2</button><p>Recovery requires holdings below 6, at most 3 jobs per profile, and remaining labor funds. Bank keeps the output. Remaining labor budget: {world.recovery?.budget??'unavailable'}.</p></>}
++ return <section aria-label="Paid batch crafting"><h2>Artisan workbench</h2><p>2 herbs + 2 flasks → 2 tonics. Hit all 3 timed windows for fine quality; timeout yields normal. Ingredients lock until settled.</p>
++ <Reading text={error||c?.error||''}/>{!active&&<><button disabled={busy||blocked||selected.length!==4} onClick={()=>begin()}>Craft selected ingredients</button><button disabled={busy||blocked||Number(world.recovery?.budget??0)<2} onClick={()=>begin(true)}>Recovery job · bank supplies · wage 2</button><p>Recovery requires holdings below 6, at most 3 jobs per profile, and remaining labor funds. Bank keeps the output. Remaining labor budget: {world.recovery?.budget??'unavailable'}.</p></>}
+  {c&&<><p>{c.status} · {c.recovery?'Bank recovery job':'Your batch'} · Step {Math.min(c.step+1,3)}/3 · {c.tier??'unscored'}</p>{c.status==='active'&&<>
+  <div className="alchemy-scene"><div className="bottles" aria-hidden="true">⚱</div><div className="cauldron" aria-hidden="true"><div className="brew"/><div className="kettle-handle"/></div><div><h3>{['Crush the herbs','Stir the brew','Bottle the tonic'][c.step]}</h3><p>Press as the marker enters the gold band.</p><div className="batch-marks">{[0,1,2].map(i=><span key={i} className={i<c.inputs.length?(c.inputs[i]>=c.target.startMs&&c.inputs[i]<=c.target.endMs?'hit':'miss'):''}>{i<c.inputs.length?(c.inputs[i]>=c.target.startMs&&c.inputs[i]<=c.target.endMs?'✓':'×'):i+1}</span>)}</div></div></div>
+  <div className="mixing-track" style={{height:24,background:'#151d22',position:'relative',maxWidth:560,border:'1px solid #73817f'}}><span style={{position:'absolute',left:`${c.target.startMs/c.stepMs*100}%`,width:`${(c.target.endMs-c.target.startMs)/c.stepMs*100}%`,height:'100%',background:'#987742'}}/><span style={{position:'absolute',left:`${Math.min(elapsed/c.stepMs,1)*100}%`,height:'100%',width:4,background:'#fff'}}/></div>
+diff --git a/apps/web/src/Demo.tsx b/apps/web/src/Demo.tsx
+index 71aa99c..4435063 100644
+--- a/apps/web/src/Demo.tsx
++++ b/apps/web/src/Demo.tsx
+@@ -1,3 +1,6 @@
++import {EditionRecord} from './EditionRecord';
++import type {EditionRecord as EditionRecordData} from '../../../packages/shared/src/edition-record';
++import {Desk,Pages,Reading} from './GamePanels';
+ import React,{useEffect,useState,useRef} from 'react';
+ import {Run} from './Run';
+ import {matchEditions,type MatchPreferences} from '../../../packages/shared/src/matcher';
+@@ -17,10 +20,21 @@ import type {Action} from '../../../packages/game/src/actions';
+ import type {RunState} from '../../../packages/game/src/state';
+ import type {Item,EditionTerms} from '../../../packages/shared/src/types';
+ type RunView={id:string;seq:number;state:RunState;deadline:string;roomTitle:string;roomCount:number;exit?:{x:number;y:number};canExtract?:boolean;hasNextRoom?:boolean;terminal:string|null;settlement:any};
+-type World={wallet?:WalletView;listings?:unknown[];npc_order?:unknown;profile:string;credits:string;items:Item[];editions:{id:string;maker:string;terms:EditionTerms;fee:string;version:string;closed:boolean;active:number;status:string;bundles:number;remainingValue:number;reservedValue:number;extractedValue?:string;consumedValue?:string;bankedValue?:string;pendingConsumptionValue:number;valueBalanced:boolean|null;originalValue:string;refreshValue:string}[];runs:RunView[];operations:{id:string;status:string;reason?:string;result?:string}[]};
++type World={wallet?:WalletView;listings?:unknown[];npc_order?:unknown;profile:string;credits:string;items:Item[];editions:{record?:EditionRecordData;id:string;maker:string;terms:EditionTerms;fee:string;version:string;closed:boolean;active:number;status:string;bundles:number;remainingValue:number;reservedValue:number;extractedValue?:string;consumedValue?:string;bankedValue?:string;pendingConsumptionValue:number;valueBalanced:boolean|null;originalValue:string;refreshValue:string}[];runs:RunView[];operations:{id:string;status:string;reason?:string;result?:string}[]};
+ class ApiError extends Error{constructor(message:string,readonly status:number){super(message);}}
+ async function api(path:string,body?:unknown){const r=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new ApiError(data.error??'Request failed',r.status);return data;}
+-export function Demo(){const [place,setPlace]=useState<PlaceId>();const [walletOpen,setWalletOpen]=useState(false);const [practice,setPractice]=useState(false);const [craftPractice,setCraftPractice]=useState(false);const [world,setWorld]=useState<World>();const [notice,setNotice]=useState('');const [mainBusy,setBusy]=useState(false);const [childBusy,setChildBusy]=useState(false);const busy=mainBusy||childBusy;const worldGeneration=useRef(0);const refreshSequence=useRef(0);const [selected,setSelected]=useState<string[]>([]);const [runId,setRunId]=useState<string>();const [preferences,setPreferences]=useState<MatchPreferences>({maxFee:10,style:'any',difficulty:'any',rewards:'treasure'});const [rotation,setRotation]=useState(0);const inflight=useRef(false);const pendingAction=useRef<{run:string;id:string;seq:number;action:Action}|undefined>(undefined);
++export function Demo(){const [place,setPlace]=useState<PlaceId>();const [walletOpen,setWalletOpen]=useState(false);const [sessionOpen,setSessionOpen]=useState(false);const [personalOpen,setPersonalOpen]=useState(false);const [practice,setPractice]=useState(false);const [craftPractice,setCraftPractice]=useState(false);const [world,setWorld]=useState<World>();const [notice,setNotice]=useState('');const [mainBusy,setBusy]=useState(false);const [childBusy,setChildBusy]=useState(false);const busy=mainBusy||childBusy;const worldGeneration=useRef(0);const refreshSequence=useRef(0);const [selected,setSelected]=useState<string[]>([]);const [runId,setRunId]=useState<string>();const [preferences,setPreferences]=useState<MatchPreferences>({maxFee:10,style:'any',difficulty:'any',rewards:'treasure'});const [rotation,setRotation]=useState(0);const inflight=useRef(false);const pendingAction=useRef<{run:string;id:string;seq:number;action:Action}|undefined>(undefined);
++ // Inspector overlays own keyboard focus while the world remains visible.
++ useEffect(()=>{
++  if(!walletOpen&&!personalOpen&&!sessionOpen)return;
++  const previous=document.activeElement as HTMLElement|null;
++  const stage=document.querySelector('.game-stage');
++  const covered=Array.from(stage?.children??[]).filter(el=>!el.classList.contains('purse-drawer')) as HTMLElement[];
++  const states=covered.map(el=>el.inert);covered.forEach(el=>{el.inert=true;});
++  const drawer=stage?.querySelector<HTMLElement>('.purse-drawer');drawer?.querySelector<HTMLElement>('button')?.focus({preventScroll:true});
++  const onKey=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();setWalletOpen(false);setPersonalOpen(false);setSessionOpen(false);}if(event.key==='Tab'&&drawer){const controls=Array.from(drawer.querySelectorAll<HTMLElement>('button:not(:disabled),select:not(:disabled),input:not(:disabled),[tabindex="0"]')).filter(el=>el.getClientRects().length&&!el.closest('[hidden]'));const first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};
++  drawer?.addEventListener('keydown',onKey);return()=>{covered.forEach((el,i)=>{el.inert=states[i];});drawer?.removeEventListener('keydown',onKey);if(previous?.isConnected)previous.focus({preventScroll:true});};
++ },[walletOpen,personalOpen,sessionOpen]);
+  const refresh=async()=>{const generation=worldGeneration.current;const sequence=++refreshSequence.current;const w=await api('world') as World;if(generation!==worldGeneration.current||sequence!==refreshSequence.current)return;setWorld(w);setRunId(current=>current??w.runs.find(r=>!r.terminal)?.id);const pendingKey='dungeon-pending-command:'+w.profile;const pending=sessionStorage.getItem(pendingKey);if(pending){const id=w.profile+'-'+JSON.parse(pending).id;if(w.operations.some(o=>o.id===id&&['Applied','Rejected'].includes(o.status)))sessionStorage.removeItem(pendingKey);}
+  setSelected(ids=>ids.filter(id=>w.items.some(i=>i.id===id)));};
+  useEffect(()=>{let stopped=false;api('session',{}).then(()=>{if(!stopped)return refresh();}).catch(e=>setNotice(e.message));const timer=setInterval(()=>{if(!inflight.current)void refresh().catch(e=>setNotice(e.message));},3000);return()=>{stopped=true;clearInterval(timer);};},[]);
+@@ -36,30 +50,37 @@ export function Demo(){const [place,setPlace]=useState<PlaceId>();const [walletO
+  const run=world?.runs.find(r=>r.id===runId)??world?.runs.find(r=>!r.terminal);
+  const act=(action:Action)=>void work(async()=>{if(!run)return;const p=pendingAction.current??{run:run.id,id:crypto.randomUUID(),seq:run.seq,action};pendingAction.current=p;try{await api('runs/'+p.run+'/action',{id:p.id,seq:p.seq,action:p.action});pendingAction.current=undefined;}catch(e){if(e instanceof ApiError&&e.status>=400&&e.status<500&&e.status!==408)pendingAction.current=undefined;throw e;}});
+  const toggle=(id:string)=>setSelected(ids=>ids.includes(id)?ids.filter(i=>i!==id):[...ids,id]);
+- const satchel=(purpose:string)=><section className="satchel" aria-label="Your satchel"><h3>{purpose}</h3><p>{selected.length} selected · {place==='gate'?'Only selected gear goes below. Everything else stays safe in town.':'Choose the goods you want to use here.'}</p><div className="satchel-grid">{world?.items.map(i=><button key={i.id} className={selected.includes(i.id)?'packed':''} aria-pressed={selected.includes(i.id)} onClick={()=>toggle(i.id)} disabled={busy}><ItemIcon type={i.item_type}/><span>{catalog[i.item_type].name}<small>{i.id}</small></span>{selected.includes(i.id)&&<b aria-hidden="true">✓</b>}</button>)}</div>{!world?.items.length&&<p>Your satchel is empty. Ivo offers bank-supplied work at the Copper Kettle.</p>}</section>;
++ const satchel=(purpose:string)=><section className="satchel" aria-label="Your satchel"><h3>{purpose}</h3><p>{selected.length} selected · {place==='gate'?'Only selected gear goes below. Everything else stays safe in town.':'Choose the goods you want to use here.'}</p><div className="satchel-grid"><Pages items={world?.items??[]} size={2} label="Stored goods" render={i=><button key={i.id} className={selected.includes(i.id)?'packed':''} aria-pressed={selected.includes(i.id)} onClick={()=>toggle(i.id)} disabled={busy}><ItemIcon type={i.item_type}/><span>{catalog[i.item_type].name}<small>{i.id}</small></span>{selected.includes(i.id)&&<b aria-hidden="true">✓</b>}</button>}/></div>{!world?.items.length&&<p>Your satchel is empty. Ivo offers bank-supplied work at the Copper Kettle.</p>}</section>;
+  const openPlace=(id:PlaceId)=>{setSelected([]);setPlace(id);};
+  const finished=world?.runs.filter(r=>r.terminal&&r.settlement?.status==='Applied')??[];
+  const location=places.find(p=>p.id===place);
+  const profileNames:Record<string,string>={buyer:'The delver',maker:'The proprietor',worker:'The apprentice',worker2:'The journeyman',p2:'The mercenary',p3:'The wayfarer',p4:'The scavenger',p5:'The newcomer'};
+- if(practice)return <div className="game-shell"><button className="back-world" onClick={()=>setPractice(false)}>← Return to the inn</button><p className="practice-ribbon">Training cellar · no entry fee, no goods carried home</p><Run/></div>;
+- return <section className="game-shell">
+- <div className="player-hud"><button className="character-token" disabled={busy||!!place||!!run} onClick={()=>document.querySelector<HTMLButtonElement>('.place-sign.inn')?.click()} aria-label="Open character and journal">{world?profileNames[world.profile]:'A new arrival'}<small>Saltwake resident</small></button><button className="purse" aria-label="Open purse and receipts" aria-expanded={walletOpen} onClick={()=>setWalletOpen(!walletOpen)}><span aria-hidden="true">◉</span> {world?.credits??'—'} <small>test coins · account</small></button><div className="hud-stock">{world?.items.length??0} goods in storage <small>{finished.length} settled expeditions</small></div><details className="session-controls"><summary>Session</summary><p>Local sandbox. Operator-controlled characters, synthetic coins. This is not wallet authentication.</p>{world&&<label>Play as <select value={world.profile} disabled={busy} onChange={e=>void work(async()=>{worldGeneration.current++;setWorld(undefined);await api('profile',{profile:e.target.value});setRunId(undefined);setPlace(undefined);setSelected([]);pendingAction.current=undefined;})}>{Object.entries(profileNames).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>}<button disabled={busy} onClick={()=>void work(async()=>{await api('session',{});})}>Reconnect</button></details></div>
++
++ return <section className={`game-shell ${walletOpen||personalOpen?'wallet-visible':''}`}>
++ <div className="player-hud"><button className="character-token" disabled={busy||!!run} onClick={()=>{setPersonalOpen(!personalOpen);setWalletOpen(false);setSessionOpen(false);}} aria-label="Open character and journal">{world?profileNames[world.profile]:'A new arrival'}<small>Saltwake resident</small></button><button className="purse" aria-label="Open purse and receipts" aria-expanded={walletOpen} onClick={()=>{setWalletOpen(!walletOpen);setPersonalOpen(false);setSessionOpen(false);}}><span aria-hidden="true">◉</span> {world?.credits??'—'} <small>test coins · account</small></button><div className="hud-stock">{world?.items.length??0} goods in storage <small>{finished.length} settled expeditions</small></div><button className="session-launch" aria-expanded={sessionOpen} onClick={()=>{setSessionOpen(!sessionOpen);setWalletOpen(false);setPersonalOpen(false);}}>Session</button></div>
++
++ <div className={`game-notice ${notice?'has-notice':''}`} role="status">{!(busy||notice)&&<p className="world-hint"><span>Saltwake</span> {run?'Plan your next move. Every turn counts.':place?'Click a counter to approach it · Esc to return':'Click a destination to walk there · Arrow keys or WASD to explore'}</p>}{(busy||notice)&&<Reading limit={80} text={busy?'The steward is recording your action…':notice}/>}</div>
++
++ <div className="game-stage">
++ {sessionOpen&&<div className="purse-drawer"><button onClick={()=>setSessionOpen(false)}>Close session</button><p>Local sandbox. Operator-controlled characters, synthetic coins. This is not wallet authentication.</p>{world&&<label>Play as <select value={world.profile} disabled={busy} onChange={e=>void work(async()=>{worldGeneration.current++;setWorld(undefined);await api('profile',{profile:e.target.value});setRunId(undefined);setPlace(undefined);setPersonalOpen(false);setSelected([]);pendingAction.current=undefined;})}>{Object.entries(profileNames).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>}<button disabled={busy} onClick={()=>void work(async()=>{await api('session',{});})}>Reconnect</button></div>}
++ <aside className="idle-inspector" aria-label="Idle inspector"><h2>Saltwake</h2><p>Walk to a counter, open your belongings, or check your purse. Details appear here.</p></aside>
++ {personalOpen&&world&&<div className="purse-drawer"><button onClick={()=>setPersonalOpen(false)}>Close belongings</button><Desk locked={busy} panels={[{name:'Stored goods',content:satchel('Your stored belongings')},{name:'Journal',content:<Pages empty="No expeditions recorded. Visit the inn for a free training run." items={finished} label="Journal entries" render={r=><button onClick={()=>{setRunId(r.id);setPersonalOpen(false);}}>{r.roomTitle} · {r.terminal}</button>}/>}]}/></div>}
+  {walletOpen&&world&&<div className="purse-drawer"><button onClick={()=>setWalletOpen(false)}>Close purse</button><Wallet world={world} busy={busy} refresh={refresh}/></div>}
+- <div className={`game-notice ${notice?'has-notice':''}`} role="status">{busy?'The steward is recording your action…':notice}</div>
+- {!world?<section className="arrival"><h1>Saltwake awaits</h1><p>Connecting to your local world…</p><p>If the harbor is offline, start <code>npm run sandbox</code> and <code>npm run server</code>.</p><button onClick={()=>void work(async()=>{await api('session',{});})}>Try the harbor again</button></section>:run?<>
++ {!world?<section className="arrival"><h1>Saltwake awaits</h1><p>Connecting to your local world…</p><p>If the harbor is offline, start <code>npm run sandbox</code> and <code>npm run server</code>.</p><button onClick={()=>void work(async()=>{await api('session',{});})}>Try the harbor again</button></section>:practice?<><Run compact/><button className="practice-return" onClick={()=>setPractice(false)}>← Return to the inn</button></>:run?<>
+  <div className="expedition-heading"><span>The catacombs / {run.roomTitle}</span><span>Gear at risk · {Math.max(0,Math.ceil((Number(run.deadline)-Date.now())/60000))} minutes left</span></div>
+- <Run remote={{state:run.state,send:act,busy,title:run.roomTitle,roomCount:run.roomCount,terminal:run.terminal,settlement:run.settlement,exit:run.exit,canExtract:run.canExtract,hasNextRoom:run.hasNextRoom}}/>
++ <Run compact remote={{state:run.state,send:act,busy,title:run.roomTitle,roomCount:run.roomCount,terminal:run.terminal,settlement:run.settlement,exit:run.exit,canExtract:run.canExtract,hasNextRoom:run.hasNextRoom}}/>
+  {run.terminal?<section className="homecoming"><h2>{run.terminal==='extracted'?'Back in the daylight.':'The town takes you back.'}</h2><p>{run.settlement?.status==='Applied'?'Your belongings have been accounted for. Visit the market to sell your finds, or the kettle to rebuild.':'Your result is being confirmed. Reserved goods remain locked until it is settled.'}</p><button className="primary" onClick={()=>{setRunId(undefined);setPlace(undefined);}}>Return to Saltwake</button><details><summary>Tell the gatewarden about this run</summary>{['fun','confusing','too-hard'].map(choice=><button key={choice} disabled={busy} onClick={()=>void work(()=>api('feedback',{run:run.id,choice}))}>{choice}</button>)}</details></section>:<details className="retreat"><summary>Give up this expedition</summary><p>Abandoning loses your town equipment to the bank. Unused dungeon finds return to their funded pool.</p><button disabled={busy} onClick={()=>void work(()=>api('runs/'+run.id+'/abandon',{}))}>Abandon and forfeit gear</button></details>}
+- </>:<><div hidden={!!place}><Town onEnter={openPlace} disabled={!!place} openings={world.editions.filter(e=>e.status==='open'&&e.maker!==world.profile).reduce((n,e)=>n+e.bundles,0)} stock={((world as any).bankItems?.length??0)+((world as any).listedItems?.length??0)}>
++ </>:<><div className="town-stage" hidden={!!place}><Town onEnter={openPlace} disabled={!!place} openings={world.editions.filter(e=>e.status==='open'&&e.maker!==world.profile).reduce((n,e)=>n+e.bundles,0)} stock={((world as any).bankItems?.length??0)+((world as any).listedItems?.length??0)}>
+  </Town></div>
+  {place&&location&&<Interior key={place} place={place} busy={busy} onExit={()=>{setPlace(undefined);setCraftPractice(false);}} wallet={<Wallet world={world} busy={busy} refresh={refresh}/>}>
+- {place==='inn'&&<><div className="inn-story"><h3>Make a living in Saltwake</h3><p>Go below for treasure. Turn supplies into goods at the kettle. Sell from your own stall. Or fill a dungeon with treasure and persuade others to brave it.</p><p>What survives a run comes home with you. What you carry in can be lost.</p><button onClick={()=>setPractice(true)}>Train in the cellar · free</button></div>{satchel('Your stored belongings')}<h3>Your journal</h3>{!finished.length&&<p>No settled expeditions yet. The gatewarden can point you to an opening.</p>}{finished.map(r=><button className="journal-entry" key={r.id} onClick={()=>setRunId(r.id)}>{r.roomTitle} · {r.terminal}<span>Read the item account</span></button>)}</>}
+- {place==='market'&&<>{satchel('Goods to sell or stock in your stall')}{world.listings&&world.npc_order&&<Shop onBusyChange={setChildBusy} world={world} busy={busy} selected={selected} command={command} refresh={refresh}/>}</>}
+- {place==='workshop'&&<>{craftPractice?<><button onClick={()=>setCraftPractice(false)}>Back to the working bench</button><Workbench/></>:<>{satchel('Ingredients for the kettle')}<Crafting blocked={busy} onBusyChange={setChildBusy} onChange={value=>{worldGeneration.current++;setWorld(w=>w&&w.profile===value.profile?{...w,craft:value}:w);}} world={world} selected={selected} refresh={refresh}/><button className="quiet-button" disabled={busy} onClick={()=>setCraftPractice(true)}>Practise mixing without using ingredients</button></>}</>}
+- {place==='guild'&&<>{satchel('Treasure to fund your dungeon')}<FloorBuilder world={world} busy={busy} selected={selected} command={command} refresh={refresh} onBusyChange={setChildBusy}/><Maker onBusyChange={setChildBusy} world={world} busy={busy} selected={selected} command={command} refresh={refresh}/></>}
+- {place==='gate'&&<>{satchel('Pack for the descent')}<div className="gate-warning">Death costs the equipment you bring. Found goods are only yours after you extract. Entry fees are paid per attempt.</div><h3>The gatewarden’s openings</h3>{!world.editions.some(e=>e.status==='open')&&<p>No funded openings right now. The guild can open an expedition using owned treasure. In this local world, the proprietor starts with stock for this.</p>}<div className="controls"><label>Spend at most <input type="number" min="0" value={preferences.maxFee} onChange={e=>setPreferences({...preferences,maxFee:Number(e.target.value)})}/></label><button onClick={()=>setRotation(rotation+1)}>Ask about other openings</button></div>{(suggestions.length?suggestions:world.editions.filter(e=>e.maker!==world.profile)).map(e=><article className="expedition-offer" key={e.id}><div className="dungeon-seal" aria-hidden="true">⌂</div><div><h3>{e.terms.title}</h3><p>{e.terms.modules.length} floors · {e.terms.rules_version===3?'Maker-built floors':e.terms.rules_version===2?'Uncharted passages':'Known passages'} · {e.bundles} funded openings</p><p>Treasure remaining: {e.remainingValue}. Entry: {e.fee} coins.</p><details><summary>Read the funding account</summary><p>Original {e.originalValue}, refreshed {e.refreshValue}, reserved {e.reservedValue}, extracted {e.extractedValue}, consumed {e.consumedValue}, banked {e.bankedValue}. Fixed catalog values, not resale promises.</p></details><button className="primary" disabled={busy||e.valueBalanced===false||e.status!=='open'||BigInt(e.fee)>BigInt(world.credits)||world.operations.some(o=>['Unknown','Pending'].includes(o.status))} onClick={()=>void work(async()=>{await command({type:'admit',edition_id:e.id,expected_version:e.version,expected_fee:e.fee,loadout_ids:selected,seed:'0'});setPlace(undefined);})}>Pay {e.fee} coins & descend</button></div></article>)}</>}
+- <details className="operation-ledger"><summary>Steward’s receipts</summary><button disabled={busy} onClick={()=>void work(async()=>{const saved=sessionStorage.getItem('dungeon-pending-command:'+world.profile);if(saved)await command(JSON.parse(saved).action);})}>Resolve an interrupted action</button>{world.operations.slice(-8).reverse().map(o=><p key={o.id}>{o.status}: {o.result??o.reason??o.id}</p>)}</details>
++ {place==='inn'&&<Desk locked={busy} storage={satchel('Your stored belongings')} panels={[{name:'Innkeeper',content:<><h3>Make a living in Saltwake</h3><p>Delve for treasure, craft at the kettle, trade at the market, or fund your own dungeon.</p><button disabled={busy} onClick={()=>setPractice(true)}>Train in the cellar · free</button></>},{name:'Journal',content:finished.length?<Pages items={finished} label="Settled expeditions" render={r=><button className="journal-entry" onClick={()=>setRunId(r.id)}>{r.roomTitle} · {r.terminal}<span>Read the item account</span></button>}/>:<p>No settled expeditions yet.</p>}]}/>}
++ {place==='market'&&<Desk locked={busy} storage={satchel('Goods to sell or stock')} panels={[{name:'Market counter',content:world.listings&&world.npc_order?<Shop onBusyChange={setChildBusy} world={world} busy={busy} selected={selected} command={command} refresh={refresh}/>:<p>Loading stock…</p>}]}/>}
++ {place==='workshop'&&<Desk locked={busy} storage={satchel('Ingredients for the kettle')} panels={[{name:'Working bench',content:<Crafting blocked={busy} onBusyChange={setChildBusy} onChange={value=>{worldGeneration.current++;setWorld(w=>w&&w.profile===value.profile?{...w,craft:value}:w);}} world={world} selected={selected} refresh={refresh}/>},{name:'Free practice',content:<Workbench/>}]}/>}
++ {place==='guild'&&<Desk locked={busy} storage={satchel('Treasure for existing editions')} panels={[{name:'Build a dungeon',content:<FloorBuilder world={world} busy={busy} selected={selected} onToggleFunding={toggle} command={command} refresh={refresh} onBusyChange={setChildBusy}/>},{name:'Manage editions',content:<Maker onBusyChange={setChildBusy} world={world} busy={busy} selected={selected} command={command} refresh={refresh}/>},{name:'Receipts & recovery',content:<><button disabled={busy} onClick={()=>void work(async()=>{const saved=sessionStorage.getItem('dungeon-pending-command:'+world.profile);if(saved)await command(JSON.parse(saved).action);})}>Resolve interrupted action</button><Pages items={world.operations.slice().reverse()} label="Steward receipts" render={o=><Reading text={`${o.status}: ${o.result??o.reason??o.id}`}/>}/></>}]}/>}
++ {place==='gate'&&<Desk locked={busy} storage={satchel('Pack for the descent')} panels={[{name:'Expeditions',content:<><p className="gate-warning">Death forfeits the gear you bring. Entry fees are per attempt.</p><div className="controls"><label>Max fee <input type="number" min="0" value={preferences.maxFee} onChange={e=>setPreferences({...preferences,maxFee:Number(e.target.value)})}/></label><button onClick={()=>setRotation(rotation+1)}>Other openings</button></div><Pages items={suggestions.length?suggestions:world.editions.filter(e=>e.maker!==world.profile)} label="Dungeon openings" render={e=><article className="expedition-offer"><div><h3>{e.terms.title}</h3><p>{e.terms.modules.length} floors · {e.bundles} funded attempts · {e.remainingValue} treasure value</p><p>Entry {e.fee} coins · {selected.length} goods packed</p><p>{e.record?.completed??0} settled attempts · See Track records before entry</p><button className="primary" disabled={busy||e.valueBalanced===false||e.status!=='open'||BigInt(e.fee)>BigInt(world.credits)||world.operations.some(o=>['Unknown','Pending'].includes(o.status))} onClick={()=>void work(async()=>{await command({type:'admit',edition_id:e.id,expected_version:e.version,expected_fee:e.fee,loadout_ids:selected,seed:'0'});setPlace(undefined);})}>Pay {e.fee} coins & descend</button></div></article>}/>{!world.editions.some(e=>e.status==='open')&&<p>No funded openings. Visit the guild to fund one.</p>}</>},{name:'Track records',content:<Pages items={world.editions} label="Dungeon records" render={e=><><h3>{e.terms.title}</h3><EditionRecord key={e.id} record={e.record}/></>}/>},{name:'Funding accounts',content:<Pages items={world.editions} label="Edition funding records" render={e=><><h3>{e.terms.title}</h3><Reading text={`Original ${e.originalValue}; refreshed ${e.refreshValue}; reserved ${e.reservedValue}; extracted ${e.extractedValue}; consumed ${e.consumedValue}; banked ${e.bankedValue}; remaining ${e.remainingValue}. Catalog values, not resale promises.`}/></>}/>}]}/>}
++
++
+  </Interior>}
+  </>}
+- </section>;
++ </div></section>;
+ }
+diff --git a/apps/web/src/FloorBuilder.tsx b/apps/web/src/FloorBuilder.tsx
+index 2fedf08..94a2ba8 100644
+--- a/apps/web/src/FloorBuilder.tsx
++++ b/apps/web/src/FloorBuilder.tsx
+@@ -1,3 +1,5 @@
++import {BuilderStudio,StudioTabs,IssuePager,StudioStatus} from './BuilderStudio';
++import {TileArt,TilesetPanel} from './tileset';
+ import React, {useRef, useState} from 'react';
+ import {catalog} from '../../../packages/shared/src/catalog';
+ import type {EditionTerms, Item, ItemType, Socket} from '../../../packages/shared/src/types';
+@@ -10,7 +12,7 @@ import {explore} from '../../../packages/game/src/roguelike';
+ import {Run} from './Run';
+ import './floor-builder.css';
+ 
+-export type FloorBuilderProps={world:any;busy:boolean;selected:string[];command:(action:any)=>Promise<void>;refresh:()=>Promise<void>;onBusyChange?:(busy:boolean)=>void};
++export type FloorBuilderProps={world:any;busy:boolean;selected:string[];command:(action:any)=>Promise<void>;refresh:()=>Promise<void>;onToggleFunding?:(id:string)=>void;onBusyChange?:(busy:boolean)=>void};
+ type Placement={enemy:Socket['enemy'];trap:boolean;reward:ItemType|null};
+ type Draft={id:string;title:string;fee:string;floors:CustomFloor[];placements:Placement[][]};
+ type Tool='wall'|'floor'|'spawn'|'exit'|0|1|2|3;
+@@ -45,12 +47,14 @@ function previewFor(d:Draft):RunState {
+ 
+ /** Remount the entire local session on profile change; drafts and undo never cross accounts. */
+ export function FloorBuilder(props:FloorBuilderProps){return typeof props.world?.profile==='string'?<BuilderSession key={props.world.profile} {...props}/>:null;}
+-function BuilderSession({world,busy,selected,command,refresh,onBusyChange}:FloorBuilderProps){
++function BuilderSession({world,busy,selected,command,refresh,onBusyChange,onToggleFunding}:FloorBuilderProps){
++ const [open,setOpen]=useState(false),[tab,setTab]=useState<'Layout'|'Encounters'|'Art'|'Treasure'|'Open'>('Layout'),[socketIndex,setSocketIndex]=useState(0),[stockPage,setStockPage]=useState(0);
+  const storageKey=`dungeon-floor-builder:v1:${encodeURIComponent(world.profile)}`;
+  const [loaded]=useState(()=>loadDrafts(storageKey));
+  const [drafts,setDrafts]=useState(loaded.drafts);
+  const [active,setActive]=useState(loaded.active??loaded.drafts[0].id);
+  const [history,setHistory]=useState<Record<string,Draft[]>>({});
++ const [future,setFuture]=useState<Record<string,Draft[]>>({});
+  const [floorSelection,setFloorIndex]=useState(0);
+  const [tool,setTool]=useState<Tool>('wall');
+  const [notice,setNotice]=useState('');
+@@ -87,7 +91,7 @@ function BuilderSession({world,busy,selected,command,refresh,onBusyChange}:Floor
+   if(locked||inflight.current||preview)return;
+   const next=structuredClone(draft);change(next);
+   if(JSON.stringify(next)===JSON.stringify(draft))return;
+-  setHistory(h=>({...h,[active]:[...(h[active]??[]).slice(-49),draft]}));
++  setFuture(f=>({...f,[active]:[]}));setHistory(h=>({...h,[active]:[...(h[active]??[]).slice(-49),draft]}));
+   setDrafts(ds=>ds.map(d=>d.id===active?next:d));setSaveStatus('Unsaved changes');setNotice('');
+  };
+  const paint=(x:number,y:number)=>edit(d=>{
+@@ -118,44 +122,29 @@ function BuilderSession({world,busy,selected,command,refresh,onBusyChange}:Floor
+   }catch(e){setNotice(`${published?'Publication submitted, but refresh failed. Check receipts before retrying. ':''}${message(e)}`);}
+   finally{inflight.current=false;setWorking(false);onBusyChange?.(false);}
+  };
+- return <section className="floor-builder" aria-label="Dungeon floor builder">
+-  <h3>Draw your catacombs</h3>
+-  <p>Carve a route, place the threats, then rehearse it for free. Opening an expedition spends real inventory from this local world.</p>
+-  <fieldset disabled={locked} className="fb-session">
+-   <div className="fb-toolbar"><label>Draft <select value={active} disabled={!!preview} onChange={e=>{setActive(e.target.value);setFloorIndex(0);setNotice('');}}>{drafts.map((d,i)=><option key={d.id} value={d.id}>{d.title||`Untitled ${i+1}`}</option>)}</select></label>
+-    <button type="button" disabled={!!preview||drafts.length>=20} onClick={()=>{const d=freshDraft();setDrafts(ds=>[...ds,d]);setActive(d.id);setFloorIndex(0);setSaveStatus('Unsaved changes');}}>New draft</button>
+-    <button type="button" onClick={save}>Save drafts</button>
+-   </div>
+-   <p role="status">{saveStatus||'Drafts stay in this browser. Save before leaving the guild.'}</p>
+-   {saveError&&<p className="fb-error" role="alert">{saveError}</p>}
+-   {preview?<div className="fb-preview">
+-    <h4>Free rehearsal · synthetic items</h4><p>No fee, no funding consumed, and nothing carries home. You begin with a practice club.</p>
+-    <div className="fb-toolbar"><button type="button" onClick={()=>setPreview(null)}>Back to editor</button><button type="button" onClick={()=>setPreview(previewFor(draft))}>Restart rehearsal</button></div>
+-    <Run remote={{state:preview,send:a=>{if(!locked&&!inflight.current)setPreview(s=>s?act(s,a):s);},busy:locked,title:`Rehearsal: ${draft.title}`,roomCount:draft.floors.length,terminal:null,settlement:null,exit:roomExit(preview),canExtract:atClearedExit(preview),hasNextRoom:hasNextRoom(preview)}}/>
+-    {preview.status!=='active'&&<p role="status">{preview.status==='died'?'You fell.':'You escaped.'} Rehearsal complete. No inventory or coins changed.</p>}
+-   </div>:<>
+-    <div className="fb-toolbar"><label>Expedition name <input value={draft.title} maxLength={80} onChange={e=>edit(d=>{d.title=e.target.value;})}/></label><label>Entry fee <input type="number" min="0" max="1000000" step="1" value={draft.fee} onChange={e=>edit(d=>{d.fee=e.target.value;})}/></label></div>
+-    <div className="fb-toolbar" aria-label="Floor selection">{draft.floors.map((_,i)=><button type="button" key={i} aria-pressed={i===floorIndex} onClick={()=>setFloorIndex(i)}>Floor {i+1}</button>)}<button type="button" disabled={draft.floors.length===4} onClick={()=>{edit(d=>{d.floors.push(freshFloor());d.placements.push(emptyPlacements());});setFloorIndex(draft.floors.length);}}>Add floor</button><button type="button" disabled={draft.floors.length===2} onClick={()=>{edit(d=>{d.floors.splice(floorIndex,1);d.placements.splice(floorIndex,1);});setFloorIndex(Math.max(0,floorIndex-1));}}>Remove floor</button></div>
+-    <div className="fb-toolbar" aria-label="Painting tools">{(['wall','floor','spawn','exit',0,1,2,3] as Tool[]).map(t=><button type="button" key={t} aria-pressed={tool===t} onClick={()=>setTool(t)}>{typeof t==='number'?`Socket ${t}`:t[0].toUpperCase()+t.slice(1)}</button>)}</div>
+-    <div className="fb-workspace"><div>
+-     <p id="fb-paint-help">Choose a tool and click a tile. Tab to a tile and press Enter or Space to paint. S = spawn, E = exit; numbers mark sockets.</p>
+-     <div className="fb-grid" aria-label={`Floor ${floorIndex+1}, 13 by 9 tiles`} aria-describedby="fb-paint-help">{floor.tiles.flatMap((row,y)=>[...row].map((tile,x)=>{
+-      const markers=[...(floor.spawn.x===x&&floor.spawn.y===y?['S']:[]),...(floor.exit.x===x&&floor.exit.y===y?['E']:[]),...floor.sockets.flatMap((p,i)=>p.x===x&&p.y===y?[String(i)]:[])];
+-      return <button type="button" key={`${x},${y}`} className={`tile fb-cell ${tile==='#'?'fb-wall':'fb-ground'} ${markers.length?'fb-marked':''}`} aria-label={`Column ${x}, row ${y}: ${tile==='#'?'wall':'floor'}${markers.length?`, ${markers.map(m=>m==='S'?'spawn':m==='E'?'exit':`socket ${m}`).join(', ')}`:''}`} onClick={()=>paint(x,y)}>{markers.join('/')|| (tile==='#'?'':'·')}</button>;
+-     }))}</div>
+-     <div className="fb-toolbar"><button type="button" disabled={!history[active]?.length} onClick={()=>{const h=history[active];setDrafts(ds=>ds.map(d=>d.id===active?h.at(-1)!:d));setHistory(all=>({...all,[active]:h.slice(0,-1)}));setFloorIndex(0);setSaveStatus('Unsaved changes');}}>Undo draft edit</button><button type="button" onClick={()=>edit(d=>{d.floors[floorIndex]=freshFloor();d.placements[floorIndex]=emptyPlacements();})}>Reset this floor</button><button type="button" onClick={()=>edit(d=>{d.floors=[freshFloor(),freshFloor()];d.placements=[emptyPlacements(),emptyPlacements()];setFloorIndex(0);})}>Reset all floors</button></div>
+-    </div><div className="fb-sockets"><h4>Floor {floorIndex+1} sockets</h4>{draft.placements[floorIndex].map((p,slot)=><fieldset key={slot}><legend>Socket {slot} <span>({floor.sockets[slot].x}, {floor.sockets[slot].y})</span></legend><label>Enemy <select value={p.enemy} onChange={e=>edit(d=>{d.placements[floorIndex][slot].enemy=e.target.value as Placement['enemy'];})}><option value="none">None</option><option value="pursuer">Pursuer · 2 coins</option><option value="charger">Charger · 3 coins</option></select></label><label><input type="checkbox" checked={p.trap} onChange={e=>edit(d=>{d.placements[floorIndex][slot].trap=e.target.checked;})}/> Spike trap · 1 coin</label><label>Reward <select value={p.reward??''} onChange={e=>edit(d=>{d.placements[floorIndex][slot].reward=e.target.value as ItemType||null;})}><option value="">None</option>{itemTypes.map(t=><option value={t} key={t}>{catalog[t].name}</option>)}</select></label></fieldset>)}</div></div>
+-    {formErrors.length>0&&<div className="fb-error" role="alert"><strong>Before opening</strong><ul>{formErrors.map((e,i)=><li key={i}>{e}</li>)}</ul></div>}
+-    <button type="button" disabled={geometryErrors.length>0} onClick={()=>{try{setPreview(previewFor(draft));setNotice('');}catch(e){setNotice(message(e));}}}>Play free rehearsal</button>
+-    <div className="fb-funding"><h4>Opening costs {cost} coins</h4><p>Base 2 + pursuer 2 / charger 3 + trap 1 + reward socket 1. Walls and floors are free. Reward goods are funded separately.</p>
+-     {Object.keys(required).length?<ul>{itemTypes.filter(t=>required[t]).map(t=><li key={t}>{catalog[t].name}: {required[t]} per attempt · {available[t]??0} selected</li>)}</ul>:<p>No rewards: no funding items needed. Deselect all satchel items.</p>}
+-     <p>{funding.length} selected goods transfer into the expedition. Fund at least one complete attempt; extra matching goods stock later attempts. Unused stock goes to the bank when closed.</p><p>Opens for one hour, with up to 4 concurrent runs of 15 minutes.</p>
+-     {fundingErrors.length>0&&<ul className="fb-error">{fundingErrors.map(e=><li key={e}>{e}</li>)}</ul>}
+-     {unresolved&&<p className="fb-error">An operation is unresolved. Refresh before opening another expedition.</p>}
+-     <div className="fb-toolbar"><button type="button" className="primary" disabled={unresolved||!!formErrors.length||!!fundingErrors.length} onClick={()=>void execute(true)}>Pay {cost} coins & open expedition</button><button type="button" onClick={()=>void execute(false)}>Refresh funding</button></div>
+-    </div>
+-   </>}
+-  </fieldset>
+-  <p role="status" className={notice?'fb-notice':''}>{working?'Waiting for confirmation…':notice}</p>
+- </section>;
++ const stock=(world.items as Item[]).filter(i=>i.location.kind==='owned'&&i.location.profile===world.profile);
++ const stockPages=Math.max(1,Math.ceil(stock.length/4)),stockIndex=Math.min(stockPage,stockPages-1);
++ const undo=()=>{const h=history[active];if(!h?.length)return;setFuture(f=>({...f,[active]:[draft,...(f[active]??[])]}));setDrafts(ds=>ds.map(d=>d.id===active?h.at(-1)!:d));setHistory(all=>({...all,[active]:h.slice(0,-1)}));setSaveStatus('Unsaved changes');};
++ const redo=()=>{if(!future[active]?.length)return;setHistory(h=>({...h,[active]:[...(h[active]??[]),draft]}));setDrafts(ds=>ds.map(d=>d.id===active?future[active][0]:d));setFuture(f=>({...f,[active]:f[active].slice(1)}));setSaveStatus('Unsaved changes');};
++ if(!open)return <div className="builder-launch"><button type="button" data-builder-launch="dungeon" disabled={locked} onClick={()=>setOpen(true)}>Open dungeon builder</button><p>Draw floors, stock treasure and rehearse in one workspace.</p></div>;
++ return <BuilderStudio title="Dungeon workshop" returnFocus="[data-builder-launch=dungeon]" locked={locked} onClose={()=>setOpen(false)}><section className="floor-builder studio-editor" aria-label="Dungeon floor builder">
++ <fieldset disabled={locked} className="fb-session">
++ <div className="studio-draftbar"><label>Draft <select aria-label="Draft" value={active} disabled={!!preview} onChange={e=>{setActive(e.target.value);setFloorIndex(0);setNotice('');}}>{drafts.map((d,i)=><option key={d.id} value={d.id}>{d.title||`Untitled ${i+1}`}</option>)}</select></label><button type="button" disabled={!!preview||drafts.length>=20} onClick={()=>{const d=freshDraft();setDrafts(ds=>[...ds,d]);setActive(d.id);setFloorIndex(0);setSaveStatus('Unsaved changes');}}>New</button><button type="button" onClick={save}>Save drafts</button></div>
++ {preview?<div className="studio-rehearsal"><div className="studio-row"><strong>Free rehearsal</strong><button type="button" onClick={()=>setPreview(null)}>Back to editor</button><button type="button" onClick={()=>setPreview(previewFor(draft))}>Restart</button></div><Run compact remote={{state:preview,send:a=>{if(!locked&&!inflight.current)setPreview(s=>s?act(s,a):s);},busy:locked,title:`Rehearsal`,roomCount:draft.floors.length,terminal:null,settlement:null,exit:roomExit(preview),canExtract:atClearedExit(preview),hasNextRoom:hasNextRoom(preview)}}/></div>:<>
++ <div className="studio-page integrated-workspace">
++ <div className="studio-drawing">
++ <div className="studio-row"><label>Floor <select aria-label="Floor" value={floorIndex} onChange={e=>setFloorIndex(Number(e.target.value))}>{draft.floors.map((_,i)=><option key={i} value={i}>{i+1} of {draft.floors.length}</option>)}</select></label>{tab!=='Encounters'?<label>Paint <select aria-label="Painting tool" value={tool} onChange={e=>setTool(/^\d$/.test(e.target.value)?Number(e.target.value) as Tool:e.target.value as Tool)}>{(['wall','floor','spawn','exit',0,1,2,3] as Tool[]).map(t=><option key={t} value={t}>{typeof t==='number'?`Socket ${t}`:t}</option>)}</select></label>:<label>Encounter <select aria-label="Encounter socket" value={socketIndex} onChange={e=>setSocketIndex(Number(e.target.value))}>{floor.sockets.map((_,i)=><option key={i} value={i}>Socket {i}</option>)}</select></label>}</div>
++ <div className="studio-map-area"><div className="fb-grid" aria-label={`Floor ${floorIndex+1}, 13 by 9 tiles`}>{floor.tiles.flatMap((row,y)=>[...row].map((tile,x)=>{const markers=[...(floor.spawn.x===x&&floor.spawn.y===y?['S']:[]),...(floor.exit.x===x&&floor.exit.y===y?['E']:[]),...floor.sockets.flatMap((p,i)=>p.x===x&&p.y===y?[String(i)]:[])];return <button type="button" key={`${x},${y}`} className={`tile fb-cell ${tile==='#'?'fb-wall':'fb-ground'} ${markers.length?'fb-marked':''}`} aria-label={`Column ${x}, row ${y}: ${tile==='#'?'wall':'floor'}${markers.length?`, ${markers.join(', ')}`:''}`} onClick={()=>{if(tab==='Encounters'){const slot=floor.sockets.findIndex(p=>p.x===x&&p.y===y);if(slot>=0)setSocketIndex(slot);}else paint(x,y);}}><TileArt wall={tile==='#'}/><span>{markers.join('/')|| (tile==='#'?'':'·')}</span></button>;}))}</div></div>
++ {<div className="studio-floor-actions"><button type="button" disabled={draft.floors.length===4} onClick={()=>{edit(d=>{d.floors.push(freshFloor());d.placements.push(emptyPlacements());});setFloorIndex(draft.floors.length);}}>Add floor</button><button type="button" disabled={draft.floors.length===4} onClick={()=>{edit(d=>{d.floors.splice(floorIndex+1,0,structuredClone(floor));d.placements.splice(floorIndex+1,0,structuredClone(d.placements[floorIndex]));});setFloorIndex(floorIndex+1);}}>Duplicate</button><button type="button" disabled={draft.floors.length===2} onClick={()=>{edit(d=>{d.floors.splice(floorIndex,1);d.placements.splice(floorIndex,1);});setFloorIndex(Math.max(0,floorIndex-1));}}>Remove</button>{([-1,1] as const).map(delta=><button type="button" key={delta} disabled={floorIndex+delta<0||floorIndex+delta>=draft.floors.length} onClick={()=>{edit(d=>{for(const list of [d.floors,d.placements]){const [value]=list.splice(floorIndex,1);(list as any[]).splice(floorIndex+delta,0,value);}});setFloorIndex(floorIndex+delta);}}>{delta<0?'Earlier':'Later'}</button>)}<button type="button" onClick={()=>edit(d=>{d.floors[floorIndex]=freshFloor();d.placements[floorIndex]=emptyPlacements();})}>Reset floor</button></div>}
++ </div><aside className="builder-inspector"><label>Inspector <select aria-label="Builder inspector" value={tab} onChange={e=>setTab(e.target.value as typeof tab)}>{['Layout','Encounters','Art','Treasure','Open'].map(v=><option key={v}>{v}</option>)}</select></label>
++ {tab==='Layout'&&<><h3>Build on the map</h3><p>Choose a brush, then a tile. S marks arrival, E the stairs, and 0–3 the encounter sockets.</p><IssuePager issues={geometryErrors}/></>}
++ {tab==='Encounters'&&<div className="studio-encounter"><label>Enemy <select value={draft.placements[floorIndex][socketIndex].enemy} onChange={e=>edit(d=>{d.placements[floorIndex][socketIndex].enemy=e.target.value as Placement['enemy'];})}><option value="none">None</option><option value="pursuer">Pursuer · 2 coins</option><option value="charger">Charger · 3 coins</option></select></label><label>Reward <select value={draft.placements[floorIndex][socketIndex].reward??''} onChange={e=>edit(d=>{d.placements[floorIndex][socketIndex].reward=e.target.value as ItemType||null;})}><option value="">None</option>{itemTypes.map(t=><option key={t} value={t}>{catalog[t].name}</option>)}</select></label><label><input type="checkbox" checked={draft.placements[floorIndex][socketIndex].trap} onChange={e=>edit(d=>{d.placements[floorIndex][socketIndex].trap=e.target.checked;})}/> Spike trap · 1 coin</label></div>}
++ <div className="studio-art" hidden={tab!=='Art'}><TilesetPanel embedded/></div>
++ {tab==='Treasure'&&<div className="studio-funding"><h3>Stock your expedition</h3><p>{funding.length} selected. Match the rewards in Encounters. Extra matching goods fund more attempts; unused stock goes to the bank at closure.</p><div className="studio-stock">{stock.slice(stockIndex*4,stockIndex*4+4).map(i=><button type="button" key={i.id} aria-pressed={selected.includes(i.id)} disabled={!onToggleFunding} onClick={()=>onToggleFunding?.(i.id)}><strong>{selected.includes(i.id)?'✓ ':''}{catalog[i.item_type].name}</strong><small>{i.id}</small></button>)}</div><div className="studio-row"><button type="button" disabled={stockIndex===0} onClick={()=>setStockPage(stockIndex-1)}>Previous goods</button><span>{stockIndex+1}/{stockPages}</span><button type="button" disabled={stockIndex===stockPages-1} onClick={()=>setStockPage(stockIndex+1)}>Next goods</button></div><IssuePager issues={fundingErrors}/></div>}
++ {tab==='Open'&&<div className="studio-publish"><h3>Open the doors</h3><label>Expedition name <input value={draft.title} maxLength={80} onChange={e=>edit(d=>{d.title=e.target.value;})}/></label><label>Entry fee <input type="number" min="0" max="1000000" step="1" value={draft.fee} onChange={e=>edit(d=>{d.fee=e.target.value;})}/></label><p>Placement: <strong>{cost} coins</strong> · {funding.length} goods committed.<br/>One hour opening · 4 concurrent runs · 15 minutes per run.</p><IssuePager issues={[...formErrors,...fundingErrors,...(unresolved?['An operation is unresolved. Refresh before opening another expedition.']:[])]}/><div className="studio-row"><button type="button" className="primary" disabled={unresolved||!!formErrors.length||!!fundingErrors.length} onClick={()=>void execute(true)}>Pay {cost} coins & open</button><button type="button" onClick={()=>void execute(false)}>Refresh funding</button></div><p className="studio-hint">Base 2 + pursuer 2 / charger 3 + trap 1 + reward socket 1. Reward goods are funded separately.</p></div>}
++ </aside></div>
++ <div className="studio-actions"><button type="button" disabled={!history[active]?.length} onClick={undo}>Undo</button><button type="button" disabled={!future[active]?.length} onClick={redo}>Redo</button><button type="button" disabled={geometryErrors.length>0} onClick={()=>{try{setPreview(previewFor(draft));setNotice('');}catch(e){setNotice(message(e));}}}>Play rehearsal</button>{geometryErrors.length>0&&<button type="button" onClick={()=>setTab('Open')}>{geometryErrors.length} map issues</button>}</div>
++ </>}
++ </fieldset><StudioStatus text={working?'Waiting for confirmation…':notice||saveError||saveStatus||'Drafts stay on this device. Save before leaving the guild.'}/>
++ </section></BuilderStudio>;
+ }
+diff --git a/apps/web/src/Interior.tsx b/apps/web/src/Interior.tsx
+index b995c83..63e3416 100644
+--- a/apps/web/src/Interior.tsx
++++ b/apps/web/src/Interior.tsx
+@@ -1,3 +1,4 @@
++import {TileArt} from './tileset';
+ import {InteriorBuilder,readInterior} from './InteriorBuilder';
+ import type {InteriorLayout} from '../../../packages/game/src/interiors';
+ import {CharacterSprite} from './CharacterSprite';
+@@ -16,10 +17,11 @@ export function Interior({place,busy,onExit,children,wallet,editable=true,layout
+  function move(dx:number,dy:number){if(busy||interaction)return;setRoute([]);setTarget(undefined);const next={x:position.x+dx,y:position.y+dy};if(roomWalkable(place,next,layout)){if(next.x===layout.exit.x&&next.y===layout.exit.y)onExit();else setPosition(next);}}
+  function choose(x:number,y:number){if(busy||interaction)return;const f=fixtures.find(f=>f.x===x&&f.y===y);if(f){if(f.id.startsWith('decor'))return;const approach=fixtureApproach(place,position,f,layout);if(approach){setTarget(f.id);setRoute(approach.path);}}else{setTarget(undefined);setRoute(roomPath(place,position,{x,y},layout));}field.current?.focus({preventScroll:true});}
+  if(editing)return <InteriorBuilder place={place} initial={layout} onCancel={()=>setEditing(false)} onApply={next=>{setLayout(next);setPosition(next.entry);setRoute([]);setTarget(undefined);setInteraction(undefined);setEditing(false);}}/>;
+- return <section className={`room-world room-${place}`} aria-label={`${location.name} interior`}><div className="room-heading"><div><small>Saltwake / indoors</small><h2>{location.name}</h2><p>{location.purpose}</p></div><div>{editable&&<button disabled={busy} onClick={()=>{setRoute([]);setTarget(undefined);setInteraction(undefined);setEditing(true);}}>Edit interior</button>} <button disabled={busy} onClick={onExit}>Leave house</button></div></div>
+- <div ref={field} className="room-board" tabIndex={0} role="group" aria-label="Interior movement: arrows or WASD, Enter to interact" style={{gridTemplateColumns:`repeat(${roomSize.width},minmax(0,1fr))`}} onKeyDown={e=>{if(e.key==='Escape'&&!busy){e.preventDefault();if(interaction)setInteraction(undefined);else onExit();return;}if(e.target!==e.currentTarget||e.ctrlKey||e.metaKey||e.altKey)return;const dirs:Record<string,[number,number]>={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};if(dirs[e.key]){e.preventDefault();move(...dirs[e.key]);}if(e.key==='Enter'&&near&&!busy){e.preventDefault();interact(near.id);}}}>
+- {Array.from({length:roomSize.width*roomSize.height},(_,i)=>{const x=i%roomSize.width,y=Math.floor(i/roomSize.width),fixture=fixtures.find(f=>f.x===x&&f.y===y),player=position.x===x&&position.y===y,exit=x===layout.exit.x&&y===layout.exit.y,wall=!roomWalkable(place,{x,y},layout)&&!fixture;return <button key={i} tabIndex={-1} disabled={busy||wall||!!interaction} className={`tile room-tile ${wall?'room-wall':''} ${fixture?'room-fixture':''} ${player?'room-player':''} ${exit?'room-exit':''}`} aria-label={player?`You at ${x}, ${y}`:fixture?.name??(exit?'Door to Saltwake':wall?'Wall':`Floor ${x}, ${y}`)} onClick={()=>choose(x,y)}>{player?<CharacterSprite/>:<span>{fixture?.glyph??(exit?'⇩':'')}</span>}{fixture&&<small>{fixture.name.split(' · ')[0]}</small>}{exit&&<small>Town</small>}</button>;})}
+- </div><div className="room-foot"><p>{near?`${near.name} · Enter to interact`:'Walk to a counter or the account book. Step through the south door to return.'}</p><div className="room-pad">{[['↑',0,-1],['←',-1,0],['↓',0,1],['→',1,0]].map(([label,dx,dy])=><button key={label} disabled={busy||!!interaction} onClick={()=>move(Number(dx),Number(dy))}>{label}</button>)}<button disabled={!near||busy||!!interaction} onClick={()=>near&&interact(near.id)}>Interact</button></div></div>
+- {interaction&&<div className="room-service" role="region" aria-label={interaction==='wallet'?'Purse and account book':location.keeper} onKeyDown={e=>{if(e.key==='Escape'&&!busy){e.preventDefault();setInteraction(undefined);}}}><div className="room-service-title"><h3>{interaction==='wallet'?'Your account book':location.keeper}</h3><button autoFocus disabled={busy} onClick={()=>setInteraction(undefined)}>Back to room</button></div>{interaction==='wallet'?wallet:children}</div>}
++ return <section className={`room-world room-${place} ${interaction?'has-service':''}`} aria-label={`${location.name} interior`}><div className="room-heading"><div><small>Saltwake / indoors</small><h2>{location.name}</h2><p>{location.purpose}</p></div><div>{editable&&<button data-builder-launch="interior" disabled={busy} onClick={()=>{setRoute([]);setTarget(undefined);setInteraction(undefined);setEditing(true);}}>Edit interior</button>} <button disabled={busy} onClick={onExit}>Leave house</button></div></div>
++ <div className="room-map-area"><div ref={field} className="room-board" tabIndex={0} role="group" aria-label="Interior movement: arrows or WASD, Enter to interact" style={{gridTemplateColumns:`repeat(${roomSize.width},minmax(0,1fr))`}} onKeyDown={e=>{if(e.key==='Escape'&&!busy){e.preventDefault();if(interaction)setInteraction(undefined);else onExit();return;}if(e.target!==e.currentTarget||e.ctrlKey||e.metaKey||e.altKey)return;const dirs:Record<string,[number,number]>={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};if(dirs[e.key]){e.preventDefault();move(...dirs[e.key]);}if(e.key==='Enter'&&near&&!busy){e.preventDefault();interact(near.id);}}}>
++ {Array.from({length:roomSize.width*roomSize.height},(_,i)=>{const x=i%roomSize.width,y=Math.floor(i/roomSize.width),fixture=fixtures.find(f=>f.x===x&&f.y===y),player=position.x===x&&position.y===y,exit=x===layout.exit.x&&y===layout.exit.y,wall=!roomWalkable(place,{x,y},layout)&&!fixture;return <button key={i} tabIndex={-1} disabled={busy||wall||!!interaction} className={`tile room-tile ${wall?'room-wall':''} ${fixture?'room-fixture':''} ${player?'room-player':''} ${exit?'room-exit':''}`} aria-label={player?`You at ${x}, ${y}`:fixture?.name??(exit?'Door to Saltwake':wall?'Wall':`Floor ${x}, ${y}`)} onClick={()=>choose(x,y)}><TileArt wall={wall}/>{player?<CharacterSprite/>:<span>{fixture?.glyph??(exit?'⇩':'')}</span>}{fixture&&<small>{fixture.name.split(' · ')[0]}</small>}{exit&&<small>Town</small>}</button>;})}
++ </div></div><div className="room-foot"><p>{near?`${near.name} · Enter to interact`:'Walk to a counter or the account book. Step through the south door to return.'}</p><div className="room-pad">{[['↑',0,-1],['←',-1,0],['↓',0,1],['→',1,0]].map(([label,dx,dy])=><button key={label} aria-label={`Move ${{'↑':'north','←':'west','↓':'south','→':'east'}[String(label)]}`} disabled={busy||!!interaction} onClick={()=>move(Number(dx),Number(dy))}>{label}</button>)}<button disabled={!near||busy||!!interaction} onClick={()=>near&&interact(near.id)}>Interact</button></div></div>
++ {interaction&&<div className="room-service" role="region" aria-label={interaction==='wallet'?'Purse and account book':location.keeper} onKeyDown={e=>{if(e.key==='Escape'&&!busy){e.preventDefault();setInteraction(undefined);}}}><div className="room-service-title"><h3>{interaction==='wallet'?'Your account book':location.keeper}</h3><button autoFocus disabled={busy} onClick={()=>setInteraction(undefined)}>Back to room</button></div><div className="service-body">{interaction==='wallet'?wallet:children}</div></div>}
++ {!interaction&&<div className="room-service idle-service" aria-label="Idle house inspector"><h3>{location.name}</h3><p>Approach a counter to use its services.</p><p>Click a counter to walk over, or use the arrow keys and Enter.</p></div>}
+  </section>;
+ }
+diff --git a/apps/web/src/InteriorBuilder.tsx b/apps/web/src/InteriorBuilder.tsx
+index 5e93e89..e03178a 100644
+--- a/apps/web/src/InteriorBuilder.tsx
++++ b/apps/web/src/InteriorBuilder.tsx
+@@ -1,3 +1,5 @@
++import {BuilderStudio,StudioTabs,IssuePager,StudioStatus} from './BuilderStudio';
++import {TileArt,TilesetPanel} from './tileset';
+ import React,{useState} from 'react';
+ import {defaultInterior,roomFixtures,validateInterior,type InteriorLayout} from '../../../packages/game/src/interiors';
+ import type {PlaceId} from '../../../packages/game/src/town';
+@@ -11,9 +13,10 @@ export function readInterior(place:PlaceId):InteriorLayout{
+  return defaultInterior(place);
+ }
+ export function InteriorBuilder({place,initial,onApply,onCancel}:{place:PlaceId;initial:InteriorLayout;onApply:(layout:InteriorLayout)=>void;onCancel:()=>void}){
+- const [draft,setDraft]=useState(()=>structuredClone(initial)),[tool,setTool]=useState<Tool>('wall'),[history,setHistory]=useState<InteriorLayout[]>([]),[preview,setPreview]=useState(false),[notice,setNotice]=useState('');
++ const [draft,setDraft]=useState(()=>structuredClone(initial)),[tool,setTool]=useState<Tool>('wall'),[history,setHistory]=useState<InteriorLayout[]>([]),[future,setFuture]=useState<InteriorLayout[]>([]),[preview,setPreview]=useState(false),[notice,setNotice]=useState('');
++ const [tab,setTab]=useState<'Layout'|'Art'|'Check'>('Layout');
+  const errors=validateInterior(draft);
+- function change(next:InteriorLayout){setHistory(h=>[...h.slice(-39),draft]);setDraft(next);setNotice('');}
++ function change(next:InteriorLayout){setFuture([]);setHistory(h=>[...h.slice(-39),draft]);setDraft(next);setNotice('');}
+  function paint(x:number,y:number){
+   const next=structuredClone(draft),rows=next.tiles.map(r=>r.split(''));const edge=x===0||x===10||y===0||y===8;
+   if(tool==='door'){
+@@ -34,13 +37,13 @@ export function InteriorBuilder({place,initial,onApply,onCancel}:{place:PlaceId;
+   next.tiles=rows.map(r=>r.join(''));change(next);
+  }
+  function save(){if(errors.length)return;try{localStorage.setItem(interiorKey(place),JSON.stringify(draft));onApply(structuredClone(draft));}catch{setNotice('This browser could not save the room. Your draft is still open; storage may be full or disabled.');}}
+- if(preview)return <section><p className="builder-note">Interior preview · changes are not saved yet. Counters are demonstrations.</p><Interior place={place} busy={false} editable={false} layoutOverride={draft} onExit={()=>setPreview(false)} wallet={<p>This tile opens the real wallet after you save the room.</p>}><p>This station opens this building’s real services after you save the room.</p></Interior></section>;
+- return <section className="interior-builder" aria-label="Interior builder"><div className="builder-title"><div><h2>Arrange this house</h2><p>Paint walls and floors, move the door and counters, then walk through your design.</p></div><button onClick={onCancel}>Cancel edits</button></div>
+- <p className="builder-note">Saved to this browser for this house, across demo characters. Furniture is decorative and costs no game coins. This does not change inventory or ownership.</p>
+- <div className="builder-tools" aria-label="Interior tools">{tools.map(t=><button key={t} aria-pressed={tool===t} onClick={()=>setTool(t)}>{t==='arrival'?'Arrival tile':t==='service'?'Service counter':t==='wallet'?'Account book':t[0].toUpperCase()+t.slice(1)}</button>)}</div>
+- <div className="interior-paint-grid" role="group" aria-label="Interior painting grid">{draft.tiles.flatMap((row,y)=>[...row].map((tile,x)=>{const f=draft.fixtures.find(f=>f.x===x&&f.y===y),entry=x===draft.entry.x&&y===draft.entry.y,exit=x===draft.exit.x&&y===draft.exit.y;return <button key={`${x},${y}`} className={`tile paint-cell ${tile==='#'?'paint-wall':''}`} aria-label={`Paint ${x}, ${y}: ${entry?'arrival':exit?'door':f?.name??(tile==='#'?'wall':'floor')}`} onClick={()=>paint(x,y)}><span>{entry?'⇥':exit?'⇩':f?.glyph??''}</span></button>;}))}</div>
+- <p role="status">{notice||`Tool: ${tool}. Click a tile to place it.`}</p>
+- {errors.length?<ul className="builder-errors">{errors.map(e=><li key={e}>{e}</li>)}</ul>:<p>All open floors, stations and the door are reachable.</p>}
+- <div className="builder-tools"><button disabled={!history.length} onClick={()=>{setDraft(history.at(-1)!);setHistory(h=>h.slice(0,-1));setNotice('');}}>Undo</button><button onClick={()=>change(defaultInterior(place))}>Restore default draft</button><button disabled={!!errors.length} onClick={()=>setPreview(true)}>Walk through preview</button><button className="primary" disabled={!!errors.length} onClick={save}>Save and enter room</button></div>
+- </section>;
++ return <BuilderStudio title="House workshop" returnFocus="[data-builder-launch=interior]" onClose={onCancel}><section className="interior-builder studio-editor" aria-label="Interior builder">
++ {preview?<div className="studio-room-preview"><Interior place={place} busy={false} editable={false} layoutOverride={draft} onExit={()=>setPreview(false)} wallet={<p>The account book opens your wallet after saving.</p>}><p>This counter opens the house services after saving.</p></Interior></div>:<>
++ <div className="studio-page integrated-workspace">
++<div className="studio-drawing"><div className="studio-row"><label>Paint <select aria-label="Interior tool" value={tool} onChange={e=>setTool(e.target.value as Tool)}>{tools.map(t=><option key={t} value={t}>{t==='arrival'?'Arrival tile':t==='service'?'Service counter':t==='wallet'?'Account book':t}</option>)}</select></label><span className="studio-hint">Choose a tool, then a tile.</span></div>
++ <div className="studio-map-area"><div className="interior-paint-grid" role="group" aria-label="Interior painting grid">{draft.tiles.flatMap((row,y)=>[...row].map((tile,x)=>{const f=draft.fixtures.find(f=>f.x===x&&f.y===y),entry=x===draft.entry.x&&y===draft.entry.y,exit=x===draft.exit.x&&y===draft.exit.y;return <button type="button" key={`${x},${y}`} className={`tile paint-cell ${tile==='#'?'paint-wall':''}`} aria-label={`Paint ${x}, ${y}: ${entry?'arrival':exit?'door':f?.name??(tile==='#'?'wall':'floor')}`} onClick={()=>paint(x,y)}><TileArt wall={tile==='#'}/><span>{entry?'⇥':exit?'⇩':f?.glyph??''}</span></button>;}))}</div></div><p className="studio-hint">Door: south wall · Arrival: inside · Counters need a clear approach.</p></div><aside className="builder-inspector"><label>Inspector <select aria-label="Interior inspector" value={tab} onChange={e=>setTab(e.target.value as typeof tab)}><option>Layout</option><option>Art</option><option>Check</option></select></label><div className="studio-art" hidden={tab!=='Art'}><TilesetPanel embedded/></div>{tab!=='Art'&&<><h3>{tab==='Check'?'Check your room':'Arrange the house'}</h3><p>Use the map to place furniture and service counters. Save when you are ready to move in.</p><IssuePager issues={errors}/><button type="button" onClick={()=>change(defaultInterior(place))}>Restore default draft</button></>}</aside></div>
++ <div className="studio-actions"><button type="button" disabled={!history.length} onClick={()=>{setFuture(f=>[draft,...f]);setDraft(history.at(-1)!);setHistory(h=>h.slice(0,-1));setNotice('');}}>Undo</button><button type="button" disabled={!future.length} onClick={()=>{setHistory(h=>[...h,draft]);setDraft(future[0]);setFuture(f=>f.slice(1));}}>Redo</button><button type="button" disabled={!!errors.length} onClick={()=>setPreview(true)}>Walk preview</button><button type="button" className="primary" disabled={!!errors.length} onClick={save}>Save room</button></div>
++ <StudioStatus text={notice||(errors.length?`${errors.length} issues — open Check to review.`:'All floors, stations and the door are reachable. Changes are not saved yet.')}/>
++ </>}
++ </section></BuilderStudio>;
+ }
+diff --git a/apps/web/src/Maker.tsx b/apps/web/src/Maker.tsx
+index 41066a8..95e0c0e 100644
+--- a/apps/web/src/Maker.tsx
++++ b/apps/web/src/Maker.tsx
+@@ -1,3 +1,4 @@
++import {Pages,Reading} from './GamePanels';
+ import React, {useRef, useState} from 'react';
+ import type {Command, EditionTerms, Item} from '../../../packages/shared/src/types';
+ import {catalog} from '../../../packages/shared/src/catalog';
+@@ -17,6 +18,7 @@ type EditionView = {
+ 
+ /** Parent supplies the authenticated command wrapper and current world snapshot. */
+ export function Maker({world, busy, selected, command, refresh,onBusyChange}: MakerProps) {
++  const [view,setView]=useState('Manage');
+   const [fees, setFees] = useState<Record<string, string>>({});
+   const [notice, setNotice] = useState('');
+   const [working, setWorking] = useState(false);
+@@ -47,17 +49,12 @@ export function Maker({world, busy, selected, command, refresh,onBusyChange}: Ma
+   };
+ 
+   return <section aria-label="Manage your dungeon editions">
+-    <h2>Maker · Your editions</h2>
+-    <p>Funding transfers the selected town items into an edition. This panel adds only fixed rewards.
+-      Fee changes apply to future admissions. Final closure sends unused stock to the bank.</p>
++<label>Edition view <select value={view} onChange={e=>setView(e.target.value)}><option>Manage</option><option>Results</option></select></label>
++    <p>{ids.length} selected goods · unused stock goes to bank at closure.</p>
+     <button type="button" disabled={busy || working} onClick={() => void execute()}>Refresh maker view</button>
+-    <p role="status">{notice || (working ? 'Waiting for confirmation…' : unresolved ? 'An operation is unresolved. Refresh before submitting another.' : '')}</p>
+-    <p>Selected funding: {ids.length ? ids.map(id => {
+-      const item = items.find(i => i.id === id);
+-      return `${item ? catalog[item.item_type].name : 'Unavailable item'} (${id})`;
+-    }).join(', ') : 'Select owned items in town.'}</p>
++    <Reading text={notice || (working ? 'Waiting for confirmation…' : unresolved ? 'An operation is unresolved. Refresh before submitting another.' : '')}/>
+     {!editions.length && <p>You have no editions to manage.</p>}
+-    {editions.map(edition => {
++    <Pages items={editions} label="Your editions" render={edition => {
+       const cutoff = Number(edition.terms.closes_at_ms);
+       const pastCutoff = Number.isFinite(cutoff) && Date.now() >= cutoff;
+       const open = !edition.closed && Number.isFinite(cutoff) && !pastCutoff;
+@@ -68,9 +65,9 @@ export function Maker({world, busy, selected, command, refresh,onBusyChange}: Ma
+       return <article key={edition.id}>
+         <h3>{edition.terms.title}</h3>
+         <p>{edition.id} · Version {edition.version} · Entry {edition.fee} credits · {edition.active} active runs</p>
+-        <p>Settled entry fees: {edition.settledRevenue??0} · Pending fee escrow: {edition.pendingFees??0} · Placement paid: {edition.placementPaid??'unknown'} · Finished attempts: {edition.completedRuns??0}. These figures exclude the acquisition cost of funded goods and are not net profit.</p><p>Player feedback: {Object.entries(edition.feedback??{}).map(([choice,n])=>`${choice}: ${n}`).join(' · ')||'None'}</p>
++        {view==='Results'&&<><p>Settled entry fees: {edition.settledRevenue??0} · Pending fee escrow: {edition.pendingFees??0} · Placement paid: {edition.placementPaid??'unknown'} · Finished attempts: {edition.completedRuns??0}. These figures exclude the acquisition cost of funded goods and are not net profit.</p><p>Player feedback: {Object.entries(edition.feedback??{}).map(([choice,n])=>`${choice}: ${n}`).join(' · ')||'None'}</p></>}
+         <p>{edition.closed ? 'Closed' : pastCutoff ? 'Cutoff reached' : 'Accepting changes'} · Cutoff {Number.isFinite(cutoff) ? new Date(cutoff).toLocaleString() : 'unavailable'}</p>
+-        <label>New entry fee (0–1,000,000 credits) <input type="number" min="0" max="1000000" step="1"
++        {view==='Manage'&&<><label>New entry fee (0–1,000,000 credits) <input type="number" min="0" max="1000000" step="1"
+           value={fee} disabled={disabled || !open}
+           onChange={event => setFees(previous => ({...previous, [edition.id]: event.target.value}))} /></label>{' '}
+         <button type="button" disabled={disabled || !open || !validFee}
+@@ -81,8 +78,8 @@ export function Maker({world, busy, selected, command, refresh,onBusyChange}: Ma
+         {!compatible && ids.length > 0 && <p>Select 1–128 available owned items matching this edition’s fixed reward types.</p>}
+         <p>Closure is available after cutoff when all active runs have settled. Unused funding is not returned to you.</p>
+         <button type="button" disabled={disabled || edition.closed || !pastCutoff || edition.active !== 0}
+-          onClick={() => void execute({type: 'finalize_close', edition_id: edition.id})}>Finalize closure · send unused stock to bank</button>
++          onClick={() => void execute({type: 'finalize_close', edition_id: edition.id})}>Finalize closure · send unused stock to bank</button></>}
+       </article>;
+-    })}
++    }}/>
+   </section>;
+ }
+diff --git a/apps/web/src/Run.tsx b/apps/web/src/Run.tsx
+index 39f04b4..dc19676 100644
+--- a/apps/web/src/Run.tsx
++++ b/apps/web/src/Run.tsx
+@@ -1,3 +1,5 @@
++import {Pages,Reading} from './GamePanels';
++import {TileArt} from './tileset';
+ import {CharacterSprite} from './CharacterSprite';
+ import React, {useState, useRef} from 'react';
+ import {distance} from '../../../packages/game/src/state';
+@@ -10,9 +12,10 @@ import {disposition} from '../../../packages/game/src/disposition';
+ import {ItemIcon} from './ItemIcon';
+ import {catalog} from '../../../packages/shared/src/catalog';
+ 
+-export function Run({remote}:{remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;terminal:string|null;settlement:any;exit?:{x:number;y:number};canExtract?:boolean;hasNextRoom?:boolean}}) {
++export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;terminal:string|null;settlement:any;exit?:{x:number;y:number};canExtract?:boolean;hasNextRoom?:boolean}}) {
+  const [local, set] = useState(()=>roguelikeRun(crypto.getRandomValues(new Uint32Array(1))[0]));const s=remote?.state??local;
+  const board = useRef<HTMLDivElement>(null);
++ const [compactTab,setCompactTab]=useState<'Map'|'Bag'|'Journal'>('Map'),[itemPage,setItemPage]=useState(0);
+  const [notice, setNotice] = useState('');
+  const send = (a:Action) => {
+   if(remote){if(!remote.busy&&!remote.terminal)remote.send(a);return;}
+@@ -30,7 +33,8 @@ export function Run({remote}:{remote?:{state:ReturnType<typeof practiceRun>;send
+  const ended=s.status!=='active'||!!remote?.terminal;
+  const report=ended&&!remote?disposition(s,s.status==='died'?'died':'extracted'):null;
+  const targets=visibleEnemies.map(e=>e.recovering?`${e.id} is recovering.`:e.lane?.length?`${e.id} will charge the marked lane.`:`${e.id} targets ${e.intent.x}, ${e.intent.y}.`).join(' ');
+- return <section className="expedition">
++ return <section className={`expedition ${compact?`compact-run run-tab-${compactTab.toLowerCase()}`:''}`}>
++ {compact&&<nav className="studio-tabs" aria-label="Rehearsal sections">{(['Map','Bag','Journal'] as const).map(t=><button type="button" key={t} aria-pressed={compactTab===t} onClick={()=>setCompactTab(t)}>{t}</button>)}</nav>}
+   <div>
+    <div className="status"><strong>{remote?.title??roomTitle(s)} · {s.roomIndex+1}/{remote?.roomCount??2}</strong><span>Health {s.player.hp}/12 · Turn {s.turn}</span></div>
+    <div className="board" style={{gridTemplateColumns:`repeat(${s.room[0].length},1fr)`}} ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait." onKeyDown={e=>{
+@@ -46,6 +50,7 @@ export function Run({remote}:{remote?:{state:ReturnType<typeof practiceRun>;send
+      const exit=remote?.exit??roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
+      const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?enemy.id:trap?'spikes':loot?'loot':isExit?'exit':'floor'}${warning?' danger next turn':''}`;
+      return <button key={`${x},${y}`} className={`tile ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''}`} tabIndex={-1} disabled={!seen||tile==='#'} aria-label={label} onClick={()=>click(x,y)}>
++      {seen&&<TileArt wall={tile==='#'}/>}
+       {seen&&(lit||isExit)&&(player?<CharacterSprite/>:<span aria-hidden="true" className={`game-sprite ${player?'delver':enemy?enemy.kind==='charger'?'boar':'rat':trap?trap.armed?'spikes':'safe-spikes':loot?'loot':isExit?'stairs':tile==='#'?'stone':'ground'}`}>{player?'':enemy?'':trap?'':loot?'◆':isExit?'≡':''}</span>)}
+       {player&&warning&&<span className="danger-badge" aria-hidden="true">!</span>}
+       {enemy&&<small className="enemy-health">{enemy.hp} HP</small>}
+@@ -64,7 +69,7 @@ export function Run({remote}:{remote?:{state:ReturnType<typeof practiceRun>;send
+    {s.roguelike&&s.roomIndex===0&&canLeave&&!s.boon&&!ended&&<section className="shrine"><h2>The threshold shrine</h2><p>One choice for this descent. Leave safely now, or prepare for the deeper vault.</p><button onClick={()=>send({type:'boon',choice:'rest'})}>Rest: recover 4 health</button><button disabled={s.player.hp<=3} onClick={()=>send({type:'boon',choice:'edge'})}>Blood edge: lose 3 health, gain +1 damage</button></section>}
+    <section className="inventory" aria-label="Run inventory">
+     <h2>Equipment & loot</h2><p>Bag {bag.length}/6 · Weapon: {s.player.weapon} · Armor: {s.player.armor?'equipped':'none'}</p>
+-    {visibleItems.map(i=><div className="item" key={i.id} data-item-id={i.id}>
++    {(compact?visibleItems.slice(Math.min(itemPage,Math.max(0,visibleItems.length-1)),Math.min(itemPage,Math.max(0,visibleItems.length-1))+1):visibleItems).map(i=><div className="item" key={i.id} data-item-id={i.id}>
+      <span className="item-description"><ItemIcon type={i.type}/><strong>{catalog[i.type].name}</strong><small>{i.origin} · {i.location.kind} · {i.id}</small></span>
+      <div className="controls">
+       {i.location.kind==='floor'&&<button disabled={ended} onClick={()=>send({type:'pickup',itemId:i.id})}>Take {catalog[i.type].name}</button>}
+@@ -73,19 +78,21 @@ export function Run({remote}:{remote?:{state:ReturnType<typeof practiceRun>;send
+       {i.origin==='dungeon'&&i.location.kind==='bag'&&<button disabled={ended} onClick={()=>send({type:'drop',itemId:i.id})}>Drop {catalog[i.type].name}</button>}
+      </div>
+     </div>)}
++   {compact&&<div className="studio-row"><button disabled={itemPage===0} onClick={()=>setItemPage(Math.max(0,itemPage-1))}>Previous item</button><span>{Math.min(itemPage+1,visibleItems.length)}/{visibleItems.length}</span><button disabled={itemPage>=visibleItems.length-1} onClick={()=>setItemPage(itemPage+1)}>Next item</button></div>}
+    </section>
+   </div>
+   <aside>
+    <h2>{s.status==='died'?'You fell.':s.status==='extracted'?'You made it out.':remote?'Watch the shadows':s.enemies.length?'Read the threat':'Room cleared.'}</h2>
+    <p>Moving into an enemy attacks it. Your {s.player.weapon} deals {(s.player.weapon==='sword'?3:2)+(s.boon==='edge'?1:0)} damage. Each valid action spends a turn, including using or equipping loot.</p>
+-   <div className="turn-feedback" role="status" aria-live="polite">Health {s.player.hp}. Position {s.player.x}, {s.player.y}. Turn {s.turn}. {notice} {s.log.at(-1)} {targets}</div>
+-   {visibleEnemies.map(e=><p key={e.id}>{e.id}: {e.hp} health · {e.recovering?'Recovering':e.lane?.length?'CHARGING — leave the striped lane':e.alerted===false?'Unaware':'Pursuing'}</p>)}
+-   <ol className="log" aria-label="Combat history">{s.log.map((line,i)=><li key={i}>{line}</li>)}</ol>
++   <div className="turn-feedback" role="status" aria-live="polite"><Reading text={`Health ${s.player.hp}. Position ${s.player.x}, ${s.player.y}. Turn ${s.turn}. ${notice} ${s.log.at(-1)??''} ${targets}`}/></div>
++   <Pages items={visibleEnemies} label="Visible enemies" render={e=><p key={e.id}>{e.id}: {e.hp} health · {e.recovering?'Recovering':e.lane?.length?'CHARGING — leave the striped lane':e.alerted===false?'Unaware':'Pursuing'}</p>}/>
++   <div className="log" aria-label="Combat history"><Pages items={s.log.slice().reverse()} size={2} label="Combat history" render={line=><p>{line}</p>}/></div>
+    {report&&<section aria-label="Practice item outcomes"><h2>What goes where</h2><p>Practice only: these transfers are a preview, not a bank transaction.</p>{Object.entries(report).map(([group,ids])=><p key={group}><strong>{({townConsumed:'Town supplies spent',townReturned:'Town gear kept',townForfeited:'Town gear to bank',dungeonConsumed:'Found supplies spent',dungeonExtracted:'Loot carried out',dungeonReturned:'Loot returned to dungeon'} as Record<string,string>)[group]}</strong><br/>{ids.join(', ')||'None'}</p>)}</section>}
+    {!remote&&<><button className="primary" onClick={()=>restart()}>New descent · tonic kit</button>
+    <button className="primary secondary" onClick={()=>restart(true)}>New descent · armor kit</button><button className="primary secondary" onClick={()=>restart(false,true)}>Retry this seed</button>
+    <p className="legend">Seeded practice: layouts, threats and treasure change each descent. No gear carries between attempts. Town gear cannot be dropped. Found gear returns to the dungeon on death; used potions stay spent.</p></>}
+-   {remote?.terminal&&<section aria-label="Settlement"><h2>{remote.terminal}</h2><p>Settlement: {remote.settlement?.status??'Pending'}. {remote.settlement?.status!=='Applied'&&'Inventory remains locked until confirmed.'}</p>{remote.settlement?.disposition&&Object.entries(remote.settlement.disposition).map(([label,ids])=><p key={label}>{label.replaceAll('_',' ')}: {(ids as string[]).join(', ')||(remote.settlement.withheldCounts?.[label]?'':'None')}{remote.settlement.withheldCounts?.[label]>0&&` ${(ids as string[]).length?'+ ':''}${remote.settlement.withheldCounts[label]} undiscovered items (identities withheld)`}</p>)}</section>}
++   {remote?.terminal&&<section aria-label="Settlement"><h2>{remote.terminal}</h2><p>Settlement: {remote.settlement?.status??'Pending'}. {remote.settlement?.status!=='Applied'&&'Inventory remains locked until confirmed.'}</p>{remote.settlement?.disposition&&<Pages items={Object.entries(remote.settlement.disposition)} label="Settlement categories" render={([label,ids])=><Reading text={`${label.replaceAll('_',' ')}: ${(ids as string[]).join(', ')||'None'}${remote.settlement.withheldCounts?.[label]>0?` + ${remote.settlement.withheldCounts[label]} undiscovered items (identities withheld)`:''}`}/>}/>}</section>}
++
+   </aside>
+  </section>;
+ }
+diff --git a/apps/web/src/Shop.tsx b/apps/web/src/Shop.tsx
+index 7e6a3fd..ab65f35 100644
+--- a/apps/web/src/Shop.tsx
++++ b/apps/web/src/Shop.tsx
+@@ -1,3 +1,4 @@
++import {Pages,Reading} from './GamePanels';
+ import React, {useRef, useState} from 'react';
+ import {ItemIcon} from './ItemIcon';
+ import {catalog} from '../../../packages/shared/src/catalog';
+@@ -14,6 +15,7 @@ export type ShopProps = {
+ 
+ /** All trades use exact item IDs and quoted prices through the parent's command wrapper. */
+ export function Shop({world, busy, selected, command, refresh,onBusyChange}: ShopProps) {
++  const [view,setView]=useState('Supplies');
+   const [price, setPrice] = useState('5');
+   const [picks, setPicks] = useState<Record<string, boolean>>({});
+   const [working, setWorking] = useState(false);
+@@ -59,18 +61,13 @@ export function Shop({world, busy, selected, command, refresh,onBusyChange}: Sho
+     }
+   };
+ 
+-  return <section aria-label="Town shop">
+-    <h2>The merchants’ stalls</h2>
+-    <p>Balance: {world.credits} credits. Trades use the exact selected item IDs and displayed prices.
+-      Stock and quotes can change; the contract checks availability before completing a trade.</p>
+-    <button type="button" disabled={busy || working} onClick={() => void execute()}>Refresh shop</button>
+-    <p role="status">{notice || (working ? 'Waiting for confirmation…' : unresolved ? 'An operation is unresolved. Refresh before trading again.' : '')}</p>
++  return <section className="shop-counter" aria-label="Town shop">
++    <div className="shop-toolbar"><label>Trade <select aria-label="Trade view" value={view} onChange={e=>setView(e.target.value)}>{['Supplies','Traders','Sell / list','NPC order'].map(v=><option key={v}>{v}</option>)}</select></label>
++    <button type="button" disabled={busy || working} onClick={() => void execute()}>Refresh shop</button></div>
++    <p className="trade-balance">{world.credits} coins available · {view==='Supplies'?bankSelection.length:ids.length} selected</p>
++    <div role="status">{(notice||working||unresolved)&&<Reading text={notice || (working ? 'Waiting for confirmation…' : 'An operation is unresolved. Refresh before trading again.')}/>}</div>
+ 
+-    <h3>Sell selected town items</h3>
+-    <p>{ids.length ? ids.map(id => {
+-      const item = items.find(item => item.id === id);
+-      return `${item ? catalog[item.item_type].name : 'Unavailable item'} (${id})`;
+-    }).join(', ') : 'Select owned items in town to list, sell to the bank, or fill the NPC order.'}</p>
++    {view==='Sell / list'&&<><h3>Sell or stock your stall</h3><p>Select goods with “Choose stored goods”. Listed items lock until bought or cancelled.</p>
+     {!validOwned && ids.length > 0 && <p>Select 1–128 available items owned by this profile.</p>}
+     <label>Listing price per item <input type="number" min="1" max="1000000" step="1" value={price}
+       disabled={disabled} onChange={event => setPrice(event.target.value)} /></label>{' '}
+@@ -81,9 +78,9 @@ export function Shop({world, busy, selected, command, refresh,onBusyChange}: Sho
+       onClick={() => void execute({type: 'bank_sell', item_ids: ids, expected_unit_prices: owned.map(item => buyback(item!))})}>Sell selected to bank for {sellTotal.toString()} credits</button>
+     <p>Bank buyback budget: {world.bank} credits. Buyback pays half the catalog value per item.</p>
+ 
+-    <h3>Goods from local traders</h3>
++    </>}{view==='Traders'&&<><h3>Goods from local traders</h3>
+     {!listings.some(listing => listing.status === 'active') && <p>No active listings.</p>}
+-    {listings.filter(listing => listing.status === 'active').map(listing => {
++    <Pages items={listings.filter(listing => listing.status === 'active')} label="Trader listings" render={listing => {
+       const available = listing.remaining_ids.filter(id => listedItems.some(item => item.id === id &&
+         item.location.kind === 'listed' && item.location.listing === listing.id));
+       const chosen = available.filter(picked);
+@@ -92,35 +89,36 @@ export function Shop({world, busy, selected, command, refresh,onBusyChange}: Sho
+       return <article key={listing.id}>
+         <h4>{listing.id} · Seller {listing.seller}{mine ? ' (you)' : ''}</h4>
+         <p>{listing.unit_price} credits per item · {available.length} remaining</p>
+-        <div className="stock-rack">{available.map(id => {
++        <div className="stock-rack"><Pages items={available} size={2} label="Listing stock" render={id => {
+           const item = listedItems.find(item => item.id === id)!;
+           return <label className="item" key={id}><input type="checkbox" checked={picked(id)} disabled={disabled || mine}
+             onChange={event => toggle(id, event.target.checked)} /><ItemIcon type={item.item_type}/><span>{catalog[item.item_type].name}<small>{id}</small></span></label>;
+-        })}</div>
++        }}/></div>
+         {mine ? <button type="button" disabled={disabled}
+           onClick={() => void execute({type: 'cancel_listing', listing_id: listing.id})}>Cancel listing · return unsold items</button>
+           : <button type="button" disabled={disabled || !chosen.length || chosen.length > 128 || total > BigInt(world.credits)}
+             onClick={() => void execute({type: 'buy', listing_id: listing.id, item_ids: chosen, expected_unit_price: listing.unit_price})}>Buy {chosen.length} selected for {total.toString()} credits</button>}
+       </article>;
+-    })}
+-
+-    <h3>The bank’s supply counter</h3>
+-    <p>Sale prices are catalog values; buyback quotes are shown alongside them.</p>
++    }}/></>}{view==='Supplies'&&<>
++    <h3>Outfit your next expedition</h3>
++    <p>Select supplies below. The bank buys them back at half price.</p>
+     {!bankItems.length && <p>The bank has no stock.</p>}
+-    <div className="stock-rack">{bankItems.map(item => <label className="item" key={item.id}><input type="checkbox" checked={picked(item.id)}
++    <div className="stock-rack"><Pages items={bankItems} size={2} label="Bank stock" render={item => <label className="item" key={item.id}><input type="checkbox" checked={picked(item.id)}
+       disabled={disabled || !quoteMatches(item, true)} onChange={event => toggle(item.id, event.target.checked)} />
+       <ItemIcon type={item.item_type}/><span>{catalog[item.item_type].name}<small>{item.id}</small>Buy {sale(item)} / sell {buyback(item)} coins</span>
+-      {!quoteMatches(item, true) && ' · Quote mismatch: refresh required'}</label>)}</div>
+-    <button type="button" disabled={disabled || !bankSelection.length || bankSelection.length > 128 ||
++      {!quoteMatches(item, true) && ' · Quote mismatch: refresh required'}</label>}/></div>
++    <p className="trade-guidance">{!bankSelection.length?'Choose supplies to see your total.':bankTotal>BigInt(world.credits)?`You need ${bankTotal-BigInt(world.credits)} more coins for these supplies.`:`${bankSelection.length} selected · ${bankTotal} coins total`}</p>
++    <button className="primary checkout" type="button" disabled={disabled || !bankSelection.length || bankSelection.length > 128 ||
+       !bankSelection.every(item => quoteMatches(item, true)) || bankTotal > BigInt(world.credits)}
+-      onClick={() => void execute({type: 'bank_buy', item_ids: bankSelection.map(item => item.id), expected_unit_prices: bankSelection.map(sale)})}>Buy {bankSelection.length} bank items for {bankTotal.toString()} credits</button>
++      onClick={() => void execute({type: 'bank_buy', item_ids: bankSelection.map(item => item.id), expected_unit_prices: bankSelection.map(sale)})}>Buy {bankSelection.length} items · {bankTotal.toString()} coins</button>
+ 
+-    <h3>NPC order · Seeded demo demand</h3>
++    </>}{view==='NPC order'&&<><h3>NPC order · Seeded demo demand</h3>
+     <p>This finite NPC order is demo demand, not a player purchase or guaranteed ongoing income.
+       Filled items are consumed by the order.</p>
+     <p>{order.id}: {catalog[order.item_type].name} at {order.unit_price} credits each · {order.remaining} remaining · Budget {order.budget} credits</p>
+     <button type="button" disabled={disabled || !validOwned || !owned.every(item => item?.item_type === order.item_type) ||
+       ids.length > order.remaining || orderTotal > BigInt(order.budget)}
+       onClick={() => void execute({type: 'fill_npc_order', order_id: order.id, item_ids: ids, expected_unit_price: order.unit_price})}>Fill order with {ids.length} selected for {orderTotal.toString()} credits</button>
++    </>}
+   </section>;
+ }
+diff --git a/apps/web/src/Wallet.tsx b/apps/web/src/Wallet.tsx
+index 96d8e8a..1f5d477 100644
+--- a/apps/web/src/Wallet.tsx
++++ b/apps/web/src/Wallet.tsx
+@@ -1,3 +1,4 @@
++import {Pages,Reading} from './GamePanels';
+ import React, {useRef, useState} from 'react';
+ import type {WalletView} from '../../../packages/shared/src/wallet';
+ import './wallet.css';
+@@ -10,6 +11,7 @@ export type WalletProps = {
+ 
+ /** Parent supplies its guarded /api/world response and existing refresh/recovery flow. */
+ export function Wallet({world, busy = false, refresh}: WalletProps) {
++  const [view,setView]=useState('Balances');
+   const [working, setWorking] = useState(false);
+   const [notice, setNotice] = useState<{profile: string; text: string} | null>(null);
+   const inflight = useRef(false);
+@@ -24,44 +26,14 @@ export function Wallet({world, busy = false, refresh}: WalletProps) {
+     finally { inflight.current = false; setWorking(false); }
+   }
+   return <section className="game-wallet" aria-label="Game wallet" aria-busy={working}>
+-    <header><div><h2>Your purse</h2><p>Local game account · {world.profile}</p></div>
+-      <button type="button" disabled={busy || working} onClick={() => void reload()}>Refresh wallet</button></header>
+-    <p>Demo custody: the operator controls these profiles. Game credits are not real money.
+-      No external wallet is connected.</p>
+-    <p role="status">{notice?.profile === world.profile ? notice.text : working ? 'Refreshing wallet…' : ''}</p>
+-    {!wallet ? <p>Wallet data unavailable for this profile. Refresh to load its authoritative balance.</p> : <>
+-      <dl className="wallet-balances">
+-        <div><dt>Purse · available credits</dt><dd>{wallet.purse ?? 'Unavailable'}</dd></div>
+-        <div><dt>Reserved run fees</dt><dd>{wallet.reservedRunFees}</dd></div>
+-        <div><dt>Pending maker fees</dt><dd>{wallet.pendingMakerFees}</dd></div>
+-        <div><dt>Pending recovery wages</dt><dd>{wallet.pendingRecoveryWages}</dd></div>
+-      </dl>
+-      <p>Reserved run fees have already left your purse; they are not deducted again here.
+-        Maker fees and recovery wages are not spendable until settlement.</p>
+-      <p><strong>{wallet.ownedItemCatalogValue} catalog value</strong> across {wallet.ownedItemCount} available town items.
+-        This is not cash or a sale quote. Listed, funded, crafting and expedition items are excluded.</p>
+-      <h3>Awaiting confirmation</h3>
+-      {wallet.unresolved.length ? <><p>These operations have no final receipt. Their cash effect is not estimated. Refresh to reconcile.</p>
+-        <ul>{wallet.unresolved.map(op => <li key={op.id}><strong>{op.action.replaceAll('_', ' ')}</strong> · {op.status}<code>{op.id}</code></li>)}</ul></>
+-        : <p>No unresolved operations recorded for this profile.</p>}
+-      <h3>Run fee history</h3>
+-      <p>Exact fees from authoritative run records for you as player or edition maker.
+-        Active player fees are reserved; active maker fees are pending income. Settled maker fees have been paid.
+-        Voided runs are excluded: their fees are refunded to the player, not paid to the maker.</p>
+-      <p>This is not a complete cash ledger. It excludes trades, crafting wages, initial allocations and void refunds.
+-        Records follow snapshot order, not payment date. Playing your own edition shows both roles.</p>
+-      {wallet.runFeeHistory?.length ? <ul className="wallet-receipts">{wallet.runFeeHistory.map(entry => <li key={`${entry.runId}:${entry.role}`}>
+-        <div><strong>{entry.role === 'player' ? 'Outgoing entry fee' : 'Incoming maker fee'} · {entry.amount} credits</strong>
+-          <span>{entry.status === 'active' ? entry.role === 'player' ? 'Reserved' : 'Pending' : 'Settled'}</span></div>
+-        <code>{entry.runId} · {entry.editionId}</code><p>Role: {entry.role} · Run: {entry.status}</p>
+-      </li>)}</ul> : <p>No non-void run fee records available for this profile.</p>}
+-      <h3>Operation receipts</h3>
+-      <p>Confirmed results for this profile’s operations saved by this server, newest recorded first.
+-        This is not a complete cash ledger; incoming payments and initial allocations may not have a receipt here.</p>
+-      {wallet.receipts.length ? <ol className="wallet-receipts">{wallet.receipts.map(receipt => <li key={receipt.id}>
+-        <div><strong>{receipt.action.replaceAll('_', ' ')}</strong><span>{receipt.status}</span></div>
+-        <code>{receipt.id}</code><p>{receipt.result}</p>
+-      </li>)}</ol> : <p>No confirmed operation receipts recorded yet.</p>}
++    <div className="desk-nav"><label>Account <select aria-label="Wallet view" value={view} onChange={e=>setView(e.target.value)}>{['Balances','Pending','Run fees','Receipts','About'].map(v=><option key={v}>{v}</option>)}</select></label><button disabled={busy||working} onClick={()=>void reload()}>Refresh wallet</button></div>
++    <Reading text={notice?.profile===world.profile?notice.text:working?'Refreshing…':''}/>
++    {!wallet?<p>Balance unavailable. Refresh this profile.</p>:<>
++    {view==='Balances'&&<><dl className="wallet-balances">{[['Available credits',wallet.purse??'Unavailable'],['Reserved run fees',wallet.reservedRunFees],['Pending maker fees',wallet.pendingMakerFees],['Pending recovery wages',wallet.pendingRecoveryWages]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>{wallet.ownedItemCount} goods · {wallet.ownedItemCatalogValue} catalog value, not cash.</p><p>Reserved fees already left your purse. Pending income is not spendable until settlement.</p></>}
++    {view==='Pending'&&(wallet.unresolved.length?<Pages items={wallet.unresolved} label="Pending operations" render={op=><article><h3>{op.action.replaceAll('_',' ')}</h3><p>{op.status}</p><Reading text={op.id}/><p>No final receipt yet. Refresh to reconcile; cash effect is not estimated.</p></article>}/>:<p>No unresolved operations.</p>)}
++    {view==='Run fees'&&<><p>Authoritative fees in snapshot order, excluding voided runs. This is not a complete cash ledger.</p>{wallet.runFeeHistory?.length?<Pages items={wallet.runFeeHistory} label="Run fee history" render={e=><article><h3>{e.role==='player'?'Outgoing entry':'Incoming maker'} fee · {e.amount}</h3><p>{e.status==='active'?e.role==='player'?'Reserved':'Pending':'Settled'}</p><Reading text={`${e.runId} · ${e.editionId}`}/></article>}/>:<p>No run fee records.</p>}</>}
++    {view==='Receipts'&&<><p>Confirmed server-recorded operations, newest first; not a complete cash ledger.</p>{wallet.receipts.length?<Pages items={wallet.receipts} label="Operation receipts" render={r=><article><h3>{r.action.replaceAll('_',' ')} · {r.status}</h3><Reading text={`${r.id}: ${r.result}`}/></article>}/>:<p>No confirmed receipts.</p>}</>}
++    {view==='About'&&<Reading text={`Local profile: ${world.profile}. Operator custody, synthetic credits, no external wallet. Item catalog values exclude listed, funded, crafting and expedition items. Run fee history excludes trades, crafting wages, initial allocations and void refunds. Voided entry fees return to the player rather than the maker. Playing your own edition shows both roles. Incoming payments may not have an operation receipt.`}/>}
+     </>}
+   </section>;
+ }
+diff --git a/apps/web/src/Workbench.tsx b/apps/web/src/Workbench.tsx
+index ff49445..d4af631 100644
+--- a/apps/web/src/Workbench.tsx
++++ b/apps/web/src/Workbench.tsx
+@@ -55,14 +55,7 @@ export function Workbench() {
+ 
+   return <section aria-label="Alchemy crafting practice">
+     <h2>Alchemy workbench · Local practice</h2>
+-    <p>No herbs or flasks are spent. No tonics, credits, or inventory changes are awarded.
+-      This challenge is not bound to an authoritative paid batch.</p>
+-    <p>Recipe preview: 2 herbs + 2 flasks → 2 tonics. Land all three inputs in the target
+-      band for fine quality; any miss gives normal quality. Practice restarts are free.</p>
+-    <p>Start each step, then press Mix once as the marker enters the outlined band
+-      ({CRAFT_TARGET.startMs / 1000}–{CRAFT_TARGET.endMs / 1000} seconds).
+-      You can click Mix or use Enter/Space on its focused button. Each sweep lasts seven seconds;
+-      a late input counts as a miss. Aim for about 15–25 seconds per batch.</p>
++    <p>Free practice: no inventory or money changes. Start, then Mix in the marked band. Three hits make fine tonics; misses make normal. Recipe: 2 herbs + 2 flasks.</p>
+     <p>Practice attempt {batch.attempt} · {batch.inputs.length}/{CRAFT_STEPS} inputs recorded</p>
+     <div aria-hidden="true" style={{position: 'relative', height: 44, margin: '16px 0',
+       border: '1px solid currentColor', borderRadius: 6, overflow: 'hidden'}}>

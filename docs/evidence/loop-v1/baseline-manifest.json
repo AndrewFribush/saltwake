@@ -1,0 +1,497 @@
+{
+  "revision": "f2a05d06febee976f36a149e33ad997c1c6ec409",
+  "files": [
+    {
+      "path": "apps/server/src/edition-record.ts",
+      "sha256": "c7427d2aaf9d8dd137d4d0ade9148d567534e45671fbc5ebf9d04dcb284cfbdc"
+    },
+    {
+      "path": "apps/server/test/edition-record.test.ts",
+      "sha256": "22881d23ec1e909e4e29b616f5ffe00234bb8c718dcdd5f5ec428326327b8c07"
+    },
+    {
+      "path": "apps/web/src/BuilderStudio.tsx",
+      "sha256": "dd15169c3fee2a05a62d3185329798deade8775e86696027a72e10994abf9b20"
+    },
+    {
+      "path": "apps/web/src/EditionRecord.tsx",
+      "sha256": "5c43da49872320127b1dada278ffff7a1c07b75c02dda078ab1d38478abfa59e"
+    },
+    {
+      "path": "apps/web/src/GamePanels.tsx",
+      "sha256": "77e4cd7ae9b21ed5cf7826b8297c615a2cde5fbd81e0326c6da0d1927e3fa72e"
+    },
+    {
+      "path": "apps/web/src/builder-studio.css",
+      "sha256": "859a724839e297a8c724aa0042a5236f9b45ac6b2dab44e793cd0085ceb80675"
+    },
+    {
+      "path": "apps/web/src/fixed-windows.css",
+      "sha256": "a973728f754fbd1abd0c48a1bc35f28600c45ad3e03d0f92295d6026ae6961e1"
+    },
+    {
+      "path": "apps/web/src/game-screen.css",
+      "sha256": "8df93eb34eabcc7700153c090e5bfc469839cb0e956088e949badf629732514f"
+    },
+    {
+      "path": "apps/web/src/saltwake-polish.css",
+      "sha256": "718b0ba2ca2561dd40f6eea63f78081f193f4e5913329aee4db6a6df48df4a59"
+    },
+    {
+      "path": "apps/web/src/tileset.css",
+      "sha256": "39e4f160c648c0f9d7a192cefa95f5db93ecb1598f76bd2231ee52620debc271"
+    },
+    {
+      "path": "apps/web/src/tileset.tsx",
+      "sha256": "f4805d60343c0419b0559ea6419b6380c5464db010d5cb68c3bd58c74421fba2"
+    },
+    {
+      "path": "docs/builder-studio-verification.md",
+      "sha256": "cf5e8cb52cc7c114b0300654ebc415bfb0d7c2fa2d949717a62b9f231d43a2be"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/README.md",
+      "sha256": "3b13ae480f1b140cfbcdcde5cd1cbe2c829251b8079a0a9de436c70417d2a351"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/claude-brief.txt",
+      "sha256": "ef1c2d40a8abc35471ce554e0fe1ddd3907ebab0a7a4c98ab570857efb179ae3"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/claude-response.json",
+      "sha256": "4f95ec6a06282614a4488a97e5aabf0e17ae077d9025054c925ef420692632af"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/claude-review.md",
+      "sha256": "2d45304ccccac896c0e8bf2b806fabe453fbab57bc0a129a457847555fafcdf0"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/claude-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/moonlighter-source.txt",
+      "sha256": "82e3c2278662591b4316e2a39b838353baffb6e590d543af63ba734786ba74d3"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/proposal.md",
+      "sha256": "993e88c1e91c4ac1c08e714b2df5fe5e8cb2121a19e5bbe5025d8bcfc62613c5"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/research-addendum.md",
+      "sha256": "0b7e3610762e0cbc664c422ed1c3c60e81ebd5355e6095832a5ab85ec9a1f18c"
+    },
+    {
+      "path": "docs/design/economy-gameplay-review/review-decisions.md",
+      "sha256": "a3af91624cabb52e9dcc15604c102733dbedc9cef62e7513ccaca0495c07f2ae"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/capture-browser.txt",
+      "sha256": "ce765a40b9597df54386f1bad310ba3ee728c7cfeb9085d7305e75b4a1963db2"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/capture-check.js",
+      "sha256": "b67c0fa9c2aadb4ba03d6fe32789e28cb5e06b2b2f0e4b115e4899b1c2032176"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/checks.txt",
+      "sha256": "82ec3c12a732997ecb9934098b5823a63d94c7f1f93d7204a696cdcc7365c27f"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/fixed-builder-phone.jpg",
+      "sha256": "41a54364a90745a88d65a5f87edffe60ee9acc52c63a2b18d9aacf6bb8ac39ce"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/fixed-builder.jpg",
+      "sha256": "7ca30d1beb962fb2eee291e50b5195f5bde175703910d2eea1e1600fefdf1867"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/fixed-idle.jpg",
+      "sha256": "a8a838553e52b7e07a4238aaff550c6b15399cfcedaa8a0acd791f0c1f3b037e"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/fixed-shop-phone.jpg",
+      "sha256": "cf5be4e9d58595748d1a5d9182702e319175c868b846cb752674123c4afc282d"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/fixed-shop.jpg",
+      "sha256": "d94ea70bfcb9701aa1f68ebe9d54c857fbbae547ca640f23b7ad89ca13fd2d3d"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/fixed-wallet.jpg",
+      "sha256": "e6131b5a6cefb5b5abe6cc1cf3d1df16962d48e488d5d80dca683f188e859683"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/game-tests.txt",
+      "sha256": "6bd796b3ab23b0dacbee6bf21d38832cc92f735f994dbd734769cb2aaebf5411"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/invariance-browser.txt",
+      "sha256": "48c1b89302cb341dfa7c2348676c12334a4c19ee405f4d86140e467598427bd8"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/invariance-check.js",
+      "sha256": "b334568388bcf42a85c2d407e06b539c8ea12ccebfdc70c22534e1e1e22255e4"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/whole-game-browser.txt",
+      "sha256": "094f7268141ffaf3162dd76e3d6a81f2bd5e2b1e9af44313a1d7ab10a02dbaf1"
+    },
+    {
+      "path": "docs/evidence/fixed-windows/whole-game-check.js",
+      "sha256": "6c1e44220e4dd2a4cf7ce466c2b603f24bd4c103480d2a07a5ca5ba18d8131b1"
+    },
+    {
+      "path": "docs/evidence/game-screen/builder-integrated.jpg",
+      "sha256": "7bd46cd2071c437fbcec2325396ae25bb6a1a15db5663b18a9e5cbca3c2d4b76"
+    },
+    {
+      "path": "docs/evidence/game-screen/builder-phone.jpg",
+      "sha256": "e971845653203ffc9717fee931503f6d99dcc2f5c4e7ac880f054cc1c7668e40"
+    },
+    {
+      "path": "docs/evidence/game-screen/capture-browser.txt",
+      "sha256": "5e65a1daa133b366fdcf2923e99cd6c5849e3ad6e96483a329d10235e564e009"
+    },
+    {
+      "path": "docs/evidence/game-screen/capture-check.js",
+      "sha256": "3ac850f8ce48cd6aeedc5793c6f42ff143d512c8e456671ebae999a8fa7118a4"
+    },
+    {
+      "path": "docs/evidence/game-screen/checks.txt",
+      "sha256": "ef086505b7d44f2e708d31233d1bcac3aebd9358f55d213dafa180e1240fb8e7"
+    },
+    {
+      "path": "docs/evidence/game-screen/game-tests.txt",
+      "sha256": "dfcf153377f21fa9572bba74d3ec602f87c3179adfe44599900f1e24cf4e1e58"
+    },
+    {
+      "path": "docs/evidence/game-screen/interaction-browser.txt",
+      "sha256": "cc801af06f13037803917cc7e150d8de6aa12c580bfa1fa25df401a08a0fec11"
+    },
+    {
+      "path": "docs/evidence/game-screen/interaction-check.js",
+      "sha256": "d58bde1e7e41ae21a2f630944a3234652756198015e7af71f5fe568191207e0b"
+    },
+    {
+      "path": "docs/evidence/game-screen/market-browser.txt",
+      "sha256": "4842785e77085bb31f123bfc90533af878fadbbd7f032196a5e9512e48da7986"
+    },
+    {
+      "path": "docs/evidence/game-screen/market-check.js",
+      "sha256": "acf6287778646d986f3b4b9939673c1ea961b6d671e067b5b15ba34d992ca1c3"
+    },
+    {
+      "path": "docs/evidence/game-screen/market-phone.jpg",
+      "sha256": "5d9a34d1f965b08a88230203537b1b388c49738833ef581d537d625a506866cb"
+    },
+    {
+      "path": "docs/evidence/game-screen/market-screen.jpg",
+      "sha256": "261292b0ebc1d583798fc2c99a13836ae1c153e7b7a372586da41f21763a77ff"
+    },
+    {
+      "path": "docs/evidence/game-screen/run-bag-phone.jpg",
+      "sha256": "bcb98c0971aed255fc9a87163f67381dff79c57561e51fadddbe5958402376cf"
+    },
+    {
+      "path": "docs/evidence/game-screen/run-bag-screen.jpg",
+      "sha256": "3d9af698284b0602bc1809e1c8a1ffbb87aae6611346f706b34a61992ac1b45b"
+    },
+    {
+      "path": "docs/evidence/game-screen/town-screen.jpg",
+      "sha256": "e055843622500c599ac51fb57bd22a6f3bdc4aac30f85c1e9992ae6796154840"
+    },
+    {
+      "path": "docs/evidence/game-screen/wallet-map-browser.txt",
+      "sha256": "88dc7c84255f747985125f2eaa0379fd466712f84293449a9a0f5d0ea605b1a2"
+    },
+    {
+      "path": "docs/evidence/game-screen/wallet-map-check.js",
+      "sha256": "8887a0cb61319c1a495bbdbbb6fb03c308e701565a935d997035e0b3eb15a03b"
+    },
+    {
+      "path": "docs/evidence/game-screen/whole-game-browser.txt",
+      "sha256": "b6ca59781c2e0ca4a9afb6ae44d6b1393c655ed29b946db9a8f4881d4cec787c"
+    },
+    {
+      "path": "docs/evidence/game-screen/whole-game-check.js",
+      "sha256": "6c1e44220e4dd2a4cf7ce466c2b603f24bd4c103480d2a07a5ca5ba18d8131b1"
+    },
+    {
+      "path": "docs/evidence/loop-v1/baseline-build.txt",
+      "sha256": "19d2a90747835a07c591bc566d5c38cef9b19677129e2bf55724a7f473febeb3"
+    },
+    {
+      "path": "docs/evidence/loop-v1/baseline-game.txt",
+      "sha256": "3c05ce33313984e9ec3b534de7017b61daa98ebb605e1f1ee96807c8c7617c40"
+    },
+    {
+      "path": "docs/evidence/loop-v1/baseline-typecheck.txt",
+      "sha256": "f3719b687814a0d01512b95dc7bef892a39998fa159952cb8ae5a51f174d7d89"
+    },
+    {
+      "path": "docs/evidence/studio/art-browser.txt",
+      "sha256": "621001951c39cf26825949e8f05983f7da1f6fa9be5e85db34defddb601916f6"
+    },
+    {
+      "path": "docs/evidence/studio/browser-art.js",
+      "sha256": "247c9c3e50ff36cf60d16e281feeeaf7920bf308fb73eba6dda7ed3a1b85d89f"
+    },
+    {
+      "path": "docs/evidence/studio/browser-matrix.js",
+      "sha256": "b0a78b203775807d109953aae69c8756b8e0846e2f16a7352b93bc1033e400d5"
+    },
+    {
+      "path": "docs/evidence/studio/browser-small.js",
+      "sha256": "1c2e8009b7605a1239e91ac92e7fc24f9d6eaecc951bea7830a3812a30becc93"
+    },
+    {
+      "path": "docs/evidence/studio/checks.txt",
+      "sha256": "2e02cada683bbb418dcebe422720f67f0b7b631f4e2ce4c86fdb1c967dec9c1c"
+    },
+    {
+      "path": "docs/evidence/studio/game-tests.txt",
+      "sha256": "19090d3dec0137642ebfda002094d2af465a5b433d631f867e9295826773674a"
+    },
+    {
+      "path": "docs/evidence/studio/small-browser.txt",
+      "sha256": "7c85e75aec47b18457d6af2d15d8e6464df052dd7020205ffbffc7149f0f65b4"
+    },
+    {
+      "path": "docs/evidence/studio/studio-art.jpg",
+      "sha256": "8ddc70e96dc9e902077229fef0cfda438c3dee3ceb40ab912483f34eb259470a"
+    },
+    {
+      "path": "docs/evidence/studio/studio-desktop.jpg",
+      "sha256": "83cd054c7c14d795615fc3dae890e6f01e7b1f0716ce39a60e11543b7d993bb2"
+    },
+    {
+      "path": "docs/evidence/studio/studio-layout.jpg",
+      "sha256": "c0341e97877c24d21c1244eba7a8f8066ea8ab2620c55408ce504f39897c6fbd"
+    },
+    {
+      "path": "docs/evidence/tilesets/browser-check.js",
+      "sha256": "409eb0827fde0fadba42d500286543af3abb137392510ac3c08a831a459224af"
+    },
+    {
+      "path": "docs/evidence/tilesets/checks.txt",
+      "sha256": "cf4d39f163c7892350ad8692994b38745f402e51eba26cd9d01c34d47549a97b"
+    },
+    {
+      "path": "docs/evidence/tilesets/rehearsal.jpg",
+      "sha256": "625941d1b8d664319305c6e9680f25117ed2441d0e0c441cc0534d780a087500"
+    },
+    {
+      "path": "docs/evidence/transparency/browser.js",
+      "sha256": "89edb27f977b4d02b2cd5e122c7c052b35e6336c77136264d7c8b2a312bd993e"
+    },
+    {
+      "path": "docs/evidence/transparency/browser.txt",
+      "sha256": "06717a82ca12023d9e0c36fcf758b0e26e2d0b1c9c97f3269d56723e74d08272"
+    },
+    {
+      "path": "docs/evidence/transparency/tests.txt",
+      "sha256": "35a1b63bd7f64d90d83338c21e27e69cc82f2ee63d35ca2d12e93d550ab90b66"
+    },
+    {
+      "path": "docs/evidence/ui-polish/capture.js",
+      "sha256": "86c8f2cd5279ac6345a8e0242dfcb23f796439fe2b04d7d1ec4c1ce20d9001aa"
+    },
+    {
+      "path": "docs/evidence/ui-polish/capture.txt",
+      "sha256": "0fbe4c6dd87933ba239c0fa4995414336a2b4675198a0faaf98a163c85c3fb18"
+    },
+    {
+      "path": "docs/evidence/ui-polish/game-tests.txt",
+      "sha256": "150b08f9ffb95c20b6a4c764284d08d33821a1c7765e6840b51c6643057252b9"
+    },
+    {
+      "path": "docs/evidence/ui-polish/invariance.txt",
+      "sha256": "48c1b89302cb341dfa7c2348676c12334a4c19ee405f4d86140e467598427bd8"
+    },
+    {
+      "path": "docs/evidence/ui-polish/polish-interior-builder-phone.jpg",
+      "sha256": "eeb57136d961ef96663d7a2aa00bfbcdd48816674b344aa9cde4fdda2e3ae493"
+    },
+    {
+      "path": "docs/evidence/ui-polish/polish-interior-builder.jpg",
+      "sha256": "2f9612720e3903f9d8b492c7af7213932b3abb07b6b9e058f31ad3a855008fe9"
+    },
+    {
+      "path": "docs/evidence/ui-polish/polish-shop-phone.jpg",
+      "sha256": "d4ddc049fb487876bf977a4c56705c9080b87e3dd2de07961a0b19fac00a9c73"
+    },
+    {
+      "path": "docs/evidence/ui-polish/polish-shop.jpg",
+      "sha256": "9e1d4d8b5a4fbd8320837b5c29c18b52f716a555a60a67ea5a5cb0595ff52960"
+    },
+    {
+      "path": "docs/evidence/ui-polish/polish-town.jpg",
+      "sha256": "7d0cef278a8c03fbef599df0b5af329c4857ccd0cc5dda0c92608b20280bcc6b"
+    },
+    {
+      "path": "docs/evidence/ui-polish/shop-check.js",
+      "sha256": "62179bd45465d71ca2fbb279bfafa391bae2c0e068f79651bda4d6581470f049"
+    },
+    {
+      "path": "docs/evidence/ui-polish/shop.txt",
+      "sha256": "19accffd9391182d9b766937fa28e75b17ccdfb3f7ba2b181db77f86125e1ab1"
+    },
+    {
+      "path": "docs/evidence/ui-polish/whole-game-check.js",
+      "sha256": "ccea29111da8de1fac94036d0dfd03342bb6167d70000f73c50336ed3dca9a15"
+    },
+    {
+      "path": "docs/evidence/ui-polish/whole-game.txt",
+      "sha256": "094f7268141ffaf3162dd76e3d6a81f2bd5e2b1e9af44313a1d7ab10a02dbaf1"
+    },
+    {
+      "path": "docs/fixed-window-verification.md",
+      "sha256": "cb438d1d293ad637e4da00060a85491b7511206e67c1b68d091a479b4700b9d9"
+    },
+    {
+      "path": "docs/game-screen-verification.md",
+      "sha256": "5c4d7d5181e7c7f311a8e1db8545ad71ead6c513a3689ad50c53684930e1304e"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/CHECKLIST.md",
+      "sha256": "3112a1c51ef8ecda092fff31200f5bec287c3102797820622b83e3f17ef1f572"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/MERGED-PLAN.md",
+      "sha256": "fe83d9e11dd1bd1f71c16d1db6802f23bdb03e0ca1a22dcd83d33db265f51f23"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/README.md",
+      "sha256": "728e6c2251eb81a85ea709d1e2cd76175c7c90870e9ffc004610a851a318123b"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/claude-cross-review-brief.txt",
+      "sha256": "6e2b8e992f8cc2ae9190d5d7d76892f7624ba4e3a5fdde811ea0191877d30d8e"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/claude-cross-review-response.json",
+      "sha256": "8e7c57fa5863074f982ecfde984e503095885b7a8f72402bd97178f67d757621"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/claude-cross-review-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/claude-independent-brief.txt",
+      "sha256": "843d45bcc79d7b8051a69d78e2b9c5b953b8219274f22426c7ed25552d1cebfd"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/claude-independent-response.json",
+      "sha256": "8a61ab360e7a6d2c1276fa8ab49d419e1ffd84a5d432b76cce5012aa88e9341f"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/claude-independent-stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/claude-plan.md",
+      "sha256": "2c1d361475a2e9f9562132874bc14f77ab513c21d7ad642591dd4b219d87b291"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/claude-review-of-codex.md",
+      "sha256": "cf2d293806d59a2a28397c460558154ffe95e6921693863dc483dbd3e0942cea"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/codex-plan.md",
+      "sha256": "e7c95a994237ed771c13f92146b445f00b49abaa1ba14b1169ae821147ff64cd"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/codex-review-of-claude.md",
+      "sha256": "80c33f63c3d22cf8302b3285c2d44e36e6225c03375a448b69083f7673cccd89"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/manifest.sha256",
+      "sha256": "cfecc018050ac731697e697e7bfda13416221ac63d84983d370dd7ddee8d4f62"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/merge-decisions.md",
+      "sha256": "cdd19423a8937e100cd8655798d5f98e1675992d07b67620612193bac9b09abb"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/session-template.md",
+      "sha256": "2b85dedbe0fd05c5a869cab905a55a9a281ec87387b5790c4c82579292a97e4d"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-10-gameplay-economy/tasks.json",
+      "sha256": "e519cdfe1623e91d5e3779362923b621a4d5a3086869df8611f07a4be809aa5a"
+    },
+    {
+      "path": "docs/tileset-builder-verification.md",
+      "sha256": "321c126afe2cecc1291bcbb3b4b34207cda4b4815fa1e9657ee66b9b253e4b27"
+    },
+    {
+      "path": "docs/transparency-verification.md",
+      "sha256": "f5a3415a47370cce499b234e064a8ca6b75bb282dbcf177fed6bac770ae7a35e"
+    },
+    {
+      "path": "docs/ui-polish-verification.md",
+      "sha256": "77bc8abf16dd46a4daa8954b9ea06a5b617d8e9ba8a9481d0bd1de877d4bf3cf"
+    },
+    {
+      "path": "packages/shared/src/edition-record.ts",
+      "sha256": "abb8163a346cd42f9172cc54e8f6ce68bc8fa093fbc310594587ec6539fc0e61"
+    },
+    {
+      "path": "apps/server/src/http.ts",
+      "sha256": "49dbe830ed04193f3a4edc83308665ce295efbe3c1a17d4e2166a8c0d7e46b6c"
+    },
+    {
+      "path": "apps/server/src/runs.ts",
+      "sha256": "8ecb9576262a679f465199321a883e95e64e5bac664645d31249dd6df1835d3f"
+    },
+    {
+      "path": "apps/server/test/run-recovery.test.ts",
+      "sha256": "a243018dd8f9e41c437287903fd30479b41f713f7b54514b7d26120e2256059c"
+    },
+    {
+      "path": "apps/web/src/App.tsx",
+      "sha256": "4d834c3dcac2bc8dd78625d06e196b24b3171441ee268809839ec7732751a5fc"
+    },
+    {
+      "path": "apps/web/src/Crafting.tsx",
+      "sha256": "5e08d014ac3a4e6f826c996a8fcde01e115e2dfd47e6fda2a4db6498fad69ef4"
+    },
+    {
+      "path": "apps/web/src/Demo.tsx",
+      "sha256": "165bc7c5a47315787c2d64b81a4af5b966e6fdf1f08c5849db5a73286262e1e5"
+    },
+    {
+      "path": "apps/web/src/FloorBuilder.tsx",
+      "sha256": "95f9d3e3b11ef4b64debb590dd690c6d5414ba30e2f897a909e71b0c161ad806"
+    },
+    {
+      "path": "apps/web/src/Interior.tsx",
+      "sha256": "b3f9fe2716387e6da3234b52b6e9724fe813814973d79a09ee05130af9832a30"
+    },
+    {
+      "path": "apps/web/src/InteriorBuilder.tsx",
+      "sha256": "dee35af5f192bcc8f60a2501ce7bad90af0269eacaea857d1bd4d829b43e717a"
+    },
+    {
+      "path": "apps/web/src/Maker.tsx",
+      "sha256": "24880e585e697cdb739b6431585efcb86e3a69590985f091649d99a9897b9a0b"
+    },
+    {
+      "path": "apps/web/src/Run.tsx",
+      "sha256": "2096a3d12b2cbf4c9a14633f645394c3c99e3e027cee56b9b53b751ee52beaff"
+    },
+    {
+      "path": "apps/web/src/Shop.tsx",
+      "sha256": "fb8ef060f43fa21a6bb11c8e7c77f13749f77befd7374a44540f3b45047bbfd1"
+    },
+    {
+      "path": "apps/web/src/Wallet.tsx",
+      "sha256": "b1fe4532edfb006f98168de613b3292c022f6d25c8dc7052f724d601df806a78"
+    },
+    {
+      "path": "apps/web/src/Workbench.tsx",
+      "sha256": "5bfffec03bc3fc7dfc6dee085e8411ddde02f194822b1358e6eece6203fae522"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+Random encounter 1366 {"scroll":false,"out":[]}
+Random encounter 390 {"scroll":false,"out":[]}
+Random rehearsal 1366 {"scroll":false,"out":[]}
+Random rehearsal 390 {"scroll":false,"out":[]}
+Split funding 1366 {"scroll":false,"out":[]}
+Split funding 390 {"scroll":false,"out":[]}
+FUNDING Stock your expedition
+
+3 goods · 1 complete copies. Leftovers go to the bank.
+
+Assign goods to
+Fixed rewards
+Random pool
+Fixed · Fine tonic
+maker-fine-tonic-4
+Random · Flask
+maker-flask-0
+Random · Flask
+maker-flask-1
+Flask
+maker-flask-2
+Previous goods
+1/5
+Next goods
+Ready. Geometry and funding checks pass.
+Publication 1366 {"scroll":false,"out":[]}
+Publication 390 {"scroll":false,"out":[]}
+CONFIRMED {"id":"edition-3","randomTables":[{"table_id":"creator-loot","socket_ids":["floor-0-slot-1"],"item_ids":["maker-flask-0","maker-flask-1"]}],"bundles":1}
+REPLENISH_UI Edition view 
+Manage
+Stock
+Results
+
+0 selected goods · unused stock goes to bank at closure.
+
+Refresh maker view
+Verification fixture · random pool
+
+edition-3 · Version 1 · Entry 0 credits · 0 active runs
+
+Accepting changes · Cutoff 11/10/2026, 7:28:30 PM
+
+Replenish pool 
+Fixed rewards
+Random · creator-loot (1 draws / attempt)
+
+Random pool accepts any owned item type. Each physical good is one draw candidate.
+
+Fund with 0 selected items
+
+Use Choose stored goods to select inventory. Refresh adds stock; it never reallocates goods reserved for active runs.
+
+← Previous
+3 / 3
+Next →
+GSTACK_STEP_OK
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.

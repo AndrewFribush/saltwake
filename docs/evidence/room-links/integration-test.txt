@@ -1,0 +1,9 @@
+✔ funded graph traversal survives restart without enemy or loot respawn, and settles exact consumed/forfeited goods (3913.046792ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4202.015

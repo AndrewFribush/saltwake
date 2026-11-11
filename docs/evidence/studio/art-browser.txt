@@ -1,0 +1,15 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+ATLAS_PAGE_2=1
+ART_DRAFT_RETAINED=1
+ART_1366x768={"height":768,"width":1366,"scroll":768,"pageOverflow":0,"out":[]}
+ART_390x844={"height":844,"width":390,"scroll":844,"pageOverflow":0,"out":[]}
+ART_390x667={"height":667,"width":390,"scroll":667,"pageOverflow":0,"out":[]}
+ART_320x568={"height":568,"width":320,"scroll":568,"pageOverflow":9.75,"out":[]}
+SOURCE_FIELD=1
+DUPLICATE=1
+FUNDING_SELECTED=true
+ASIDE_DIR=/Users/andrewfribush/.aside/u/0/sessions/2026-11-10_bPRdj7RwGk780nsL
+FOCUS_RESTORED=Open dungeon builder
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

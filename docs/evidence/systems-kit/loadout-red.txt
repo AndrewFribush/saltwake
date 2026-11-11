@@ -1,0 +1,43 @@
+TAP version 13
+# Subtest: same authored definition produces identical encounters with no adventure-specific data
+ok 1 - same authored definition produces identical encounters with no adventure-specific data
+  ---
+  duration_ms: 1.154334
+  type: 'test'
+  ...
+# Subtest: different authored arrangements and empty floors require no code or rewards
+ok 2 - different authored arrangements and empty floors require no code or rewards
+  ---
+  duration_ms: 0.222792
+  type: 'test'
+  ...
+# Subtest: invalid geometry, missing room, duplicate slot and unknown behavior reject
+ok 3 - invalid geometry, missing room, duplicate slot and unknown behavior reject
+  ---
+  duration_ms: 0.37025
+  type: 'test'
+  ...
+# Subtest: creator rehearsal supports selectable synthetic loadouts without mutating authored content
+not ok 4 - creator rehearsal supports selectable synthetic loadouts without mutating authored content
+  ---
+  duration_ms: 2.182125
+  type: 'test'
+  location: '/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/authored-layout.test.ts:1:1711'
+  failureType: 'testCodeFailure'
+  error: 'authoredRehearsal is not a function'
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/packages/game/test/authored-layout.test.ts:13:64)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 3
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 132.811125

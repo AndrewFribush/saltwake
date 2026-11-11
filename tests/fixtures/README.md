@@ -1,0 +1,2 @@
+`economy-v1.wasm` is the pre-player-shop local contract artifact captured before this state migration. The migration regression deploys it, creates a listing and receipt, upgrades to the current build, then compares all old snapshot fields and the immutable receipt. It is a test fixture, not a deployment target.
+f7fec08adabfb91b8cbe0d71c30e7ff0f747e9df24729e9b0d78a5cbc6cafd03  tests/fixtures/economy-v1.wasm

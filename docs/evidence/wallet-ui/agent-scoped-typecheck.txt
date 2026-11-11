@@ -1,0 +1,9 @@
+apps/web/src/near-wallet-selector-adapter.ts(2,43): error TS2307: Cannot find module '@near-wallet-selector/core' or its corresponding type declarations.
+apps/web/src/near-wallet-selector-adapter.ts(35,41): error TS7006: Parameter 'e' implicitly has an 'any' type.
+apps/web/src/near-wallet-selector-adapter.ts(37,46): error TS7006: Parameter 'e' implicitly has an 'any' type.
+apps/web/src/near-wallet-selector-adapter.ts(43,75): error TS7006: Parameter 'a' implicitly has an 'any' type.
+apps/web/src/near-wallet-selector-adapter.ts(58,61): error TS7006: Parameter 'a' implicitly has an 'any' type.
+apps/web/src/near-wallet-selector-adapter.ts(95,39): error TS2307: Cannot find module '@near-wallet-selector/core' or its corresponding type declarations.
+apps/web/src/near-wallet-selector-adapter.ts(109,85): error TS2307: Cannot find module '@near-wallet-selector/core' or its corresponding type declarations.
+apps/web/src/near-wallet-selector-adapter.ts(109,122): error TS2307: Cannot find module '@near-wallet-selector/nightly' or its corresponding type declarations.
+apps/web/src/WalletGame.tsx(70,215): error TS5076: '??' and '||' operations cannot be mixed without parentheses.

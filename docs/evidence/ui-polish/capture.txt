@@ -1,0 +1,8 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+OVERLAY_INERT=true
+ESCAPE_CLOSED=true
+WORLD_RESTORED=true
+ASIDE_DIR=/Users/andrewfribush/.aside/u/0/sessions/2026-11-10_pK9AzZVeG6I1n1Mz
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

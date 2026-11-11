@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: club shove displaces once, cannot teleport back to stale intent and preserves input
+ok 1 - club shove displaces once, cannot teleport back to stale intent and preserves input
+  ---
+  duration_ms: 0.959875
+  type: 'test'
+  ...
+# Subtest: legacy, sword, blocked, remote and malformed shoves spend no turn
+ok 2 - legacy, sword, blocked, remote and malformed shoves spend no turn
+  ---
+  duration_ms: 0.104417
+  type: 'test'
+  ...
+# Subtest: shove onto armed spikes applies normal hazard phase once, unarmed flips without hit
+ok 3 - shove onto armed spikes applies normal hazard phase once, unarmed flips without hit
+  ---
+  duration_ms: 0.266334
+  type: 'test'
+  ...
+# Subtest: shoved charger cannot traverse a disconnected old lane or silently re-aim
+ok 4 - shoved charger cannot traverse a disconnected old lane or silently re-aim
+  ---
+  duration_ms: 0.111
+  type: 'test'
+  ...
+# Subtest: experimental extraction resolves incoming attack then extracts; death wins
+ok 5 - experimental extraction resolves incoming attack then extracts; death wins
+  ---
+  duration_ms: 0.418292
+  type: 'test'
+  ...
+# Subtest: extraction pays trap response even when room is clear; no guard carries over
+ok 6 - extraction pays trap response even when room is clear; no guard carries over
+  ---
+  duration_ms: 0.100959
+  type: 'test'
+  ...
+# Subtest: legacy exit still needs full clear; experiment cannot extract remotely or descend uncleared
+ok 7 - legacy exit still needs full clear; experiment cannot extract remotely or descend uncleared
+  ---
+  duration_ms: 0.100833
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 135.658667

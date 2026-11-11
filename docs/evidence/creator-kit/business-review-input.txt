@@ -1,0 +1,43 @@
+Review these local-only synthetic business rehearsal changes. Report concrete defects, not speculation. Maker pays for stock, retains ordinary admission fees; unclaimed stock goes to operator bank at closure, no maker refund. Death returns unconsumed dungeon loot, consumed items stay spent. Four concurrent runs is not four lifetime admissions. This tool intentionally models sequential completed paid attempts, whole-pool claims and no partial consumption, refresh or voids. It does not transact or claim demand. Check arithmetic, validation, unknown costs, disclosures.
+
+FILE packages/game/src/business-rehearsal.ts
+import type {ItemType} from '../../shared/src/types';
+/** Hypothetical closed-edition accounts, never a quote or demand forecast. */
+export function businessRehearsal(input:{rewards:(ItemType|null)[];copies:number;fee:number;placement:number;paidAttempts:number;fullClaims:number;stockCost:number|null;otherCost:number}){
+ const {rewards,copies,fee,placement,paidAttempts,fullClaims,stockCost,otherCost}=input;
+ for(const n of [copies,fee,placement,paidAttempts,fullClaims,otherCost,...(stockCost===null?[]:[stockCost])])if(!Number.isSafeInteger(n)||n<0||n>1_000_000)throw Error('Use whole numbers from 0 to 1,000,000.');
+ if(copies<1)throw Error('At least one funded copy is required.');
+ if(fullClaims>paidAttempts)throw Error('Full-pool claims cannot exceed paid attempts.');
+ const requirements:Partial<Record<ItemType,number>>={};for(const type of rewards)if(type)requirements[type]=(requirements[type]??0)+copies;
+ const hasRewards=Object.keys(requirements).length>0;
+ if(hasRewards&&fullClaims>copies)throw Error('Claims exceed funded copies. Model replenishment separately.');
+ if(!hasRewards&&fullClaims)throw Error('A no-reward creation has no reward claims.');
+ const revenue=fee*paidAttempts;
+ // Full committed cost is charged once, even when unclaimed goods go to the bank.
+ const cost=hasRewards&&stockCost===null?null:placement+(stockCost??0)+otherCost;
+ return {requirements,revenue,totalCost:cost,contribution:cost===null?null:revenue-cost,breakEvenAttempts:cost===null?null:cost===0?0:fee===0?null:Math.ceil(cost/fee),remainingCopies:hasRewards?copies-fullClaims:null};
+}
+
+FILE packages/game/test/business-rehearsal.test.ts
+import test from 'node:test';import assert from 'node:assert/strict';import {businessRehearsal} from '../src/business-rehearsal';
+const scenario={rewards:['tonic','tonic','sword'] as const,copies:2,fee:3,placement:5,paidAttempts:10,fullClaims:1,stockCost:20,otherCost:2};
+const base=()=>({...scenario,rewards:[...scenario.rewards]});
+test('whole committed stock cost is expensed; leftovers are not a maker refund',()=>{const r=businessRehearsal(base());assert.deepEqual(r.requirements,{tonic:4,sword:2});assert.equal(r.revenue,30);assert.equal(r.totalCost,27);assert.equal(r.contribution,3);assert.equal(r.breakEvenAttempts,9);assert.equal(r.remainingCopies,1);assert.equal(businessRehearsal({...base(),fullClaims:0}).contribution,3);});
+test('unknown acquisition cost cannot become profit or reference-price cost',()=>{const r=businessRehearsal({...base(),stockCost:null});assert.equal(r.contribution,null);assert.equal(r.breakEvenAttempts,null);});
+test('no rewards, no fees, exhausted stock and more than four lifetime attempts',()=>{assert.equal(businessRehearsal({...base(),fullClaims:2}).remainingCopies,0);assert.equal(businessRehearsal({...base(),fee:0}).breakEvenAttempts,null);const r=businessRehearsal({...base(),rewards:[],fullClaims:0,stockCost:null});assert.equal(r.totalCost,7);assert.equal(r.remainingCopies,null);assert.equal(r.revenue,30);});
+test('invalid assumptions and overclaimed copies fail closed',()=>{for(const change of [{copies:0},{paidAttempts:-1},{fullClaims:3},{paidAttempts:0},{stockCost:1.5},{fee:Infinity},{otherCost:NaN}])assert.throws(()=>businessRehearsal({...base(),...change}));assert.throws(()=>businessRehearsal({...base(),rewards:[]}));});
+
+FILE apps/web/src/BusinessRehearsal.tsx
+import React,{useState} from 'react';
+import {businessRehearsal} from '../../../packages/game/src/business-rehearsal';
+import {catalog} from '../../../packages/shared/src/catalog';
+import type {ItemType} from '../../../packages/shared/src/types';
+import {Pages} from './GamePanels';
+export function BusinessRehearsal({rewards,fee,placement}:{rewards:(ItemType|null)[];fee:string;placement:number}){
+ const [copies,setCopies]=useState('1'),[attempts,setAttempts]=useState('10'),[claims,setClaims]=useState('0'),[stock,setStock]=useState(''),[other,setOther]=useState('0');
+ const numeric=(v:string)=>/^\d+$/.test(v)?Number(v):NaN;
+ let result:ReturnType<typeof businessRehearsal>|undefined,error='';
+ try{result=businessRehearsal({rewards,copies:numeric(copies),fee:numeric(fee),placement,paidAttempts:numeric(attempts),fullClaims:numeric(claims),stockCost:stock===''?null:numeric(stock),otherCost:numeric(other)});}catch(e){error=(e as Error).message;}
+ const field=(label:string,value:string,set:(v:string)=>void)=><label>{label}<input type="number" min="0" max="1000000" step="1" value={value} onChange={e=>set(e.target.value)}/></label>;
+ return <div className="studio-business"><Pages items={['terms','costs','results','assumptions']} label="Business rehearsal" render={page=>page==='terms'?<><h3>Try a business scenario</h3><p>Hypothetical only. No goods selected, fees charged or publication.</p>{field('Funded copies',copies,setCopies)}{field('Paid completed attempts',attempts,setAttempts)}{field('Full reward claims',claims,setClaims)}<p>Entry fee: {fee || 'unset'} · Placement: {placement}. Edit fee in Open.</p></>:page==='costs'?<><h3>Cost assumptions</h3>{field('Total stock acquisition cost',stock,setStock)}{field('Other operating costs',other,setOther)}<p>Leave stock cost blank if unknown. Enter the total for all copies, not the per-item cost. These are your assumptions, not verified accounts.</p><p>Stock needed: {result?Object.entries(result.requirements).map(([type,count])=>`${count} ${catalog[type as ItemType].name}`).join(', ')||'None':error}</p></>:page==='results'?<><h3>Hypothetical result</h3>{error?<p role="alert">{error}</p>:result&&<><p>Admission revenue: {result.revenue}<br/>Total committed cost: {result.totalCost??'Unknown'}<br/>Contribution after entered costs: {result.contribution??'Unknown'}<br/>Break-even paid attempts: {result.breakEvenAttempts??(result.totalCost===null?'Unknown':'Unreachable at zero fee')}<br/>Reward copies left: {result.remainingCopies??'No rewards'}</p><p>Leftover treasure goes to the bank at closure. It is never a maker refund.</p></>}</>:<><h3>What this assumes</h3><p>Sequential completed, fee-paying attempts; no voids, active reservations or refreshes. A claim removes one complete reward copy. Other attempts return all rewards unused. Partial extraction and consumption need item-level accounting.</p><p>Four concurrent slots do not limit lifetime attendance. If stock depletes, the last claim must occur on the final modeled attempt. This estimates arithmetic, not demand or achievable attendance.</p></>}/></div>;
+}

@@ -1,0 +1,11 @@
+✔ WASM v9 permits one and sixteen floors, with unchanged encounter and operating limits (10022.591083ms)
+✔ WASM v1-v8 keep two-to-four floor bounds after v9 introduction (26166.173083ms)
+✔ WASM v9 validates all directed floors and reserves exact last-floor socket goods (6739.304833ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 43185.422

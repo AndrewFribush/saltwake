@@ -1,0 +1,96 @@
+TAP version 13
+# (node:80236) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: includes losses as zero, excludes void/active, scopes edition and survives restart
+ok 1 - includes losses as zero, excludes void/active, scopes edition and survives restart
+  ---
+  duration_ms: 5.914333
+  type: 'test'
+  ...
+# Subtest: unconfirmed extraction and legacy or invalid timing are missing, never fabricated zeros
+ok 2 - unconfirmed extraction and legacy or invalid timing are missing, never fabricated zeros
+  ---
+  duration_ms: 2.742708
+  type: 'test'
+  ...
+# Subtest: receipt mismatches cannot inflate loot; aggregates reveal no assignments or player ids
+ok 3 - receipt mismatches cannot inflate loot; aggregates reveal no assignments or player ids
+  ---
+  duration_ms: 2.29925
+  type: 'test'
+  ...
+# (node:80237) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# HTTP action response ms {"samples":19,"min":0.6630830000003698,"median":2.216833000000406,"max":2.874249999999847}
+# HTTP played extraction: turns 20 ; buyer credits 8; maker credits 91; sword owned; used tonic consumed; unvisited tonic returned
+# Subtest: HTTP maker funding -> paid play -> consumed tonic -> extracted sword, session isolation and CSRF
+ok 4 - HTTP maker funding -> paid play -> consumed tonic -> extracted sword, session isolation and CSRF
+  ---
+  duration_ms: 6602.382334
+  type: 'test'
+  ...
+# (node:80238) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: only applied admissions materialize; hidden seed/rewards absent from run view
+ok 5 - only applied admissions materialize; hidden seed/rewards absent from run view
+  ---
+  duration_ms: 6.013333
+  type: 'test'
+  ...
+# Subtest: actions commit once, survive restart, reject stale sequence and expire once
+ok 6 - actions commit once, survive restart, reject stale sequence and expire once
+  ---
+  duration_ms: 7.5575
+  type: 'test'
+  ...
+# Subtest: terminal view redacts receipt seed/assignments and expiry retries replay consistently
+ok 7 - terminal view redacts receipt seed/assignments and expiry retries replay consistently
+  ---
+  duration_ms: 3.639042
+  type: 'test'
+  ...
+# Subtest: consumed potion and exact retry response survive process restart
+ok 8 - consumed potion and exact retry response survive process restart
+  ---
+  duration_ms: 3.235625
+  type: 'test'
+  ...
+# Subtest: v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart
+ok 9 - v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart
+  ---
+  duration_ms: 4.481
+  type: 'test'
+  ...
+# Subtest: v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns
+ok 10 - v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns
+  ---
+  duration_ms: 5.044125
+  type: 'test'
+  ...
+# Subtest: v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent
+ok 11 - v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent
+  ---
+  duration_ms: 2.798625
+  type: 'test'
+  ...
+# Subtest: v3 authored geometry, funded positions, fog and settlement survive restart
+ok 12 - v3 authored geometry, funded positions, fog and settlement survive restart
+  ---
+  duration_ms: 7.017709
+  type: 'test'
+  ...
+# Subtest: run timing persists once and expiry excludes delayed worker/settlement time
+ok 13 - run timing persists once and expiry excludes delayed worker/settlement time
+  ---
+  duration_ms: 2.564
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6805.346083

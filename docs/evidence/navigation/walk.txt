@@ -1,0 +1,19 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+Practice & rest
+The Salt Lantern →
+Buy & sell
+Quayside market →
+Craft & earn
+The Copper Kettle →
+Build & manage dungeons
+Delvers’ guild →
+Choose an expedition
+The old catacombs →
+{
+  room: true,
+  nav: [ 'House services' ],
+  text: 'Delvers’ guildOutside Delvers’ guild. Walk into its doorway to enter.'
+}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

@@ -1,0 +1,14 @@
+✔ wallet snapshot discovery materializes exact reservations without inventing receipts/timing and survives replay/restart (8083.728209ms)
+✔ absent-server late wallet discovery expires through the real oracle without stranded fees or goods (11393.3025ms)
+✔ externally terminal wallet runs cannot be resurrected by older snapshots after restart (7962.736292ms)
+✔ discovery rejects malformed copies of final snapshots with mismatched exact ownership (7443.01425ms)
+✔ existing discovered progress imports actual external terminal status without fabricated settlement evidence (7987.879584ms)
+✔ terminal discovery interrupted between durable writes cannot leave playable stale progress after restart (7925.263667ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51046.963042

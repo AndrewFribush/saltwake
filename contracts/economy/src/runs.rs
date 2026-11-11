@@ -25,7 +25,7 @@ impl Economy {
         if expected_version.0 != edition.version.0 || expected_fee.0 != edition.fee.0 {
             return Err("StaleOffer".into());
         }
-        if self.runs.len() >= 64 || edition.active_runs.len() >= 4 {
+        if self.runs.len() >= 64 || edition.active_runs.len() >= edition.terms.max_runs as usize {
             return Err("RunCapacity".into());
         }
         if self
@@ -152,7 +152,7 @@ impl Economy {
                 edition: edition_id,
                 player: actor,
                 fee: edition.fee,
-                deadline_ms: U64(now.checked_add(900000).ok_or("TimeOverflow")?),
+                deadline_ms: U64(now.checked_add(edition.terms.run_duration_ms.0).ok_or("TimeOverflow")?),
                 seed,
                 loadout_ids,
                 assignments,

@@ -1,0 +1,88 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+business-0 1366 {"scroll":false,"out":[]}
+business-0 390 {"scroll":false,"out":[]}
+BUSINESS=Try a business scenario
+
+Hypothetical only. No goods selected, fees charged or publication.
+
+Funded copies
+Paid completed attempts
+Full reward claims
+
+Entry fee: 2 · Placement: 2. Edit fee in Open.
+
+← Previous
+1 / 4
+Next →
+business-1 1366 {"scroll":false,"out":[]}
+business-1 390 {"scroll":false,"out":[]}
+BUSINESS=Cost assumptions
+Total stock acquisition cost
+Other operating costs
+
+Leave stock cost blank if unknown. Enter the total for all copies, not the per-item cost. These are your assumptions, not verified accounts.
+
+Stock needed: None
+
+← Previous
+2 / 4
+Next →
+business-2 1366 {"scroll":false,"out":[]}
+business-2 390 {"scroll":false,"out":[]}
+BUSINESS=Hypothetical result
+
+Admission revenue: 20
+Total committed cost: 5
+Contribution after entered costs: 15
+Break-even paid attempts: 3
+Reward copies left: No rewards
+
+Leftover treasure goes to the bank at closure. It is never a maker refund.
+
+← Previous
+3 / 4
+Next →
+business-3 1366 {"scroll":false,"out":[]}
+business-3 390 {"scroll":false,"out":[]}
+BUSINESS=What this assumes
+
+Sequential completed, fee-paying attempts; no voids, active reservations or refreshes. A claim removes one complete reward copy. Other attempts return all rewards unused. Partial extraction and consumption need item-level accounting.
+
+Four concurrent slots do not limit lifetime attendance. If stock depletes, the last claim must occur on the final modeled attempt. This estimates arithmetic, not demand or achievable attendance.
+
+← Previous
+4 / 4
+Next →
+guide 1366 {"scroll":false,"out":[]}
+guide 390 {"scroll":false,"out":[]}
+GUIDE=Inspector
+Layout
+Encounters
+Art
+Treasure
+Open
+Guide
+Check
+Library
+Business
+Floor and walls
+
+Paint connected floor for routes, loops and side rooms. Walls block movement and shape charges. Keep the outer boundary closed.
+
+← Previous
+1 / 10
+Next →
+HIGHLIGHT=1
+check 1366 {"scroll":false,"out":[]}
+check 390 {"scroll":false,"out":[]}
+library 1366 {"scroll":false,"out":[]}
+library 390 {"scroll":false,"out":[]}
+INVALID=Unsupported blueprint format or version
+IMPORTED=Imported creator blueprint
+CLONED=Imported creator blueprint copy
+REHEARSAL=Rehearsal · 1/2
+Health 12/12 · Turn 0
+ERRORS=[]
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

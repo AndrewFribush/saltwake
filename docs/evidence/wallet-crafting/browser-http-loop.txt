@@ -1,0 +1,24 @@
+✖ browser transport against real HTTP/chain signs login and crafting, then reconciles a lost approval after reload (3240.849917ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3510.724
+
+✖ failing tests:
+
+test at apps/server/test/browser-wallet-loop.test.ts:1:690
+✖ browser transport against real HTTP/chain signs login and crafting, then reconciles a lost approval after reload (3240.849917ms)
+  Error: Command not allowed
+      at request (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/browser-wallet-loop.test.ts:28:59)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async WalletTransport.wait (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/web/src/wallet-transport.ts:87:97)
+      at async sync (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/web/src/wallet-transport.ts:152:41)
+      at async WalletTransport.executeCommand (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/web/src/wallet-transport.ts:156:16)
+      at async WalletTransport.exclusive (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/web/src/wallet-transport.ts:88:153)
+      at async TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/browser-wallet-loop.test.ts:45:17)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)

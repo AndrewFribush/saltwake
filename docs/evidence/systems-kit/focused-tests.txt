@@ -1,0 +1,96 @@
+TAP version 13
+# Subtest: custom codec validates geometry, connectivity and unique traversable markers
+ok 1 - custom codec validates geometry, connectivity and unique traversable markers
+  ---
+  duration_ms: 1.599667
+  type: 'test'
+  ...
+# (node:41202) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: only applied admissions materialize; hidden seed/rewards absent from run view
+ok 2 - only applied admissions materialize; hidden seed/rewards absent from run view
+  ---
+  duration_ms: 6.27425
+  type: 'test'
+  ...
+# Subtest: actions commit once, survive restart, reject stale sequence and expire once
+ok 3 - actions commit once, survive restart, reject stale sequence and expire once
+  ---
+  duration_ms: 4.825209
+  type: 'test'
+  ...
+# Subtest: terminal view redacts receipt seed/assignments and expiry retries replay consistently
+ok 4 - terminal view redacts receipt seed/assignments and expiry retries replay consistently
+  ---
+  duration_ms: 3.284959
+  type: 'test'
+  ...
+# Subtest: consumed potion and exact retry response survive process restart
+ok 5 - consumed potion and exact retry response survive process restart
+  ---
+  duration_ms: 3.265625
+  type: 'test'
+  ...
+# Subtest: v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart
+ok 6 - v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart
+  ---
+  duration_ms: 5.156667
+  type: 'test'
+  ...
+# Subtest: v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns
+ok 7 - v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns
+  ---
+  duration_ms: 3.841541
+  type: 'test'
+  ...
+# Subtest: v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent
+ok 8 - v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent
+  ---
+  duration_ms: 2.744041
+  type: 'test'
+  ...
+# Subtest: v3 authored geometry, funded positions, fog and settlement survive restart
+ok 9 - v3 authored geometry, funded positions, fog and settlement survive restart
+  ---
+  duration_ms: 7.22425
+  type: 'test'
+  ...
+# Subtest: run timing persists once and expiry excludes delayed worker/settlement time
+ok 10 - run timing persists once and expiry excludes delayed worker/settlement time
+  ---
+  duration_ms: 2.547417
+  type: 'test'
+  ...
+# Subtest: same authored definition produces identical encounters with no adventure-specific data
+ok 11 - same authored definition produces identical encounters with no adventure-specific data
+  ---
+  duration_ms: 1.244208
+  type: 'test'
+  ...
+# Subtest: different authored arrangements and empty floors require no code or rewards
+ok 12 - different authored arrangements and empty floors require no code or rewards
+  ---
+  duration_ms: 0.24075
+  type: 'test'
+  ...
+# Subtest: invalid geometry, missing room, duplicate slot and unknown behavior reject
+ok 13 - invalid geometry, missing room, duplicate slot and unknown behavior reject
+  ---
+  duration_ms: 0.637125
+  type: 'test'
+  ...
+# Subtest: creator rehearsal supports selectable synthetic loadouts without mutating authored content
+ok 14 - creator rehearsal supports selectable synthetic loadouts without mutating authored content
+  ---
+  duration_ms: 2.99175
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 246.379958

@@ -85,6 +85,7 @@ impl Economy {
     ) -> Result<String, String> {
         unique_items(&ids)?;
         let l = self.listings.get(&id).ok_or("MissingListing")?.clone();
+        if self.shops.values().any(|s| !s.open && s.listing_ids.contains(&id)) { return Err("ShopClosed".into()); }
         if l.status != "active" {
             return Err("ListingClosed".into());
         }

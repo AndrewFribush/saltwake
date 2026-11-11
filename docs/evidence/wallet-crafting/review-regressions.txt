@@ -1,0 +1,26 @@
+✔ prepared player batch persists exact challenge, adopts chain deadline and finishes with bounded operation IDs (9.707834ms)
+✔ unknown direct batch recovers only through normal expiry and survives restart without fabricated challenge or admission (4.716584ms)
+✔ discovery validates ownership and terminal observations prevent stale resurrection (6.475792ms)
+✔ discovered crafting reserves terminal capacity and interrupted terminal import rolls back atomically (138.764417ms)
+✔ direct changed submission supersedes local preparation without inventing minigame evidence (3.297125ms)
+✔ already full ordinary queue still admits a confirmed discovered batch terminal (132.970583ms)
+✔ discovery emergency settlement cannot consume a prepared batch terminal reservation (205.548333ms)
+✔ player requests remain unsigned across retries/restart and accept only exact final receipts (6.70575ms)
+✔ an unresolved player request never blocks the independent operator signer stream (3.999167ms)
+✔ receipt identity conflicts and stored signed bytes cannot make a player request broadcast (3.419ms)
+✔ account identities isolate operation IDs and wallet results and malformed starts are not user-submittable (2.657292ms)
+✔ confirmed player admission retains terminal capacity and cost observers never claim missing before evidence (143.065041ms)
+✔ an unsigned foreign closure cannot discharge another creator’s reserved terminal capacity (135.787625ms)
+✔ a stalled player receipt cannot stall operator signing or create duplicate polling requests (82.63575ms)
+✔ two owner-bound queued oracle terminals occupy both reserved slots without double-counting (159.812333ms)
+✔ stalled observations are bounded, retain their live slot and signal cancellation before late writes (23.848167ms)
+✔ a confirmed discovered run reserves a terminal slot without a fabricated admission operation (132.779625ms)
+✔ wallet craft preparation is account-bound, unsigned and retains terminal headroom (134.695667ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 963.505625

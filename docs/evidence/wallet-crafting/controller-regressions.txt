@@ -1,0 +1,29 @@
+✔ persist challenge and begin atomically; require matching confirmed batch before play (5.891166ms)
+✔ three server-timed inputs finish fine exactly once and stay pending until confirmation (4.779042ms)
+✔ restart preserves explicit start; spoofed timings cannot improve tier; IDs and ownership enforced (4.03275ms)
+✔ deadline expires to normal once across restart, including a retry of the triggering input (3.540459ms)
+✔ worker expires an untouched batch after restart and late admission confirmation (4.867125ms)
+✔ rejected begins release profile but same request never rerolls or re-enqueues (3.46275ms)
+✔ enqueue failures roll back both challenge creation and final input (2.713333ms)
+✔ normal tier is derived from early and late server timings; final input rollback is atomic (3.035791ms)
+✔ premature expiry retries once only after confirmed chain deadline without reopening play (3.700958ms)
+✔ request history is bounded and independent profiles cannot affect one another (44.681542ms)
+✔ player requests remain unsigned across retries/restart and accept only exact final receipts (5.934083ms)
+✔ an unresolved player request never blocks the independent operator signer stream (3.068084ms)
+✔ receipt identity conflicts and stored signed bytes cannot make a player request broadcast (2.748ms)
+✔ account identities isolate operation IDs and wallet results and malformed starts are not user-submittable (2.251833ms)
+✔ confirmed player admission retains terminal capacity and cost observers never claim missing before evidence (119.261541ms)
+✔ an unsigned foreign closure cannot discharge another creator’s reserved terminal capacity (121.382334ms)
+✔ a stalled player receipt cannot stall operator signing or create duplicate polling requests (65.273958ms)
+✔ two owner-bound queued oracle terminals occupy both reserved slots without double-counting (120.102666ms)
+✔ stalled observations are bounded, retain their live slot and signal cancellation before late writes (23.418958ms)
+✔ a confirmed discovered run reserves a terminal slot without a fabricated admission operation (124.616417ms)
+✔ wallet craft preparation is account-bound, unsigned and retains terminal headroom (109.655917ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 824.910042

@@ -1,0 +1,16 @@
+✔ WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock (11373.9705ms)
+✔ WASM v6 accepts branches, returns, self links and leaf exits; reserves actual last-slot goods (5997.53075ms)
+✔ WASM v6 rejects invalid graphs, link schemas and marker collisions atomically (25057.76675ms)
+✔ WASM v3-v5 continue ignoring link metadata without graph interpretation (3932.575ms)
+✔ WASM v4 publishes variable encounter positions, reserves a fifth-slot reward and rejects legacy reinterpretation (4748.472084ms)
+✔ WASM v5 accepts independent dimension bounds and four maximum floors with 64 sockets (2758.088834ms)
+✔ WASM v5 rejects malformed dimensions, markers, boundaries and legacy reinterpretation atomically (18631.224125ms)
+✔ WASM v5 validates actual per-floor slots and reserves exactly the funded last-slot reward (6927.992209ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79639.881416

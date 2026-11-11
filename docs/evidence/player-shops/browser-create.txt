@@ -1,0 +1,25 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+Placement 1366 {"scroll":false,"out":[]}
+Placement 390 {"scroll":false,"out":[]}
+Interior 1366 {"scroll":false,"out":[]}
+Interior 390 {"scroll":false,"out":[]}
+DRAFT_RETAINED 1
+SHOP_APPEARED
+CUSTOM_FURNITURE 2
+OWNER_COUNTER Player-built provisioner
+Back to room
+Shop stock
+Stock & manage
+Receipts
+Price per item
+Fine tonic · maker-fine-tonic-3Fine tonic · maker-fine-tonic-4
+← Previous
+1 / 10
+Next →
+Stock 0 goods
+Close shop
+
+Edit interior above to rebuild or move your shop. Unsold stock stays yours.
+GSTACK_STEP_OK
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.

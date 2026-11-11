@@ -1,0 +1,10 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+RUN_FIT={"width":1366,"height":768,"tab":"Map","scroll":false,"offscreen":[]}
+RUN_FIT={"width":1366,"height":768,"tab":"Bag","scroll":false,"offscreen":[]}
+RUN_FIT={"width":1366,"height":768,"tab":"Journal","scroll":false,"offscreen":[]}
+RUN_FIT={"width":390,"height":844,"tab":"Map","scroll":false,"offscreen":[]}
+RUN_FIT={"width":390,"height":844,"tab":"Bag","scroll":false,"offscreen":[]}
+RUN_FIT={"width":390,"height":844,"tab":"Journal","scroll":false,"offscreen":[]}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

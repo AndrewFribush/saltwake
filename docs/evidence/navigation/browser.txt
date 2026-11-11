@@ -1,0 +1,20 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+Town 1366 {"scroll":false,"out":[]}
+Town 390 {"scroll":false,"out":[]}
+Inventory 1366 {"scroll":false,"out":[]}
+Inventory 390 {"scroll":false,"out":[]}
+Wallet 1366 {"scroll":false,"out":[]}
+Wallet 390 {"scroll":false,"out":[]}
+Help 1366 {"scroll":false,"out":[]}
+Help 390 {"scroll":false,"out":[]}
+MAP_STABLE [38.375,148,313.2421875,208.828125]
+House 1366 {"scroll":false,"out":[]}
+House 390 {"scroll":false,"out":[]}
+Guild service 1366 {"scroll":false,"out":[]}
+Guild service 390 {"scroll":false,"out":[]}
+BUILDER_OPEN 1
+ERRORS []
+ASIDE_DIR=/Users/andrewfribush/.aside/u/0/sessions/2026-11-10_VJHJXmNnu2INHilb
+GSTACK_STEP_OK
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.

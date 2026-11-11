@@ -1,0 +1,24 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+MAKER_ACCOUNT=Edition view 
+Manage
+Stock
+Results
+Accounts
+Account rules
+Refresh maker view
+The smugglers’ hollow
+
+Settled fees 4 · Pending 0 coins.
+
+Placement 11 · Known treasure cost 0 · 6 goods with unknown cost.
+
+Recorded contribution: Unknown. See Account rules for coverage.
+
+← Previous
+1 / 3
+Next →
+MAKER_FIT={"width":1366,"height":768,"scroll":false,"offscreen":[]}
+MAKER_FIT={"width":390,"height":844,"scroll":false,"offscreen":[]}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

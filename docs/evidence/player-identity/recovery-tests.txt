@@ -1,0 +1,37 @@
+✔ save command and signed bytes before broadcast, preserve ID on uncertain retry and restart (5.645209ms)
+✔ missing receipt keeps uncertainty and blocks later signing (2.734917ms)
+✔ exclusive writer and bounded request storage (2.259333ms)
+✔ confirmed failed transaction can be replaced under the SAME operation and command (3.188292ms)
+✔ capacity preserves terminal headroom for admitted run (119.34175ms)
+✔ malformed string fields reject before persisting and cannot jam later settlements (2.231958ms)
+✔ only v9 publication receives the larger command envelope and oversized commands never reserve capacity (2.741541ms)
+✔ oversized legacy signed transactions never broadcast on retry or restart (3.841459ms)
+✔ oversized v9 publication signed transactions never broadcast on retry or restart (4.947084ms)
+✔ player requests remain unsigned across retries/restart and accept only exact final receipts (6.460458ms)
+✔ an unresolved player request never blocks the independent operator signer stream (2.903708ms)
+✔ receipt identity conflicts and stored signed bytes cannot make a player request broadcast (2.731875ms)
+✔ account identities isolate operation IDs and wallet result/start actions are not user-submittable (2.710792ms)
+✔ confirmed player admission retains terminal capacity and cost observers never claim missing before evidence (109.218208ms)
+✔ player-signed admission prepared before wallet handoff recovers and settles through limited oracle (4466.84875ms)
+✔ player-signed admission discovered after chain confirmation recovers and settles through limited oracle (4460.588083ms)
+▶ NEP-413 ownership uses actual final access keys on a disposable chain
+  ✔ account full-access key authenticates, cookie owns only that account, and replay rejects (6.745291ms)
+  ✔ valid signature from another account key cannot claim Alice (3.948916ms)
+  ✔ an existing function-call-only key cannot authenticate (1.72125ms)
+  ✔ a full-access key revoked after signing is rejected at final verification (617.831ms)
+✔ NEP-413 ownership uses actual final access keys on a disposable chain (1904.40725ms)
+✔ wallet sign-in verifies standard signatures at finality, binds account and creates no demo claim (31.813625ms)
+✔ changed signed fields, another account, missing binding and cross-origin proofs reject (11.493417ms)
+✔ concurrent replay consumes the challenge before asynchronous key verification (2.609333ms)
+✔ restricted, absent and revoked keys cannot authenticate (2.593875ms)
+✔ expiry is checked after asynchronous verification and sessions expire independently (4.859584ms)
+✔ challenge replacement, capacities, configuration and restart fail closed (4.960167ms)
+✔ in-flight verifications retain capacity after response timeout until the RPC actually settles (22.8745ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9422.061916

@@ -1,0 +1,16 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mkdtempSync,rmSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {KeyPairSigner,type KeyPairString} from 'near-api-js';
+import {fixture,terms} from '../../../tests/contract/helpers';import {encodeCustomModule,type CustomFloor} from '../../../packages/shared/src/custom-layout';import type {EconomySnapshot} from '../../../packages/shared/src/types';import {Store} from '../src/db';import {Outbox} from '../src/outbox';import {NearChain} from '../src/chain';import {Runs} from '../src/runs';
+for(const count of [1,16])test(`v9 ${count}-floor funded dungeon plays, restarts and settles exact treasure`,{timeout:90000},async()=>{
+ const f=await fixture(),dir=mkdtempSync(join(tmpdir(),'floor-count-'));let db=new Store(join(dir,'db'));
+ try{
+ const chain=new NearChain(f.provider,KeyPairSigner.fromSecretKey(f.genesis.privateKey as KeyPairString),f.contractId,f.contractId);let box=new Outbox(db,chain),runs=new Runs(db,box);
+ const floors:CustomFloor[]=Array.from({length:count},(_,i)=>({tiles:['#####','#...#','#...#','#...#','#####'],spawn:{x:1,y:1},exit:{x:3,y:3},sockets:i===count-1?[{x:2,y:1}]:[],tuning:[],...(count>1?{links:[{id:'next',x:1,y:2,to:(i+1)%count,require_clear:false}]}:{})}));
+ const t={...terms(Number(await chain.clock())),rules_version:9,modules:floors.map(f=>encodeCustomModule(f,'tuned')),sockets:[{id:'last-loot',room:count-1,slot:0,enemy:'none' as const,trap:false,reward:'tonic' as const}]};
+ box.enqueue('publish',{actor:'maker',action:{type:'publish',terms:t,fee:'1',funding:['maker-tonic-0']}});assert.equal((await box.process('publish')).status,'Applied');box.enqueue('admit',{actor:'buyer',action:{type:'admit',edition_id:'edition-0',expected_version:'1',expected_fee:'1',loadout_ids:[],seed:'1'}});assert.equal((await box.process('admit')).status,'Applied');const w=await f.view('snapshot') as EconomySnapshot;const run=runs.materialize('admit',w);assert.equal(run.state.layout!.length,count);
+ let seq=0;const action=(a:Parameters<Runs['action']>[4])=>runs.action(run.id,'buyer','step-'+seq,seq++,a);
+ for(let i=1;i<count;i++)action({type:'move',x:1,y:2});assert.equal(runs.get(run.id,'buyer').state.roomIndex,count-1);action({type:'move',x:2,y:1});action({type:'pickup',itemId:'maker-tonic-0'});
+ db.close();db=new Store(join(dir,'db'));box=new Outbox(db,chain);runs=new Runs(db,box);assert.equal(runs.get(run.id,'buyer').state.roomIndex,count-1);assert.deepEqual(runs.get(run.id,'buyer').state.items['maker-tonic-0'].location,{kind:'bag'});
+ if(count>1){action({type:'move',x:1,y:1});action({type:'move',x:1,y:2});assert.equal(runs.get(run.id,'buyer').state.roomIndex,0);action({type:'move',x:2,y:1});}
+ action({type:'move',x:3,y:1});action({type:'move',x:3,y:2});action({type:'move',x:3,y:3});action({type:'extract'});assert.equal(runs.get(run.id,'buyer').terminal,'extracted');await box.recover();const settled=await f.view('snapshot') as EconomySnapshot;assert.equal(settled.runs[0].status,'extracted');assert.deepEqual(settled.items.find(i=>i.id==='maker-tonic-0')!.location,{kind:'owned',profile:'buyer'});assert.equal(settled.editions[0].active_runs.length,0);
+ }finally{db.close();rmSync(dir,{recursive:true,force:true});await f.sandbox.tearDown();}
+});

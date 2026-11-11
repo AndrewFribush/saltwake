@@ -1,0 +1,19 @@
+✔ player requests remain unsigned across retries/restart and accept only exact final receipts (15.41625ms)
+✔ an unresolved player request never blocks the independent operator signer stream (3.103542ms)
+✔ receipt identity conflicts and stored signed bytes cannot make a player request broadcast (2.936291ms)
+✔ account identities isolate operation IDs and wallet results and malformed starts are not user-submittable (3.194ms)
+✔ confirmed player admission retains terminal capacity and cost observers never claim missing before evidence (126.677459ms)
+✔ an unsigned foreign closure cannot discharge another creator’s reserved terminal capacity (136.649167ms)
+✔ a stalled player receipt cannot stall operator signing or create duplicate polling requests (65.170083ms)
+✔ two owner-bound queued oracle terminals occupy both reserved slots without double-counting (118.118417ms)
+✔ stalled observations are bounded, retain their live slot and signal cancellation before late writes (29.278458ms)
+✔ a confirmed discovered run reserves a terminal slot without a fabricated admission operation (160.635834ms)
+✔ wallet craft preparation is account-bound, unsigned and retains terminal headroom (108.927875ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 901.059

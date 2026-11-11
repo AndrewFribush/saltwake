@@ -1,0 +1,14 @@
+{
+  "provider": "NEAR Testnet",
+  "rpc": "https://test.rpc.fastnear.com",
+  "contract": "dungeon-economy-demo-20261110.testnet",
+  "sha256": "1a7f305adace0fd6d81681fa63c59b110a99a0fa0ecbcfe97cf337194e49a40b",
+  "maximumTransactions": 7,
+  "maximumGasTgas": 900,
+  "maximumMinutes": 10,
+  "attachedDeposit": "0",
+  "requiresExistingAccount": true,
+  "storageAndGasBudgetTestnetNear": 10,
+  "operatorCustodiedProfiles": true,
+  "status": "PREPARED_NOT_EXECUTED"
+}

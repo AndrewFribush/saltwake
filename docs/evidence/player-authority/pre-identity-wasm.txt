@@ -1,0 +1,3 @@
+tests/fixtures/economy-pre-identity.wasm: 1096425 bytes
+SHA256 adb96ca575ec7e5019d9ef3eff9d2586b7c477461b0f1da3aec449a698114372
+Retained before the identity build; no runtime refresh.

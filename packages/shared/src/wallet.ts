@@ -1,7 +1,11 @@
+import type {CostReport} from './cost-ledger';
+import type {BusinessAccount} from './business-account';
 import type {EconomicRun} from './types';
 
 /** Amounts are integer local-game credits, encoded as strings without precision loss. */
 export type WalletView = {
+  costs?: CostReport;
+  business?: BusinessAccount;
   profile: string;
   purse: string | null;
   reservedRunFees: string;

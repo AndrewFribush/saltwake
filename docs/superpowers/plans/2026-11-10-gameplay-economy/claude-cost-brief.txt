@@ -1,0 +1,605 @@
+Andrew has authorized completing the merged local gameplay/economy/builder goal. You own an independent P13a cost-provenance design pass NOW. No tools, no code edits. Produce a concrete schema and worked examples for tracking actual acquisition costs through existing buy, bank buy, crafts, funding/refresh, resale and unknown gifts/seed grants. Receipt idempotency and restart rebuild are essential. Keep cash flow/reference value/profit distinct; no double counting. Identify whether current receipts contain sufficient detail and how to capture missing data without inventing historical cost. Propose minimal TS interfaces and 8 exact acceptance cases. Do not change economic rules. Maker pays all committed treasure; leftovers to bank; no refund; fee on normal loss retained. Local synthetic economy only. Return markdown ~1200 words. Source below.
+
+FILE packages/shared/src/types.ts
+export type ItemType='club'|'sword'|'armor'|'herb'|'iron'|'flask'|'tonic'|'fineTonic';
+export type ItemLocation =
+ | {kind:'owned';profile:string}|{kind:'listed';listing:string}
+ | {kind:'edition_fixed';edition:string;item_type:ItemType}|{kind:'edition_random';edition:string;table_id:string}
+ | {kind:'reserved';run:string;socket:string;source_pool:string}|{kind:'loadout';run:string;profile:string}
+ | {kind:'crafting';batch:string;source_owner:string}|{kind:'bank'}|{kind:'consumed';operation:string};
+export type Item={id:string;item_type:ItemType;location:ItemLocation};
+export type Socket={readonly id:string;readonly room:number;readonly slot:number;readonly enemy:'none'|'pursuer'|'charger';readonly trap:boolean;readonly reward:ItemType|null};
+export type EditionTerms={readonly title:string;readonly rules_version:number;readonly modules:readonly string[];readonly sockets:readonly Socket[];readonly opens_at_ms:string;readonly closes_at_ms:string;readonly no_reward:boolean;readonly difficulty_tag:string;readonly style_tag:string;readonly run_duration_ms:string;readonly max_runs:number};
+export type RandomTable={readonly table_id:string;readonly socket_ids:readonly string[];readonly item_ids:readonly string[]};
+export type RandomFunding={readonly table_id:string;readonly item_ids:readonly string[]};
+export type Command={readonly actor:string;readonly action:
+ |{readonly type:'debit';readonly amount:string}
+ |{readonly type:'publish';readonly terms:EditionTerms;readonly fee:string;readonly funding:readonly string[]}
+ |{readonly type:'admit';readonly edition_id:string;readonly expected_version:string;readonly expected_fee:string;readonly loadout_ids:readonly string[];readonly seed:string}
+ |{readonly type:'settle';readonly run_id:string;readonly outcome:'extracted'|'died'|'abandoned'|'expired';readonly disposition:Partition;readonly carried_dungeon_ids:readonly string[]}
+ |{readonly type:'void';readonly run_id:string;readonly reason:string;readonly disposition:Partition}
+ |{readonly type:'publish_random';readonly terms:EditionTerms;readonly fee:string;readonly fixed_funding:readonly string[];readonly random_tables:readonly RandomTable[]}
+ |{readonly type:'refresh';readonly edition_id:string;readonly fixed_funding:readonly string[];readonly random_funding:readonly RandomFunding[]}
+ |{readonly type:'set_fee';readonly edition_id:string;readonly new_fee:string}
+ |{readonly type:'list';readonly item_ids:readonly string[];readonly unit_price:string}
+ |{readonly type:'cancel_listing';readonly listing_id:string}
+ |{readonly type:'buy';readonly listing_id:string;readonly item_ids:readonly string[];readonly expected_unit_price:string}
+ |{readonly type:'bank_buy';readonly item_ids:readonly string[];readonly expected_unit_prices:readonly string[]}
+ |{readonly type:'bank_sell';readonly item_ids:readonly string[];readonly expected_unit_prices:readonly string[]}
+ |{readonly type:'fill_npc_order';readonly order_id:string;readonly item_ids:readonly string[];readonly expected_unit_price:string}
+ |{readonly type:'begin_craft';readonly batch_id:string;readonly input_ids:readonly string[];readonly challenge_commitment:string;readonly deadline_ms:string}
+ |{readonly type:'finish_craft';readonly batch_id:string;readonly tier:CraftTier;readonly reason:FinishReason}
+ |{readonly type:'begin_recovery';readonly batch_id:string;readonly bank_input_ids:readonly string[];readonly challenge_commitment:string;readonly deadline_ms:string}
+ |{readonly type:'finish_recovery';readonly batch_id:string;readonly tier:CraftTier;readonly reason:FinishReason}
+ |{readonly type:'finalize_close';readonly edition_id:string}};
+export type OperationStatus={status:'Applied'|'Rejected';op_id:string;payload_hash:string;result:string;run:EconomicRun|null}|{status:'Pending';op_id:string;tx_hash?:string}|{status:'Unknown';op_id:string;reason:string};
+
+export type Partition={readonly town_consumed:readonly string[];readonly town_returned:readonly string[];readonly town_forfeited:readonly string[];readonly dungeon_consumed:readonly string[];readonly dungeon_extracted:readonly string[];readonly dungeon_returned:readonly string[]};
+export type Assignment={socket:string;item_id:string;source_pool:string};
+export type EconomicRun={id:string;edition:string;player:string;fee:string;deadline_ms:string;seed:string;loadout_ids:string[];assignments:Assignment[];status:'active'|'extracted'|'died'|'abandoned'|'expired'|'void';terminal_reason:string|null};
+export type EconomicEdition={id:string;maker:string;terms:EditionTerms;terms_hash:string;fee:string;version:string;placement_paid:string;original_value:string;refresh_value:string;refresh_ids:string[];random_tables:RandomTable[];active_runs:string[];funded_ids:string[];closed:boolean;extracted_value:string;consumed_value:string;banked_value:string};
+export type Listing={id:string;seller:string;item_ids:string[];remaining_ids:string[];unit_price:string;status:'active'|'sold'|'cancelled'};
+export type NpcOrder={id:string;item_type:ItemType;unit_price:string;remaining:number;budget:string;seeded_demo_demand:boolean};
+export type BankPrice={item_type:ItemType;sale_price:string;buyback_price:string};
+export type EconomySnapshot={credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState};
+
+export type CraftTier='normal'|'fine';
+export type FinishReason='completed'|'expired';
+export type CraftBatch={id:string;actor:string;input_ids:string[];challenge_commitment:string;deadline_ms:string;recovery:boolean;wage_reserved:string;status:'active'|'finished';tier:CraftTier|null;reason:FinishReason|null;output_ids:string[]};
+export type RecoveryState={epoch:string;budget:string;wage:string;max_jobs_per_profile:number;jobs:Record<string,number>};
+
+FILE contracts/economy/src/market.rs
+use crate::*;
+use std::collections::BTreeSet;
+
+fn unique_items(ids: &[String]) -> Result<(), String> {
+    if ids.is_empty() || ids.len() > 128 {
+        return Err("InvalidItemCount".into());
+    }
+    if ids.iter().collect::<BTreeSet<_>>().len() != ids.len() {
+        return Err("DuplicateItems".into());
+    }
+    Ok(())
+}
+impl Economy {
+    pub(crate) fn list(
+        &mut self,
+        actor: String,
+        ids: Vec<String>,
+        price: U64,
+    ) -> Result<String, String> {
+        unique_items(&ids)?;
+        if self.listings.len() >= 64 {
+            return Err("ListingCapacity".into());
+        }
+        if price.0 == 0 || price.0 > 1_000_000 {
+            return Err("InvalidPrice".into());
+        }
+        let id = format!("listing-{}", self.listings.len());
+        for item_id in &ids {
+            let item = self.items.get_mut(item_id).ok_or("MissingItem")?;
+            if item.location
+                != (Location::Owned {
+                    profile: actor.clone(),
+                })
+            {
+                return Err("UnownedItem".into());
+            }
+            item.location = Location::Listed {
+                listing: id.clone(),
+            };
+        }
+        self.listings.insert(
+            id.clone(),
+            Listing {
+                id: id.clone(),
+                seller: actor,
+                item_ids: ids.clone(),
+                remaining_ids: ids,
+                unit_price: price,
+                status: "active".into(),
+            },
+        );
+        Ok(id)
+    }
+    pub(crate) fn cancel_listing(&mut self, actor: String, id: String) -> Result<String, String> {
+        let l = self.listings.get_mut(&id).ok_or("MissingListing")?;
+        if l.seller != actor {
+            return Err("WrongSeller".into());
+        }
+        if l.status != "active" {
+            return Err("ListingClosed".into());
+        }
+        for item_id in &l.remaining_ids {
+            let item = self.items.get_mut(item_id).ok_or("MissingItem")?;
+            if item.location
+                != (Location::Listed {
+                    listing: id.clone(),
+                })
+            {
+                return Err("WrongSourceLocation".into());
+            }
+            item.location = Location::Owned {
+                profile: actor.clone(),
+            };
+        }
+        l.remaining_ids.clear();
+        l.status = "cancelled".into();
+        Ok(id)
+    }
+    pub(crate) fn buy(
+        &mut self,
+        actor: String,
+        id: String,
+        ids: Vec<String>,
+        price: U64,
+    ) -> Result<String, String> {
+        unique_items(&ids)?;
+        let l = self.listings.get(&id).ok_or("MissingListing")?.clone();
+        if l.status != "active" {
+            return Err("ListingClosed".into());
+        }
+        if l.seller == actor {
+            return Err("SelfPurchase".into());
+        }
+        if price.0 != l.unit_price.0 {
+            return Err("StalePrice".into());
+        }
+        let total = price
+            .0
+            .checked_mul(ids.len() as u64)
+            .ok_or("PriceOverflow")?;
+        if self.credits[&actor] < total {
+            return Err("InsufficientCredits".into());
+        }
+        for item_id in &ids {
+            let item = self.items.get_mut(item_id).ok_or("MissingItem")?;
+            if !l.remaining_ids.contains(item_id)
+                || item.location
+                    != (Location::Listed {
+                        listing: id.clone(),
+                    })
+            {
+                return Err("ItemUnavailable".into());
+            }
+            item.location = Location::Owned {
+                profile: actor.clone(),
+            };
+        }
+        *self.credits.get_mut(&actor).unwrap() -= total;
+        let seller = self.credits.get_mut(&l.seller).unwrap();
+        *seller = seller.checked_add(total).ok_or("CreditOverflow")?;
+        let l = self.listings.get_mut(&id).unwrap();
+        l.remaining_ids.retain(|i| !ids.contains(i));
+        if l.remaining_ids.is_empty() {
+            l.status = "sold".into();
+        }
+        Ok(id)
+    }
+    pub(crate) fn bank_trade(
+        &mut self,
+        actor: String,
+        ids: Vec<String>,
+        prices: Vec<U64>,
+        buying: bool,
+    ) -> Result<String, String> {
+        unique_items(&ids)?;
+        if prices.len() != ids.len() {
+            return Err("InvalidPriceCount".into());
+        }
+        let mut total = 0u64;
+        for (id, price) in ids.iter().zip(prices) {
+            let item = self.items.get(id).ok_or("MissingItem")?;
+            let source = if buying {
+                Location::Bank
+            } else {
+                Location::Owned {
+                    profile: actor.clone(),
+                }
+            };
+            if item.location != source {
+                return Err("ItemUnavailable".into());
+            }
+            let expected = if buying {
+                item.item_type.value()
+            } else {
+                item.item_type.value() / 2
+            };
+            if price.0 != expected {
+                return Err("StalePrice".into());
+            }
+            total = total.checked_add(expected).ok_or("PriceOverflow")?;
+        }
+        if buying {
+            let balance = self.credits.get_mut(&actor).unwrap();
+            if *balance < total {
+                return Err("InsufficientCredits".into());
+            }
+            *balance -= total;
+            self.bank = self.bank.checked_add(total).ok_or("CreditOverflow")?;
+        } else {
+            if self.bank < total {
+                return Err("InsufficientBankCredits".into());
+            }
+            self.bank -= total;
+            let balance = self.credits.get_mut(&actor).unwrap();
+            *balance = balance.checked_add(total).ok_or("CreditOverflow")?;
+        }
+        for id in ids {
+            self.items.get_mut(&id).unwrap().location = if buying {
+                Location::Owned {
+                    profile: actor.clone(),
+                }
+            } else {
+                Location::Bank
+            };
+        }
+        Ok(if buying { "bank_buy" } else { "bank_sell" }.into())
+    }
+    pub(crate) fn fill_npc_order(
+        &mut self,
+        actor: String,
+        id: String,
+        ids: Vec<String>,
+        price: U64,
+        op: &str,
+    ) -> Result<String, String> {
+        unique_items(&ids)?;
+        let order = &mut self.npc_order;
+        if id != order.id {
+            return Err("MissingOrder".into());
+        }
+        if price.0 != order.unit_price.0 {
+            return Err("StalePrice".into());
+        }
+        let total = price
+            .0
+            .checked_mul(ids.len() as u64)
+            .ok_or("PriceOverflow")?;
+        if ids.len() > order.remaining as usize || total > order.budget.0 {
+            return Err("OrderExhausted".into());
+        }
+        for id in &ids {
+            let item = self.items.get_mut(id).ok_or("MissingItem")?;
+            if item.location
+                != (Location::Owned {
+                    profile: actor.clone(),
+                })
+            {
+                return Err("UnownedItem".into());
+            }
+            if item.item_type != order.item_type {
+                return Err("WrongItemType".into());
+            }
+            // Seeded NPC demand is a terminal consumable sink, not resellable bank stock.
+            item.location = Location::Consumed {
+                operation: op.into(),
+            };
+        }
+        order.remaining -= ids.len() as u8;
+        order.budget.0 -= total;
+        let balance = self.credits.get_mut(&actor).unwrap();
+        *balance = balance.checked_add(total).ok_or("CreditOverflow")?;
+        Ok(id)
+    }
+}
+
+FILE contracts/economy/src/craft.rs
+use crate::*;
+use std::collections::BTreeSet;
+impl Economy {
+    pub(crate) fn profile_holdings(&self, actor: &str) -> u64 {
+        let mut value = self.credits.get(actor).copied().unwrap_or(0);
+        for item in self.items.values() {
+            let owned = match &item.location {
+                Location::Owned { profile } | Location::Loadout { profile, .. } => profile == actor,
+                Location::Listed { listing } => self
+                    .listings
+                    .get(listing)
+                    .map(|l| l.seller == actor)
+                    .unwrap_or(false),
+                Location::Crafting { batch, .. } => self
+                    .batches
+                    .get(batch)
+                    .map(|b| !b.recovery && b.actor == actor)
+                    .unwrap_or(false),
+                _ => false,
+            };
+            if owned {
+                value = value.saturating_add(item.item_type.value());
+            }
+        }
+        for run in self.runs.values().filter(|r| r.status == "active") {
+            // Include refundable player escrow and pending maker income conservatively.
+            if run.player == actor
+                || self
+                    .editions
+                    .get(&run.edition)
+                    .map(|e| e.maker == actor)
+                    .unwrap_or(false)
+            {
+                value = value.saturating_add(run.fee.0);
+            }
+        }
+        for batch in self.batches.values().filter(|b| b.actor == actor) {
+            value = value.saturating_add(batch.wage_reserved.0);
+        }
+        value
+    }
+    pub(crate) fn begin_craft(
+        &mut self,
+        actor: String,
+        id: String,
+        ids: Vec<String>,
+        commitment: String,
+        deadline: U64,
+        recovery: bool,
+    ) -> Result<String, String> {
+        if id.is_empty() || id.len() > 64 {
+            return Err("InvalidBatchId".into());
+        }
+        if self.batches.contains_key(&id) {
+            return Err("BatchExists".into());
+        }
+        if self.batches.len() >= 64 {
+            return Err("BatchCapacity".into());
+        }
+        if commitment.len() != 64 || !commitment.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return Err("InvalidCommitment".into());
+        }
+        let now = now_ms();
+        if deadline.0 <= now || deadline.0 > now.saturating_add(900000) {
+            return Err("InvalidDeadline".into());
+        }
+        if self
+            .batches
+            .values()
+            .any(|b| b.actor == actor && b.status == "active")
+        {
+            return Err("ProfileAlreadyCrafting".into());
+        }
+        if ids.len() != 4 || ids.iter().collect::<BTreeSet<_>>().len() != 4 {
+            return Err("InvalidRecipe".into());
+        }
+        if recovery {
+            if self.recovery.jobs.get(&actor).copied().unwrap_or(0)
+                >= self.recovery.max_jobs_per_profile
+            {
+                return Err("RecoveryJobCap".into());
+            }
+            if self.profile_holdings(&actor) >= 6 {
+                return Err("RecoveryHoldings".into());
+            }
+            if self.recovery.budget.0 < self.recovery.wage.0 {
+                return Err("RecoveryBudget".into());
+            }
+        }
+        let mut herbs = 0;
+        let mut flasks = 0;
+        for item_id in &ids {
+            let item = self.items.get_mut(item_id).ok_or("MissingItem")?;
+            let source = if recovery {
+                Location::Bank
+            } else {
+                Location::Owned {
+                    profile: actor.clone(),
+                }
+            };
+            if item.location != source {
+                return Err("UnownedInput".into());
+            }
+            match item.item_type {
+                ItemType::Herb => herbs += 1,
+                ItemType::Flask => flasks += 1,
+                _ => return Err("InvalidRecipe".into()),
+            };
+            item.location = Location::Crafting {
+                batch: id.clone(),
+                source_owner: if recovery {
+                    "bank".into()
+                } else {
+                    actor.clone()
+                },
+            };
+        }
+        if herbs != 2 || flasks != 2 {
+            return Err("InvalidRecipe".into());
+        }
+        let wage = if recovery {
+            self.recovery.budget.0 -= self.recovery.wage.0;
+            *self.recovery.jobs.entry(actor.clone()).or_default() += 1;
+            self.recovery.wage
+        } else {
+            U64(0)
+        };
+        self.batches.insert(
+            id.clone(),
+            CraftBatch {
+                id: id.clone(),
+                actor,
+                input_ids: ids,
+                challenge_commitment: commitment,
+                deadline_ms: deadline,
+                recovery,
+                wage_reserved: wage,
+                status: "active".into(),
+                tier: None,
+                reason: None,
+                output_ids: vec![],
+            },
+        );
+        Ok(id)
+    }
+    pub(crate) fn finish_craft(
+        &mut self,
+        actor: String,
+        id: String,
+        tier: CraftTier,
+        reason: FinishReason,
+        recovery: bool,
+        op: &str,
+    ) -> Result<String, String> {
+        let batch = self.batches.get(&id).ok_or("MissingBatch")?.clone();
+        if batch.actor != actor {
+            return Err("WrongProfile".into());
+        }
+        if batch.recovery != recovery {
+            return Err("WrongBatchKind".into());
+        }
+        if batch.status != "active" {
+            return Err("TerminalBatch".into());
+        }
+        let expired = now_ms() >= batch.deadline_ms.0;
+        if reason == FinishReason::Expired && !expired {
+            return Err("PrematureExpiry".into());
+        }
+        let tier = if expired { CraftTier::Normal } else { tier };
+        for input in &batch.input_ids {
+            let item = self.items.get_mut(input).ok_or("MissingItem")?;
+            if item.location
+                != (Location::Crafting {
+                    batch: id.clone(),
+                    source_owner: if recovery {
+                        "bank".into()
+                    } else {
+                        actor.clone()
+                    },
+                })
+            {
+                return Err("WrongSourceLocation".into());
+            }
+            item.location = Location::Consumed {
+                operation: op.into(),
+            };
+        }
+        let mut outputs = vec![];
+        for n in 0..2 {
+            let output = format!("crafted-{id}-{n}");
+            if self.items.contains_key(&output) {
+                return Err("ItemIdConflict".into());
+            }
+            self.items.insert(
+                output.clone(),
+                Item {
+                    id: output.clone(),
+                    item_type: if tier == CraftTier::Fine {
+                        ItemType::FineTonic
+                    } else {
+                        ItemType::Tonic
+                    },
+                    location: if recovery {
+                        Location::Bank
+                    } else {
+                        Location::Owned {
+                            profile: actor.clone(),
+                        }
+                    },
+                },
+            );
+            outputs.push(output);
+        }
+        let balance = self.credits.get_mut(&actor).unwrap();
+        *balance = balance
+            .checked_add(batch.wage_reserved.0)
+            .ok_or("CreditOverflow")?;
+        let b = self.batches.get_mut(&id).unwrap();
+        b.status = "finished".into();
+        b.tier = Some(tier);
+        b.reason = Some(if expired {
+            FinishReason::Expired
+        } else {
+            reason
+        });
+        b.output_ids = outputs;
+        b.wage_reserved = U64(0);
+        Ok(id)
+    }
+}
+
+FILE apps/server/src/db.ts
+import {DatabaseSync} from 'node:sqlite';
+import {closeSync,openSync,readFileSync,unlinkSync,writeFileSync,mkdirSync} from 'node:fs';
+import {dirname} from 'node:path';
+import type {Command,OperationStatus} from '../../../packages/shared/src/types';
+export type Signed={hash:string;bytes:string;nonce?:string};
+export type StoredOperation={id:string;command:Command;hash:string;status:'Pending'|'Unknown'|'Applied'|'Rejected';signed?:Signed;signedAt?:number;retired?:Signed[];receipt?:OperationStatus;reason?:string};
+export class Store {
+ readonly sql:DatabaseSync;private closed=false;private lock:string;
+ constructor(path:string){
+  mkdirSync(dirname(path),{recursive:true,mode:0o700});this.lock=path+'.writer';
+  const acquire=()=>{const fd=openSync(this.lock,'wx',0o600);try{writeFileSync(fd,String(process.pid));}finally{closeSync(fd);}};
+  try{acquire();}catch(error){
+   let stale=false;try{const pid=Number(readFileSync(this.lock,'utf8'));if(!Number.isSafeInteger(pid)||pid<1)throw Error('Invalid writer lock');try{process.kill(pid,0);}catch(e){stale=(e as NodeJS.ErrnoException).code==='ESRCH';}}catch{}
+   if(!stale)throw Error('Database already has a writer');unlinkSync(this.lock);acquire();
+  }
+  try{this.sql=new DatabaseSync(path);this.sql.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS records (kind TEXT NOT NULL,id TEXT NOT NULL,value TEXT NOT NULL,PRIMARY KEY(kind,id));');}catch(e){unlinkSync(this.lock);throw e;}
+ }
+ transaction<T>(fn:()=>T):T{this.sql.exec('BEGIN IMMEDIATE');try{const value=fn();this.sql.exec('COMMIT');return value;}catch(e){this.sql.exec('ROLLBACK');throw e;}}
+ operation(id:string):StoredOperation|undefined{const row=this.sql.prepare('SELECT value FROM operations WHERE id=?').get(id);return row?JSON.parse(row.value as string):undefined;}
+ operations():StoredOperation[]{return this.sql.prepare('SELECT value FROM operations ORDER BY rowid').all().map(r=>JSON.parse(r.value as string));}
+ putOperation(row:StoredOperation){const encoded=JSON.stringify(row);if(Buffer.byteLength(encoded)>393216)throw Error('Operation record too large');this.sql.prepare('INSERT INTO operations(id,value) VALUES (?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value').run(row.id,encoded);}
+ get<T>(kind:string,id:string):T|undefined{const row=this.sql.prepare('SELECT value FROM records WHERE kind=? AND id=?').get(kind,id);return row?JSON.parse(row.value as string):undefined;}
+ all<T>(kind:string):T[]{return this.sql.prepare('SELECT value FROM records WHERE kind=? ORDER BY rowid').all(kind).map(r=>JSON.parse(r.value as string));}
+ put(kind:string,id:string,value:unknown){const encoded=JSON.stringify(value);if(Buffer.byteLength(encoded)>262144)throw Error('Record too large');this.sql.prepare('INSERT INTO records(kind,id,value) VALUES (?,?,?) ON CONFLICT(kind,id) DO UPDATE SET value=excluded.value').run(kind,id,encoded);}
+ close(){if(!this.closed){this.sql.close();unlinkSync(this.lock);this.closed=true;}}
+}
+
+FILE apps/server/src/outbox.ts
+import {commandHash} from '../../../packages/shared/src/protocol';
+import type {Command,OperationStatus} from '../../../packages/shared/src/types';
+import {Store,type Signed,type StoredOperation} from './db';
+export interface Chain {clock?():Promise<number>;sign(id:string,command:Command,minNonce?:string):Promise<Signed>;broadcast(tx:Signed):Promise<void>;receipt(id:string):Promise<OperationStatus|null>;transactionState?(tx:Signed):Promise<'failed'|'unknown'>;}
+export class Outbox {
+ private tail:Promise<unknown>=Promise.resolve();
+ constructor(readonly db:Store,readonly chain:Chain){}
+ enqueue(id:string,command:Command):StoredOperation{
+  if(!/^[A-Za-z0-9_-]{1,64}$/.test(id))throw Error('Invalid operation ID');
+  if(Buffer.byteLength(JSON.stringify({op_id:id,command}))>32768)throw Error('Command too large');
+  const hash=commandHash(command);const prior=this.db.operation(id);
+  if(prior){if(prior.hash!==hash)throw Error('Operation payload conflict');return prior;}
+  if(this.db.operations().length+1+this.reserved(command)>256)throw Error('Outbox capacity reached; terminal headroom reserved');
+  const row:StoredOperation={id,command:structuredClone(command),hash,status:'Pending'};this.db.putOperation(row);return row;
+ }
+ private reserved(incoming:Command){
+  const rows=this.db.operations();const obligations=new Set<string>();
+  for(const r of rows){if(r.status==='Rejected')continue;const a=r.command.action;
+   if(a.type==='admit')obligations.add('run:'+(r.receipt?.status==='Applied'?r.receipt.run?.id??r.receipt.result:r.id));
+   if(a.type==='publish'||a.type==='publish_random')obligations.add('edition:'+(r.receipt?.status==='Applied'?r.receipt.result:r.id));
+   if(a.type==='begin_craft'||a.type==='begin_recovery')obligations.add('craft:'+a.batch_id);
+  }
+  const remove=(a:Command['action'])=>{if(a.type==='settle'||a.type==='void')obligations.delete('run:'+a.run_id);if(a.type==='finalize_close')obligations.delete('edition:'+a.edition_id);if(a.type==='finish_craft'||a.type==='finish_recovery')obligations.delete('craft:'+a.batch_id);};
+  for(const r of rows)if(r.status!=='Rejected')remove(r.command.action);remove(incoming.action);
+  const a=incoming.action;if(a.type==='admit'||a.type==='publish'||a.type==='publish_random'||a.type==='begin_craft'||a.type==='begin_recovery')return obligations.size+1;
+  return obligations.size;
+ }
+ process(id:string):Promise<StoredOperation>{const result=this.tail.then(()=>this.submit(id));this.tail=result.catch(()=>{});return result;}
+ private async submit(id:string):Promise<StoredOperation>{
+  const row=this.db.operation(id);if(!row)throw Error('Unknown operation');
+  if(row.status==='Applied'||row.status==='Rejected')return row;
+  const accept=async()=>{const receipt=await this.chain.receipt(id);if(!receipt)return false;
+   if(receipt.status!=='Applied'&&receipt.status!=='Rejected')return false;
+   if(receipt.op_id!==id||receipt.payload_hash!==row.hash)throw Error('Receipt identity conflict');
+   row.receipt=receipt;row.status=receipt.status;delete row.reason;this.db.putOperation(row);return true;};
+  try{
+   if(await accept())return row;
+   // A single unresolved signer stream prevents higher nonces overtaking a lost transaction.
+   const first=this.db.operations().find(r=>r.status==='Pending'||r.status==='Unknown');
+   if(first?.id!==id)return row;
+   if(row.signed){
+    const failed=await this.chain.transactionState?.(row.signed)==='failed';
+    // Replacement keeps the exact logical ID/hash. Even a late old transaction
+    // cannot duplicate effects: the contract returns its original operation receipt.
+    if(failed||Date.now()-(row.signedAt??Date.now())>120000){
+     if((row.retired?.length??0)>=3)throw Error('Signed transaction retry budget exhausted; retain locks for operator recovery');
+     row.retired=[...(row.retired??[]),row.signed];delete row.signed;this.db.putOperation(row);
+    }
+   }
+   if(!row.signed){const minNonce=row.retired?.reduce((n,t)=>t.nonce&&BigInt(t.nonce)>=BigInt(n)?(BigInt(t.nonce)+1n).toString():n,'0');row.signed=await this.chain.sign(id,row.command,minNonce);row.signedAt=Date.now();if(row.signed.bytes.length>65536)throw Error('Signed transaction too large');this.db.putOperation(row);}
+   try{await this.chain.broadcast(row.signed);}catch(e){row.reason=String(e).slice(0,500);}
+   if(await accept())return row;
+   row.status='Unknown';row.reason??='No confirmed operation receipt; retain all locks';
+  }catch(e){row.status='Unknown';row.reason=String(e).slice(0,500);}
+  this.db.putOperation(row);return row;
+ }
+ async recover(){for(const row of this.db.operations())if(row.status==='Pending'||row.status==='Unknown')await this.process(row.id);}
+}

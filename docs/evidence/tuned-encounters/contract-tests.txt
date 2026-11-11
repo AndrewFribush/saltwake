@@ -1,0 +1,19 @@
+✔ WASM v7 accepts bounded tuning, linear floors and exact funded reservations (5340.210208ms)
+✔ WASM v7 rejects malformed, null, unknown and inapplicable tuning atomically (50424.31ms)
+✔ WASM v7 optional links require a complete valid graph and old tuning metadata stays ignored (13969.710292ms)
+✔ WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock (11429.904ms)
+✔ WASM v6 accepts branches, returns, self links and leaf exits; reserves actual last-slot goods (5402.347958ms)
+✔ WASM v6 rejects invalid graphs, link schemas and marker collisions atomically (25265.365209ms)
+✔ WASM v3-v5 continue ignoring link metadata without graph interpretation (3188.459166ms)
+✔ WASM v4 publishes variable encounter positions, reserves a fifth-slot reward and rejects legacy reinterpretation (4191.659625ms)
+✔ WASM v5 accepts independent dimension bounds and four maximum floors with 64 sockets (2807.888583ms)
+✔ WASM v5 rejects malformed dimensions, markers, boundaries and legacy reinterpretation atomically (18079.035334ms)
+✔ WASM v5 validates actual per-floor slots and reserves exactly the funded last-slot reward (6718.8275ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 147085.436875

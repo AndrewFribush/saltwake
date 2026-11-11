@@ -1,0 +1,27 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+COST_REPORT=Account
+Balances
+Pending
+Run fees
+Cash flow
+Cash movements
+Cash rules
+Stock costs
+Trading result
+Cost rules
+Receipts
+About
+Refresh wallet
+
+Stored goods: 0 coins of known cost; 4 goods have unknown cost.
+
+Committed treasure: 0 coins of known cost; 0 funded goods have unknown cost. Committed treasure is expensed once, including closure leftovers.
+FIT={"width":1366,"height":768,"view":"Stock costs","scroll":false,"offscreen":[]}
+FIT={"width":1366,"height":768,"view":"Trading result","scroll":false,"offscreen":[]}
+FIT={"width":1366,"height":768,"view":"Cost rules","scroll":false,"offscreen":[]}
+FIT={"width":390,"height":844,"view":"Stock costs","scroll":false,"offscreen":[]}
+FIT={"width":390,"height":844,"view":"Trading result","scroll":false,"offscreen":[]}
+FIT={"width":390,"height":844,"view":"Cost rules","scroll":false,"offscreen":[]}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

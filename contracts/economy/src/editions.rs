@@ -10,8 +10,13 @@ impl Economy {
         random_tables: Vec<RandomTable>,
     ) -> Result<String, String> {
         let now = now_ms();
-        if terms.run_duration_ms.0 != 900000
-            || terms.max_runs != 4
+        let valid_operating_terms = if matches!(terms.rules_version, 8 | 9 | 10 | 11) {
+            (60_000..=3_600_000).contains(&terms.run_duration_ms.0)
+                && (1..=4).contains(&terms.max_runs)
+        } else {
+            terms.run_duration_ms.0 == 900000 && terms.max_runs == 4
+        };
+        if !valid_operating_terms
             || !["beginner", "standard", "hard"].contains(&terms.difficulty_tag.as_str())
             || !["combat", "loot", "challenge"].contains(&terms.style_tag.as_str())
         {
@@ -22,15 +27,16 @@ impl Economy {
         }
         if terms.title.trim().is_empty()
             || terms.title.len() > 80
-            || !matches!(terms.rules_version, 1 | 2 | 3)
-            || !(2..=4).contains(&terms.modules.len())
+            || !matches!(terms.rules_version, 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11)
+            || !(if matches!(terms.rules_version, 9 | 10 | 11) { 1..=16 } else { 2..=4 }).contains(&terms.modules.len())
             || terms.modules.iter().any(|m| {
-                if terms.rules_version == 3 {
-                    !valid_custom_module(m)
+                if terms.rules_version >= 3 {
+                    !valid_custom_module(m, if matches!(terms.rules_version, 8 | 9) { 7 } else { terms.rules_version })
                 } else {
                     m != "cellar" && m != "gauntlet"
                 }
             })
+            || (terms.rules_version == 6 && !valid_custom_graph(&terms.modules))
         {
             return Err("InvalidTerms".into());
         }
@@ -38,7 +44,9 @@ impl Economy {
             || terms.closes_at_ms.0 <= terms.opens_at_ms.0
             || terms.closes_at_ms.0 - terms.opens_at_ms.0 > 86_400_000
             || fee.0 > 1_000_000
-            || terms.sockets.len() > 16
+            || terms.sockets.len() > if terms.rules_version >= 4 { 64 } else { 16 }
+            || (matches!(terms.rules_version, 9 | 10 | 11)
+                && terms.modules.iter().filter_map(|m| custom_socket_count(m)).sum::<usize>() > 64)
             || funding.len() > 128
         {
             return Err("InvalidTerms".into());
@@ -51,7 +59,7 @@ impl Economy {
             if socket.id.is_empty()
                 || socket.id.len() > 40
                 || socket.room as usize >= terms.modules.len()
-                || socket.slot >= 4
+                || (if terms.rules_version >= 4 { custom_socket_count(&terms.modules[socket.room as usize]).map_or(true, |n| socket.slot as usize >= n) } else { socket.slot >= 4 })
                 || !ids.insert(socket.id.clone())
                 || !slots.insert((socket.room, socket.slot))
             {
@@ -67,6 +75,12 @@ impl Economy {
                 *required.entry(ty).or_default() += 1;
                 cost += 1;
             }
+        }
+        if matches!(terms.rules_version, 7 | 8 | 9 | 10 | 11) && !valid_tuned_terms(&terms) {
+            return Err("InvalidTerms".into());
+        }
+        if matches!(terms.rules_version, 10 | 11) && !valid_device_wiring(&terms.modules, terms.rules_version) {
+            return Err("InvalidTerms".into());
         }
         let mut table_ids = BTreeSet::new();
         let mut random_sockets = BTreeSet::new();
@@ -355,26 +369,146 @@ struct CustomFloor {
     exit: CustomPoint,
     sockets: Vec<CustomPoint>,
 }
-fn valid_custom_module(module: &str) -> bool {
-    if module.len() > 2048 {
+// Only v6+ reads links. Older versions retain their ignored-metadata behavior.
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct CustomLinks {
+    links: Vec<CustomLink>,
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct CustomLink {
+    id: String,
+    x: usize,
+    y: usize,
+    to: usize,
+    // Deserialization enforces a required boolean; traversal is engine policy.
+    #[serde(rename = "require_clear")]
+    _require_clear: bool,
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct TunedFloor {
+    tuning: Vec<EncounterTuning>,
+    #[serde(default, deserialize_with = "present_links")]
+    links: Option<Vec<CustomLink>>,
+}
+// Default handles absent fields; present values must deserialize as the concrete
+// type, so explicit null is rejected rather than treated as an omitted override.
+fn present_links<'de, D: near_sdk::serde::Deserializer<'de>>(d: D) -> Result<Option<Vec<CustomLink>>, D::Error> {
+    <Vec<CustomLink> as near_sdk::serde::Deserialize>::deserialize(d).map(Some)
+}
+fn present_u8<'de, D: near_sdk::serde::Deserializer<'de>>(d: D) -> Result<Option<u8>, D::Error> {
+    <u8 as near_sdk::serde::Deserialize>::deserialize(d).map(Some)
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde", deny_unknown_fields)]
+struct EncounterTuning {
+    slot: usize,
+    #[serde(default, deserialize_with = "present_u8")]
+    hp: Option<u8>,
+    #[serde(default, deserialize_with = "present_u8")]
+    damage: Option<u8>,
+    #[serde(default, deserialize_with = "present_u8")]
+    alert: Option<u8>,
+    #[serde(default, deserialize_with = "present_u8")]
+    trap_period: Option<u8>,
+    #[serde(default, deserialize_with = "present_u8")]
+    trap_active: Option<u8>,
+    #[serde(default, deserialize_with = "present_u8")]
+    trap_offset: Option<u8>,
+    #[serde(default, deserialize_with = "present_u8")]
+    trap_damage: Option<u8>,
+}
+fn valid_tuned_terms(terms: &Terms) -> bool {
+    let mut has_links = false;
+    for (room, module) in terms.modules.iter().enumerate() {
+        let Some(json) = module.strip_prefix(match terms.rules_version { 10 => "custom10:", 11 => "custom11:", _ => "custom7:" }) else { return false; };
+        let Ok(floor) = near_sdk::serde_json::from_str::<TunedFloor>(json) else { return false; };
+        has_links |= floor.links.is_some();
+        if floor.tuning.len() > 16 { return false; }
+        let mut slots = BTreeSet::new();
+        for t in floor.tuning {
+            let enemy_fields = t.hp.is_some() || t.damage.is_some() || t.alert.is_some();
+            let trap_fields = t.trap_period.is_some() || t.trap_active.is_some() || t.trap_offset.is_some() || t.trap_damage.is_some();
+            let Some(socket) = terms.sockets.iter().find(|s| s.room as usize == room && s.slot as usize == t.slot) else { return false; };
+            let period = t.trap_period.unwrap_or(2);
+            if !slots.insert(t.slot) || (!enemy_fields && !trap_fields)
+                || (enemy_fields && matches!(socket.enemy, Enemy::None))
+                || (trap_fields && !socket.trap)
+                || t.hp.is_some_and(|v| !(1..=30).contains(&v))
+                || t.damage.is_some_and(|v| !(1..=12).contains(&v))
+                || t.alert.is_some_and(|v| !(1..=8).contains(&v))
+                || !(2..=8).contains(&period)
+                || !(1..period).contains(&t.trap_active.unwrap_or(1))
+                || t.trap_offset.unwrap_or(0) >= period
+                || t.trap_damage.is_some_and(|v| !(1..=12).contains(&v))
+            { return false; }
+        }
+    }
+    !has_links || valid_custom_graph(&terms.modules)
+}
+fn valid_custom_graph(modules: &[String]) -> bool {
+    let mut edges = Vec::new();
+    for module in modules {
+        let Some(json) = module.strip_prefix("custom6:").or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:")) else { return false; };
+        let Ok(floor) = near_sdk::serde_json::from_str::<CustomLinks>(json) else { return false; };
+        if floor.links.iter().any(|link| link.to >= modules.len()) {
+            return false;
+        }
+        edges.push(floor.links);
+    }
+    if edges.is_empty() { return false; }
+    let mut seen = BTreeSet::from([0]);
+    let mut queue = vec![0];
+    while let Some(room) = queue.pop() {
+        for link in &edges[room] {
+            if seen.insert(link.to) { queue.push(link.to); }
+        }
+    }
+    seen.len() == modules.len()
+}
+fn custom_socket_count(module: &str) -> Option<usize> {
+ let json = module.strip_prefix("custom4:").or_else(|| module.strip_prefix("custom5:")).or_else(|| module.strip_prefix("custom6:")).or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:"))?;
+ near_sdk::serde_json::from_str::<CustomFloor>(json).ok().map(|f| f.sockets.len())
+}
+fn valid_custom_module(module: &str, version: u8) -> bool {
+    if module.len() > if matches!(version, 7 | 10 | 11) { 4096 } else { 2048 } {
         return false;
     }
-    let Some(json) = module.strip_prefix("custom:") else {
+    let prefix = match version {
+        3 => "custom:",
+        4 => "custom4:",
+        5 => "custom5:",
+        6 => "custom6:",
+        7 => "custom7:",
+        10 => "custom10:",
+        11 => "custom11:",
+        _ => return false,
+    };
+    let Some(json) = module.strip_prefix(prefix) else {
         return false;
     };
     let Ok(floor) = near_sdk::serde_json::from_str::<CustomFloor>(json) else {
         return false;
     };
-    if floor.tiles.len() != 9 || floor.sockets.len() != 4 {
+    let height = floor.tiles.len();
+    let width = floor.tiles.first().map_or(0, |row| row.len());
+    let valid_dimensions = if version >= 5 {
+        (5..=31).contains(&width) && (5..=31).contains(&height)
+    } else {
+        width == 13 && height == 9
+    };
+    if !valid_dimensions || (if version >= 4 { floor.sockets.len() > 16 } else { floor.sockets.len() != 4 }) {
         return false;
     }
     for (y, row) in floor.tiles.iter().enumerate() {
-        if row.len() != 13 {
+        if row.len() != width {
             return false;
         }
         for (x, tile) in row.bytes().enumerate() {
             if !matches!(tile, b'#' | b'.')
-                || ((x == 0 || x == 12 || y == 0 || y == 8) && tile != b'#')
+                || ((x == 0 || x == width - 1 || y == 0 || y == height - 1) && tile != b'#')
             {
                 return false;
             }
@@ -385,12 +519,44 @@ fn valid_custom_module(module: &str) -> bool {
         .into_iter()
         .chain(floor.sockets.iter())
     {
-        if p.x >= 13
-            || p.y >= 9
+        if p.x >= width
+            || p.y >= height
             || floor.tiles[p.y].as_bytes()[p.x] != b'.'
             || !positions.insert((p.x, p.y))
         {
             return false;
+        }
+    }
+    if version >= 6 {
+        let links = if version == 6 {
+            let Ok(graph) = near_sdk::serde_json::from_str::<CustomLinks>(json) else { return false; };
+            graph.links
+        } else {
+            let Ok(floor) = near_sdk::serde_json::from_str::<TunedFloor>(json) else { return false; };
+            floor.links.unwrap_or_default()
+        };
+        if links.len() > 8 { return false; }
+        let mut ids = BTreeSet::new();
+        for link in links {
+            if link.id.is_empty() || link.id.len() > 32 || !ids.insert(link.id)
+                || link.x >= width || link.y >= height
+                || floor.tiles[link.y].as_bytes()[link.x] != b'.'
+                || !positions.insert((link.x, link.y))
+            {
+                return false;
+            }
+        }
+    }
+    if matches!(version, 10 | 11) {
+        let Ok(devices) = near_sdk::serde_json::from_str::<DeviceFloor>(json) else { return false; };
+        if devices.devices.len() > 16 { return false; }
+        let mut ids = BTreeSet::new();
+        for device in &devices.devices {
+            let (id, x, y, channel) = device.fields();
+            if id.is_empty() || id.len() > 32 || !ids.insert(id)
+                || !valid_channel(channel) || x >= width || y >= height
+                || floor.tiles[y].as_bytes()[x] != b'.' || !positions.insert((x, y))
+            { return false; }
         }
     }
     let mut seen = BTreeSet::new();
@@ -411,4 +577,105 @@ fn valid_custom_module(module: &str) -> bool {
             .flat_map(|row| row.bytes())
             .filter(|tile| *tile == b'.')
             .count()
+}
+
+// Devices are interpreted only by v10+; older module metadata remains ignored.
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct DeviceFloor {
+    devices: Vec<Device>,
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde", tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum Device {
+    Switch {
+        id: String, x: usize, y: usize, channel: String,
+        #[serde(rename = "mode")]
+        _mode: SwitchMode,
+    },
+    Door {
+        id: String, x: usize, y: usize, channel: String,
+        #[serde(rename = "open_when")]
+        _open_when: bool,
+    },
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde", rename_all = "snake_case")]
+enum SwitchMode { Toggle, Set, Clear }
+impl Device {
+    fn fields(&self) -> (&str, usize, usize, &str) {
+        match self {
+            Self::Switch { id, x, y, channel, .. } | Self::Door { id, x, y, channel, .. } => (id, *x, *y, channel),
+        }
+    }
+}
+fn valid_channel(channel: &str) -> bool {
+    let bytes = channel.as_bytes();
+    !bytes.is_empty() && bytes.len() <= 32 && bytes[0].is_ascii_alphabetic()
+        && bytes.iter().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-'))
+}
+fn valid_device_wiring(modules: &[String], version: u8) -> bool {
+    let mut switches = BTreeSet::new();
+    let mut doors = BTreeSet::new();
+    let mut count = 0;
+    let mut has_extraction = false;
+    for module in modules {
+        let Some(json) = module.strip_prefix(if version == 11 { "custom11:" } else { "custom10:" }) else { return false; };
+        let Ok(floor) = near_sdk::serde_json::from_str::<DeviceFloor>(json) else { return false; };
+        if version == 11 {
+            let Ok(exit) = near_sdk::serde_json::from_str::<ExitFloor>(json) else { return false; };
+            has_extraction |= exit.exit_rule.extract;
+            if exit.exit_rule.channel.is_some() != exit.exit_rule.value.is_some() { return false; }
+            if let Some(channel) = exit.exit_rule.channel {
+                if !valid_channel(&channel) { return false; }
+                doors.insert(channel);
+            }
+        }
+        count += floor.devices.len();
+        if count > 64 { return false; }
+        for device in floor.devices {
+            match device {
+                Device::Switch { channel, .. } => { switches.insert(channel); },
+                Device::Door { channel, .. } => { doors.insert(channel); },
+            }
+        }
+    }
+    (version != 11 || has_extraction) && doors.is_subset(&switches)
+}
+
+// Exit policies are only interpreted by v11. Presence-aware deserializers reject
+// explicit null while allowing both signal fields to be omitted.
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+struct ExitFloor {
+    #[serde(deserialize_with = "exit_rule_object")]
+    exit_rule: ExitRule,
+}
+fn exit_rule_object<'de, D: near_sdk::serde::Deserializer<'de>>(d: D) -> Result<ExitRule, D::Error> {
+    struct ObjectVisitor;
+    impl<'de> near_sdk::serde::de::Visitor<'de> for ObjectVisitor {
+        type Value = ExitRule;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str("an exit rule object") }
+        fn visit_map<M: near_sdk::serde::de::MapAccess<'de>>(self, map: M) -> Result<ExitRule, M::Error> {
+            <ExitRule as near_sdk::serde::Deserialize>::deserialize(near_sdk::serde::de::value::MapAccessDeserializer::new(map))
+        }
+    }
+    d.deserialize_map(ObjectVisitor)
+}
+#[derive(near_sdk::serde::Deserialize)]
+#[serde(crate = "near_sdk::serde", deny_unknown_fields)]
+struct ExitRule {
+    extract: bool,
+    #[serde(rename = "require_clear")]
+    _require_clear: bool,
+    #[serde(default, deserialize_with = "present_string")]
+    channel: Option<String>,
+    #[serde(default, deserialize_with = "present_bool")]
+    value: Option<bool>,
+}
+fn present_string<'de, D: near_sdk::serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    <String as near_sdk::serde::Deserialize>::deserialize(d).map(Some)
+}
+fn present_bool<'de, D: near_sdk::serde::Deserializer<'de>>(d: D) -> Result<Option<bool>, D::Error> {
+    <bool as near_sdk::serde::Deserialize>::deserialize(d).map(Some)
 }

@@ -1,0 +1,44 @@
+✔ purchases establish exact basis and resale transfers basis once (1.732625ms)
+✔ craft preserves integer total and propagates any unknown input (0.298417ms)
+✔ funding expenses goods once and an ownership gap invalidates basis (0.183792ms)
+✔ town losses remove basis; extracted goods do not acquire an invented zero basis (0.1525ms)
+✔ journal survives restart after broadcast and duplicate confirmation without repeating costs (5.213875ms)
+✔ old applied receipts without a captured baseline stay unknown (3.016417ms)
+✔ outbox recovers a confirmed operation whose accounting write was interrupted (17.895709ms)
+✔ unobserved historic funding is unknown and never silently counted as free (2.9065ms)
+✔ edition contribution excludes pending and void fees and refuses unknown committed costs (3.205042ms)
+✔ failed sale/repurchase observations cannot revive basis (capture=false, later=false) (7.321875ms)
+✔ failed sale/repurchase observations cannot revive basis (capture=false, later=true) (7.080917ms)
+✔ failed sale/repurchase observations cannot revive basis (capture=true, later=false) (110.287125ms)
+✔ failed sale/repurchase observations cannot revive basis (capture=true, later=true) (7.7415ms)
+✔ save command and signed bytes before broadcast, preserve ID on uncertain retry and restart (6.248625ms)
+✔ missing receipt keeps uncertainty and blocks later signing (4.087583ms)
+✔ exclusive writer and bounded request storage (3.494875ms)
+✔ confirmed failed transaction can be replaced under the SAME operation and command (21.700334ms)
+✔ capacity preserves terminal headroom for admitted run (277.877417ms)
+✔ malformed string fields reject before persisting and cannot jam later settlements (2.430667ms)
+✔ only v9 publication receives the larger command envelope and oversized commands never reserve capacity (3.284833ms)
+✔ oversized legacy signed transactions never broadcast on retry or restart (8.737208ms)
+✔ oversized v9 publication signed transactions never broadcast on retry or restart (58.110667ms)
+✔ player requests remain unsigned across retries/restart and accept only exact final receipts (9.036417ms)
+✔ an unresolved player request never blocks the independent operator signer stream (19.541542ms)
+✔ receipt identity conflicts and stored signed bytes cannot make a player request broadcast (33.55ms)
+✔ account identities isolate operation IDs and wallet result/start actions are not user-submittable (5.437625ms)
+✔ confirmed player admission retains terminal capacity and cost observers never claim missing before evidence (234.307041ms)
+✔ an unsigned foreign closure cannot discharge another creator’s reserved terminal capacity (213.390708ms)
+✔ a stalled player receipt cannot stall operator signing or create duplicate polling requests (66.034417ms)
+✔ wallet sign-in verifies standard signatures at finality, binds account and creates no demo claim (120.558625ms)
+✔ changed signed fields, another account, missing binding and cross-origin proofs reject (54.476917ms)
+✔ concurrent replay consumes the challenge before asynchronous key verification (8.138166ms)
+✔ restricted, absent and revoked keys cannot authenticate (2.093083ms)
+✔ expiry is checked after asynchronous verification and sessions expire independently (15.384167ms)
+✔ challenge replacement, capacities, configuration and restart fail closed (16.56875ms)
+✔ in-flight verifications retain capacity after response timeout until the RPC actually settles (31.592292ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 787.469125

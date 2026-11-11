@@ -1,0 +1,13 @@
+
+> dungeon-economy@0.1.0 build
+> vite build apps/web
+
+vite v6.4.6 building for production...
+transforming...
+✓ 89 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.36 kB │ gzip:   0.27 kB
+dist/assets/index-CGB5f-Ys.css   78.60 kB │ gzip:  15.16 kB
+dist/assets/index-Zmr1mH3w.js   368.55 kB │ gzip: 120.15 kB
+✓ built in 553ms

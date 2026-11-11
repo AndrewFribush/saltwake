@@ -1,0 +1,17 @@
+Retained output from the completed variable-floors focused contract test in this session; not rerun.
+Command: ./node_modules/.bin/tsx --test tests/contract/custom-layout.test.ts
+Exit code: 0
+
+✔ WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock (11423.280375ms)
+✔ WASM v4 publishes variable encounter positions, reserves a fifth-slot reward and rejects legacy reinterpretation (4262.013583ms)
+✔ WASM v5 accepts independent dimension bounds and four maximum floors with 64 sockets (2655.996041ms)
+✔ WASM v5 rejects malformed dimensions, markers, boundaries and legacy reinterpretation atomically (18226.371ms)
+✔ WASM v5 validates actual per-floor slots and reserves exactly the funded last-slot reward (6736.628625ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 43529.182042

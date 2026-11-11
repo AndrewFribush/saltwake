@@ -1,0 +1,8 @@
+const pg=await openTab('http://127.0.0.1:18930');await snapshot(pg);
+const capture=async(name,w,h)=>{await pg._sendToTarget('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:false});await sleep(150);const r=await pg._sendToTarget('Page.captureScreenshot',{format:'jpeg',quality:85,captureBeyondViewport:false,clip:{x:0,y:0,width:w,height:h,scale:1}});await fs.writeFile(path.join(pwd,name),Buffer.from(r.data,'base64'));};
+await capture('polish-town.jpg',1366,768);
+await pg.getByRole('button',{name:'Visit Quayside market',exact:true}).click();await sleep(2600);await pg.getByRole('button',{name:'Merchant · buy & sell',exact:true}).click();await sleep(1200);await snapshot(pg);
+await capture('polish-shop.jpg',1366,768);await capture('polish-shop-phone.jpg',390,844);
+await pg.getByRole('button',{name:'Open purse and receipts',exact:true}).click();console.log('OVERLAY_INERT='+await pg.evaluate(()=>document.querySelector('.room-world').inert));await pg.getByRole('button',{name:'Close purse',exact:true}).press('Escape');console.log('ESCAPE_CLOSED='+await pg.evaluate(()=>!document.querySelector('.purse-drawer')));console.log('WORLD_RESTORED='+await pg.evaluate(()=>!document.querySelector('.room-world').inert));
+await pg.getByRole('button',{name:'Back to room',exact:true}).click();await pg.getByRole('button',{name:'Edit interior',exact:true}).click();await capture('polish-interior-builder.jpg',1366,768);await capture('polish-interior-builder-phone.jpg',390,844);
+console.log('ASIDE_DIR='+pwd);await sleep(15000);await closeTab(pg);console.log('GSTACK_STEP_OK');

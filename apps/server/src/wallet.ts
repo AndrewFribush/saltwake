@@ -1,3 +1,5 @@
+import {costReport} from './cost-ledger';
+import {businessAccount} from './business-account';
 import {catalog} from '../../../packages/shared/src/catalog';
 import type {EconomySnapshot} from '../../../packages/shared/src/types';
 import type {WalletView} from '../../../packages/shared/src/wallet';
@@ -14,6 +16,8 @@ export function walletView(world: EconomySnapshot, db: Store, profile: string): 
   const owned = world.items.filter(item => item.location.kind === 'owned' && item.location.profile === profile);
   const operations = db.operations().filter(op => op.command.actor === profile);
   return {
+    costs: costReport(db, world, profile),
+    business: businessAccount(world, db.operations(), profile),
     profile,
     purse: world.credits[profile] ?? null,
     reservedRunFees: sum(active.filter(run => run.player === profile).map(run => run.fee)),

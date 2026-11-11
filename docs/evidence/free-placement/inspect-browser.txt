@@ -1,0 +1,6 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+PROFILE=maker
+DRAFTS=[{"text":"Builder verification","value":"85903c16-ab02-49d8-8be8-8e8c63091443"},{"text":"Builder verification","value":"198afddf-3c64-45f5-90f5-9b08fe3259f6"}]
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

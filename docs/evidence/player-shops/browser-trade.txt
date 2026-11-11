@@ -1,0 +1,17 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+STOCKED Player-built provisioner
+Back to room
+Shop stock
+Stock & manage
+Receipts
+
+Open · Owner maker
+
+3 coins each
+Fine tonic
+Withdraw unsold stock
+BUYER 6 {"credits":"3","owns":true,"shops":1}
+SELLER 93 96
+GSTACK_STEP_OK
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.

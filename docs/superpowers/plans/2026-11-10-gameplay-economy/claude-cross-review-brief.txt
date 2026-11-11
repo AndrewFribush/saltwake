@@ -1,0 +1,659 @@
+This is stage 2 of Andrew's explicit cross-review request. Independently authored plans now exist. Critique CODEX PLAN below against fixed rules/context in ORIGINAL BRIEF, compare YOUR PLAN, and recommend a merged dependency order. Do not rewrite all tasks. Give prioritized concrete omissions/contradictions, what you accept from Codex, what you revise in your own plan, and what must stay conditional on human evidence. No tools, no implementation or playtest claims. About 1200 words. Note no user-approved treasure disposition change, no mandatory oil, no new prize stake role. Estimate ranges are not deadlines.
+
+ORIGINAL BRIEF
+Andrew asks: write thorough bite-sized build steps for a wonderful dungeon/economy gameplay loop, INCLUDING human playtesting, refinement cycles, technical verification. Codex and Claude must independently plan, review each other's work, merge. This is YOUR independent plan; Codex's new plan is withheld. No tools, no edits, no playtest claims. Return a substantive Markdown implementation plan (about 2000-3000 words), IDs, dependencies, exact files, acceptance evidence, practical task sizes, human test script, stop/refine gates, minimum deliverable vs later expansion. Do not invent current implementation.
+
+USER-FIXED: grid/tile game, fixed screen/windows no page scroll; doors entered by walking. Human makers fund treasure upfront, keep admission fees on ordinary outcomes, can refresh stock; central issuer/operator is bank, not the dungeon-making business. Unconsumed dungeon-origin loot returns to pool on death; town-origin gear lost to bank; consumed goods remain spent. Closure leftovers go to bank, no maker refund. Found gear usable in-run. Every reward funded and reserved; copies support concurrency; max_runs=4 is CONCURRENT cap not lifetime admissions. No-reward paid attractions valid. Artisans play short per-batch minigames, shops have finite stock/prices. Andrew chose TRANSPARENCY to address maker incentives: average time, average loot etc, not changing death disposition. Local-only simulation; no paid API, production, deployment, testnet, messages to people. Human sessions require humans; agents cannot certify fun. Do not promise everyone profits. Preserve transaction/restart/idempotency guards.
+
+CURRENT: TS React/Vite; TS game engine; TS authoritative server SQLite/outbox; Rust NEAR economy local sandbox. Source fixtures below. Paid rules v1-v3, authored builder and seeded chambers. UI town/shops/artisan/guild/gate, limited bank-funded recovery jobs, server crafting/shop/run settlement implemented. Existing practice rejected as too basic by Andrew; no fun acceptance yet. Eight catalog goods; two enemy behaviors; guard, potion, loot, one rest/edge boon. New transparency implemented and verified: edition counts/outcomes, mean+median extracted reference loot (loss=zero), durations newly recorded (legacy unknown), coverage, samples, fixed-window four-page view. History across edition fee changes/refreshes labeled. It does not prove incentive safety. Maker results exclude acquisition costs. Initial new tactical experiment under consideration: club shove, one authored floor with optional cache, escape without full clear but enemy response first. This is proposed; no gameplay code for it yet. Mandatory oil, new recipes/commissions/replays are not approved requirements. Planning request now authorizes your plan, not changing user rules. Old checklist 30/48 is historical; don't mark gates complete based on old test counts.
+
+Map: packages/game/src/{actions,combat,state,inventory,generation,funded-layout,craft}.ts; apps/web/src/{Demo,Run,Shop,Crafting,Maker,FloorBuilder,GamePanels,EditionRecord}.tsx; apps/server/src/{runs,http,craft,wallet,edition-record,outbox,db}.ts; packages/shared/src/{types,catalog,custom-layout,protocol,matcher,edition-record}.ts; contracts/economy/src/{lib,model,runs,market,craft}.rs (check exact Rust filenames from supplied list). Tests packages/game/test, apps/server/test, tests/contract. npm run test:game/typecheck/build/test:server/test:contract; npm run build:contract. Existing docs/transparency-verification.md and docs/integration-verification.md. Old GDD ../design/dungeon-economy/GAME-DESIGN-v1.2-reviewed.md.
+
+FILE packages/game/src/actions.ts
+import {explore} from './roguelike';
+import {atClearedExit,enterRoom,hasNextRoom} from './generation';
+import {inventoryAction,type InventoryAction} from './inventory';
+import {distance,walkable,type RunState} from './state';
+import {resolveEnemies} from './combat';
+export type Action={type:'move';x:number;y:number}|{type:'attack';enemyId:string}|{type:'guard'}|{type:'wait'}|InventoryAction|{type:'extract'}|{type:'continue'}|{type:'boon';choice:'edge'|'rest'};
+export function act(s:RunState,a:Action):RunState {
+ if(!a||typeof a!=='object'||!['move','attack','guard','wait','pickup','equip','use','drop','extract','continue','boon'].includes(a.type))return s;
+ if(['pickup','equip','use','drop'].includes(a.type)&&(!('itemId' in a)||typeof a.itemId!=='string'))return s;
+ const allowed=a.type==='move'?['type','x','y']:a.type==='attack'?['type','enemyId']:a.type==='boon'?['type','choice']:['pickup','equip','use','drop'].includes(a.type)?['type','itemId']:['type'];
+ if(Object.keys(a).some(k=>!allowed.includes(k)))return s;
+ if(s.status!=='active')return s;
+ if(a.type==='boon'){if(!s.roguelike||s.boon||s.roomIndex!==0||!atClearedExit(s)||!['edge','rest'].includes(a.choice)||(a.choice==='edge'&&s.player.hp<=3))return s;const n=structuredClone(s);n.boon=a.choice;n.player.hp=a.choice==='rest'?Math.min(12,n.player.hp+4):n.player.hp-3;n.log.push(a.choice==='rest'?'You rest at the shrine: recovered 4 health.':'You take the blood edge: lost 3 health, gained 1 attack damage.');return n;}
+ if(a.type==='extract'||a.type==='continue'){
+  if(!atClearedExit(s)||(a.type==='continue'&&!hasNextRoom(s)))return s;
+  const n=structuredClone(s);n.turn++;
+  if(a.type==='extract'){n.status='extracted';n.log.push('Extracted safely.');}else enterRoom(n,n.roomIndex+1);explore(n);
+  return n;
+ }
+ if(a.type==='move'&&(!walkable(s,a)||distance(s.player,a)!==1||s.enemies.some(e=>e.x===a.x&&e.y===a.y)))return s;
+ if(a.type==='attack'&&!s.enemies.some(e=>e.id===a.enemyId&&distance(s.player,e)===1))return s;
+ const n=structuredClone(s);
+ if(['pickup','equip','use','drop'].includes(a.type)&&'itemId' in a&&!inventoryAction(n,a))return s;
+ if(a.type==='move'){n.player.x=a.x;n.player.y=a.y;}
+ if(a.type==='attack'){
+  const e=n.enemies.find(e=>e.id===a.enemyId)!;const damage=(n.player.weapon==='sword'?3:2)+(n.boon==='edge'?1:0);e.hp-=damage;
+  n.log.push(`You hit ${e.id} for ${damage}.`);n.enemies=n.enemies.filter(e=>e.hp>0);
+ }
+ n.turn++;resolveEnemies(n,a.type==='guard');explore(n);return n;
+}
+
+FILE packages/game/src/combat.ts
+import {distance,walkable,type RunState,type Point} from './state';
+export const same=(a:Point,b:Point)=>a.x===b.x&&a.y===b.y;
+// A mutable turn-local guard is shared by enemies and hazards: only one hit is halved.
+export function resolveEnemies(s:RunState,guard:boolean){
+ const hitPlayer=(damage:number,source:string)=>{
+  const raw=Math.max(1,damage-(s.player.armor?1:0));const hit=guard?Math.ceil(raw/2):raw;guard=false;
+  s.player.hp=Math.max(0,s.player.hp-hit);s.log.push(`${source} hits for ${hit}.`);
+ };
+ for(const e of [...s.enemies].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)){
+  if(s.player.hp<=0)break;
+  if(e.hp<=0)continue;
+  if(s.roguelike&&!e.alerted){if(distance(e,s.player)>5)continue;e.alerted=true;}
+  if(e.recovering){e.recovering=false;continue;}
+  if(e.kind==='charger'&&e.lane?.length){
+   for(const tile of e.lane){
+    if(same(tile,s.player)){hitPlayer(4,e.id);break;}
+    const other=s.enemies.find(other=>other.id!==e.id&&other.hp>0&&same(other,tile));
+    if(other){other.hp-=4;s.log.push(`${e.id} strikes ${other.id} for 4.`);break;}
+    e.x=tile.x;e.y=tile.y;
+   }
+   e.recovering=true;
+  }else if(distance(e,e.intent)===1&&same(e.intent,s.player)){
+   hitPlayer(3,e.id);
+  }else if(walkable(s,e.intent)&&!same(e.intent,s.player)&&!s.enemies.some(other=>other.id!==e.id&&other.hp>0&&same(other,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
+ }
+ for(const trap of s.traps){
+  if(trap.armed){
+   if(same(trap,s.player)&&s.player.hp>0)hitPlayer(3,'Spikes');
+   for(const e of s.enemies)if(e.hp>0&&same(trap,e)){e.hp-=3;s.log.push(`Spikes hit ${e.id} for 3.`);}
+  }
+  trap.armed=!trap.armed;
+ }
+ s.enemies=s.enemies.filter(e=>e.hp>0);
+ if(s.player.hp===0)s.status='died';
+ revealIntents(s);s.log=s.log.slice(-8);
+}
+export function revealIntents(s:RunState){
+ const key=(p:Point)=>`${p.x},${p.y}`;
+ const neighbors=(p:Point)=>[{x:p.x-1,y:p.y},{x:p.x+1,y:p.y},{x:p.x,y:p.y-1},{x:p.x,y:p.y+1}];
+ const distances=new Map<string,number>([[key(s.player),0]]);const queue:Point[]=[s.player];
+ for(let i=0;i<queue.length;i++)for(const next of neighbors(queue[i]))if(walkable(s,next)&&!distances.has(key(next))){distances.set(key(next),distances.get(key(queue[i]))!+1);queue.push(next);}
+ for(const e of s.enemies){
+  e.lane=[];
+  if(s.roguelike&&!e.alerted&&distance(e,s.player)>5){e.intent={x:e.x,y:e.y};continue;}
+  if(e.recovering){e.intent={x:e.x,y:e.y};continue;}
+  if(e.kind==='charger'&&(e.x===s.player.x||e.y===s.player.y)){
+   const dx=Math.sign(s.player.x-e.x),dy=Math.sign(s.player.y-e.y);
+   if(dx||dy){let p={x:e.x+dx,y:e.y+dy};while(walkable(s,p)){e.lane.push(p);p={x:p.x+dx,y:p.y+dy};}}
+   if(e.lane.some(p=>same(p,s.player))){e.intent=e.lane[0];continue;}e.lane=[];
+  if(s.roguelike&&!e.alerted&&distance(e,s.player)>5){e.intent={x:e.x,y:e.y};continue;}
+  }
+  const choices=neighbors(e).filter(p=>walkable(s,p)&&distances.has(key(p))&&!s.enemies.some(other=>other.id!==e.id&&same(other,p)));
+  choices.sort((a,b)=>distances.get(key(a))!-distances.get(key(b))!);
+  e.intent=choices[0]??{x:e.x,y:e.y};
+ }
+}
+
+FILE packages/game/src/state.ts
+import type {RunItem} from './inventory';
+export type Point={x:number;y:number};
+export type Enemy=Point & {id:string;hp:number;intent:Point;kind?:'pursuer'|'charger';alerted?:boolean;lane?:Point[];recovering?:boolean};
+export type RoomLayout={id:string;title:string;tiles:string[];spawn:Point;exit:Point;enemies:Enemy[];traps:(Point & {id:string;armed:boolean})[]};
+export type RunState={roguelike?:boolean;expeditionSeed?:number;explored?:string[];boon?:'edge'|'rest';layout?:RoomLayout[];room:string[];roomIndex:number;items:Record<string,RunItem>;originalTownIds:string[];reservedItemIds:string[];player:Point & {hp:number;weapon:'club'|'sword';armor:boolean};enemies:Enemy[];traps:(Point & {id:string;armed:boolean})[];turn:number;status:'active'|'died'|'extracted';log:string[]};
+export function createRun():RunState {return {roomIndex:0,items:{'town-club':{id:'town-club',type:'club',origin:'town',location:{kind:'weapon'}}},originalTownIds:['town-club'],reservedItemIds:[],room:['#########','#.......#','#..##...#','#.......#','#....#..#','#.......#','#########'],player:{x:1,y:1,hp:12,weapon:'club',armor:false},enemies:[],traps:[],turn:0,status:'active',log:['Explore the cellar. Walls do not spend a turn.']};}
+export function walkable(s:RunState,p:Point){return Number.isInteger(p.x)&&Number.isInteger(p.y)&&s.room[p.y]?.[p.x]==='.';}
+export function distance(a:Point,b:Point){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);}
+
+FILE packages/shared/src/catalog.ts
+export const catalog = {
+ club:{name:'Club',value:4}, sword:{name:'Sword',value:12}, armor:{name:'Armor',value:8},
+ herb:{name:'Herb',value:2}, iron:{name:'Iron',value:2}, flask:{name:'Flask',value:2},
+ tonic:{name:'Tonic',value:6}, fineTonic:{name:'Fine tonic',value:8}
+} as const;
+
+FILE apps/server/src/edition-record.ts
+import {catalog} from '../../../packages/shared/src/catalog';
+import type {EditionRecord} from '../../../packages/shared/src/edition-record';
+import type {EconomySnapshot} from '../../../packages/shared/src/types';
+import type {Store} from './db';
+import type {SavedRun} from './runs';
+
+const mean = (xs: number[]) => xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : null;
+const median = (xs: number[]) => {if(!xs.length)return null;const a=[...xs].sort((x,y)=>x-y);return (a[Math.floor((a.length-1)/2)]+a[Math.floor(a.length/2)])/2;};
+/** Confirmed outcomes only. No names, hidden assignments or loot locations leave this projection. */
+export function editionRecord(world: EconomySnapshot, db: Store, editionId: string): EditionRecord {
+  const runs=world.runs.filter(r=>r.edition===editionId);
+  const completed=runs.filter(r=>r.status!=='active'&&r.status!=='void');
+  const loot:number[]=[], durations:number[]=[];
+  for(const run of completed){
+    const saved=db.get<SavedRun>('run',run.id);
+    // A failed attempt yielded zero extracted loot, even if local history is unavailable.
+    if(run.status!=='extracted')loot.push(0);
+    else {
+      const op=saved?.settlement?db.operation(saved.settlement):undefined;
+      const a=op?.command.action;
+      if(op?.status==='Applied'&&op.receipt?.status==='Applied'&&op.receipt.op_id===op.id&&op.receipt.payload_hash===op.hash&&a?.type==='settle'&&a.run_id===run.id&&a.outcome==='extracted'){
+        const ids=a.disposition.dungeon_extracted;
+        const items=ids.map(id=>world.items.find(i=>i.id===id));
+        if(new Set(ids).size===ids.length&&items.every(i=>i!==undefined))loot.push(items.reduce((n,i)=>n+catalog[i!.item_type].value,0));
+      }
+    }
+    if(saved?.terminal===run.status&&Number.isSafeInteger(saved.startedAtMs)&&Number.isSafeInteger(saved.finishedAtMs)&&saved.finishedAtMs!>=saved.startedAtMs!){
+      durations.push((saved.finishedAtMs!-saved.startedAtMs!)/1000);
+    }
+  }
+  const count=(status:string)=>runs.filter(r=>r.status===status).length;
+  return {attempts:runs.length,completed:completed.length,active:count('active'),voided:count('void'),extracted:count('extracted'),died:count('died'),abandoned:count('abandoned'),expired:count('expired'),participants:new Set(completed.map(r=>r.player)).size,lootSamples:loot.length,averageLoot:mean(loot),medianLoot:median(loot),durationSamples:durations.length,averageSeconds:mean(durations),medianSeconds:median(durations)};
+}
+
+FILE packages/shared/src/types.ts
+export type ItemType='club'|'sword'|'armor'|'herb'|'iron'|'flask'|'tonic'|'fineTonic';
+export type ItemLocation =
+ | {kind:'owned';profile:string}|{kind:'listed';listing:string}
+ | {kind:'edition_fixed';edition:string;item_type:ItemType}|{kind:'edition_random';edition:string;table_id:string}
+ | {kind:'reserved';run:string;socket:string;source_pool:string}|{kind:'loadout';run:string;profile:string}
+ | {kind:'crafting';batch:string;source_owner:string}|{kind:'bank'}|{kind:'consumed';operation:string};
+export type Item={id:string;item_type:ItemType;location:ItemLocation};
+export type Socket={readonly id:string;readonly room:number;readonly slot:number;readonly enemy:'none'|'pursuer'|'charger';readonly trap:boolean;readonly reward:ItemType|null};
+export type EditionTerms={readonly title:string;readonly rules_version:number;readonly modules:readonly string[];readonly sockets:readonly Socket[];readonly opens_at_ms:string;readonly closes_at_ms:string;readonly no_reward:boolean;readonly difficulty_tag:string;readonly style_tag:string;readonly run_duration_ms:string;readonly max_runs:number};
+export type RandomTable={readonly table_id:string;readonly socket_ids:readonly string[];readonly item_ids:readonly string[]};
+export type RandomFunding={readonly table_id:string;readonly item_ids:readonly string[]};
+export type Command={readonly actor:string;readonly action:
+ |{readonly type:'debit';readonly amount:string}
+ |{readonly type:'publish';readonly terms:EditionTerms;readonly fee:string;readonly funding:readonly string[]}
+ |{readonly type:'admit';readonly edition_id:string;readonly expected_version:string;readonly expected_fee:string;readonly loadout_ids:readonly string[];readonly seed:string}
+ |{readonly type:'settle';readonly run_id:string;readonly outcome:'extracted'|'died'|'abandoned'|'expired';readonly disposition:Partition;readonly carried_dungeon_ids:readonly string[]}
+ |{readonly type:'void';readonly run_id:string;readonly reason:string;readonly disposition:Partition}
+ |{readonly type:'publish_random';readonly terms:EditionTerms;readonly fee:string;readonly fixed_funding:readonly string[];readonly random_tables:readonly RandomTable[]}
+ |{readonly type:'refresh';readonly edition_id:string;readonly fixed_funding:readonly string[];readonly random_funding:readonly RandomFunding[]}
+ |{readonly type:'set_fee';readonly edition_id:string;readonly new_fee:string}
+ |{readonly type:'list';readonly item_ids:readonly string[];readonly unit_price:string}
+ |{readonly type:'cancel_listing';readonly listing_id:string}
+ |{readonly type:'buy';readonly listing_id:string;readonly item_ids:readonly string[];readonly expected_unit_price:string}
+ |{readonly type:'bank_buy';readonly item_ids:readonly string[];readonly expected_unit_prices:readonly string[]}
+ |{readonly type:'bank_sell';readonly item_ids:readonly string[];readonly expected_unit_prices:readonly string[]}
+ |{readonly type:'fill_npc_order';readonly order_id:string;readonly item_ids:readonly string[];readonly expected_unit_price:string}
+ |{readonly type:'begin_craft';readonly batch_id:string;readonly input_ids:readonly string[];readonly challenge_commitment:string;readonly deadline_ms:string}
+ |{readonly type:'finish_craft';readonly batch_id:string;readonly tier:CraftTier;readonly reason:FinishReason}
+ |{readonly type:'begin_recovery';readonly batch_id:string;readonly bank_input_ids:readonly string[];readonly challenge_commitment:string;readonly deadline_ms:string}
+ |{readonly type:'finish_recovery';readonly batch_id:string;readonly tier:CraftTier;readonly reason:FinishReason}
+ |{readonly type:'finalize_close';readonly edition_id:string}};
+export type OperationStatus={status:'Applied'|'Rejected';op_id:string;payload_hash:string;result:string;run:EconomicRun|null}|{status:'Pending';op_id:string;tx_hash?:string}|{status:'Unknown';op_id:string;reason:string};
+
+export type Partition={readonly town_consumed:readonly string[];readonly town_returned:readonly string[];readonly town_forfeited:readonly string[];readonly dungeon_consumed:readonly string[];readonly dungeon_extracted:readonly string[];readonly dungeon_returned:readonly string[]};
+export type Assignment={socket:string;item_id:string;source_pool:string};
+export type EconomicRun={id:string;edition:string;player:string;fee:string;deadline_ms:string;seed:string;loadout_ids:string[];assignments:Assignment[];status:'active'|'extracted'|'died'|'abandoned'|'expired'|'void';terminal_reason:string|null};
+export type EconomicEdition={id:string;maker:string;terms:EditionTerms;terms_hash:string;fee:string;version:string;placement_paid:string;original_value:string;refresh_value:string;refresh_ids:string[];random_tables:RandomTable[];active_runs:string[];funded_ids:string[];closed:boolean;extracted_value:string;consumed_value:string;banked_value:string};
+export type Listing={id:string;seller:string;item_ids:string[];remaining_ids:string[];unit_price:string;status:'active'|'sold'|'cancelled'};
+export type NpcOrder={id:string;item_type:ItemType;unit_price:string;remaining:number;budget:string;seeded_demo_demand:boolean};
+export type BankPrice={item_type:ItemType;sale_price:string;buyback_price:string};
+export type EconomySnapshot={credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState};
+
+export type CraftTier='normal'|'fine';
+export type FinishReason='completed'|'expired';
+export type CraftBatch={id:string;actor:string;input_ids:string[];challenge_commitment:string;deadline_ms:string;recovery:boolean;wage_reserved:string;status:'active'|'finished';tier:CraftTier|null;reason:FinishReason|null;output_ids:string[]};
+export type RecoveryState={epoch:string;budget:string;wage:string;max_jobs_per_profile:number;jobs:Record<string,number>};
+
+RUST FILES
+contracts/economy/src/market.rs
+contracts/economy/src/settlement.rs
+contracts/economy/src/craft.rs
+contracts/economy/src/lib.rs
+contracts/economy/src/runs.rs
+contracts/economy/src/editions.rs
+contracts/economy/src/model.rs
+
+YOUR PLAN
+I'll write my independent plan now, with no tool use, grounded only in the source and constraints you supplied.
+
+# Dungeon/Economy Loop v1 — Independent Implementation Plan (Claude)
+
+## 0. Framing
+
+**Goal.** Turn the existing walkable town, paid gate, authored floors, shops, artisan batches and transparency pages into a loop that humans choose to repeat: enter a maker-funded floor, make two or three real tactical decisions, leave with or without loot, and feel the economy respond.
+
+**What this plan does not do.** It does not touch death disposition, maker refund rules, the max_runs=4 concurrent cap, the funded-and-reserved reward rule, or any transaction, restart or idempotency guard. It does not add mandatory oil, new recipes, commissions or replays. It does not claim any playtest has happened. It does not promise that makers or players profit.
+
+**Scope assumption.** The only new gameplay content is the proposed tactical experiment: club shove, one authored floor with an optional cache, and escape without a full clear with enemies responding first. Everything else is wiring, UI containment, testing, human playtesting and refinement.
+
+**Task sizes.** S is under one hour, M is one to three hours, L is half a day. Each step has one owner (Claude or Codex, assigned at merge) and ends with evidence written to disk, not a verbal claim.
+
+**Evidence locations.** Engine and server evidence goes in `docs/evidence/loop-v1/`. The verification doc is `docs/loop-verification.md`. Human session notes go in `docs/playtest/loop-v1/`. Existing `docs/transparency-verification.md` and `docs/integration-verification.md` are referenced, not rewritten.
+
+---
+
+## Phase 0 — Baseline and guardrails
+
+### P0-1 Freeze a baseline evidence snapshot (S)
+Depends on: nothing.
+Run the full existing suite and store exit codes and summary output.
+Files: `docs/evidence/loop-v1/00-baseline.md`.
+Commands: `npm run typecheck`, `npm run test:game`, `npm run test:server`, `npm run build`, `npm run build:contract`, `npm run test:contract`.
+Acceptance: every command's exit code recorded. If any fails today, that failure is written down as pre-existing and is not attributed to this work later.
+
+### P0-2 Write the invariant list the loop must not break (S)
+Depends on: P0-1.
+One file listing, in plain language with the source rule beside each: death disposition partition, town gear forfeit to bank, consumed stays consumed, closure leftovers to bank, no maker refund, fee retention on ordinary outcomes, reward funded and reserved before admission, concurrent cap of 4, no-reward attractions valid, idempotent settle and void, restart recovery.
+Files: `docs/design/loop-v1-invariants.md`.
+Acceptance: Andrew reads it and marks each line "correct" or "wrong" before Phase 3 starts. This is the only human gate in Phase 0.
+
+### P0-3 Name the exact test files that already cover each invariant (S)
+Depends on: P0-2.
+Read `apps/server/test/`, `packages/game/test/`, `tests/contract/` and map each invariant to the existing test name, or write "uncovered".
+Files: `docs/design/loop-v1-invariants.md` (append a coverage column).
+Acceptance: no invariant is left blank. Uncovered rows become new tests in Phase 6 (V6-3).
+
+---
+
+## Phase 1 — Tactical experiment in the pure engine
+
+All Phase 1 work is in `packages/game/` only. No UI, no server. Each step adds a test before it adds behaviour.
+
+### T1-1 Add the `shove` action type and validation (S)
+Depends on: P0-1.
+Files: `packages/game/src/actions.ts`, `packages/game/src/state.ts`.
+Change: extend `Action` with `{type:'shove';enemyId:string}`. Validation mirrors `attack`: target adjacent, player weapon is `club`. Allowed key list gains the `shove` entry.
+Acceptance: `packages/game/test/shove.test.ts` proves an invalid shove returns the same state object unchanged, and that a sword holder cannot shove. Rationale is written in the test header: the club is the cheap town starter, shove gives it a reason to exist next to the sword.
+
+### T1-2 Implement shove displacement (M)
+Depends on: T1-1.
+Files: `packages/game/src/actions.ts`, `packages/game/src/combat.ts`.
+Rule: the enemy moves one tile directly away from the player along the axis of contact. If that tile is not walkable or is occupied by another living enemy, the shove is rejected (returns `s`). Shove deals no damage. Shove spends the turn, so `resolveEnemies` runs afterwards with the existing turn-local guard semantics unchanged. A shoved enemy onto an armed spike tile takes damage through the existing trap loop, with no special case added.
+Acceptance: tests for push into open tile, push rejected against wall, push rejected into another enemy, push onto armed spikes applies the existing 3 damage, charger lane is recomputed by the existing `revealIntents` after displacement. Log line format recorded in the test.
+
+### T1-3 Decide and test "stagger" as a tunable, default off (S)
+Depends on: T1-2.
+Files: `packages/game/src/combat.ts`, `packages/game/src/state.ts`.
+Add an optional `rules.shoveStaggers` flag on `RunState` (default false). When true, a shoved enemy gets `recovering=true` and loses its next action. This is the one tactical knob the playtest will turn.
+Acceptance: one test per flag value. The default-off path produces byte-identical results to T1-2's tests.
+
+### T1-4 Add the `escape` action (M)
+Depends on: T1-1.
+Files: `packages/game/src/actions.ts`, `packages/game/src/generation.ts`.
+Rule: `escape` is valid when the player stands on the room exit and at least one enemy is alive. Existing `extract` is unchanged and still requires a cleared exit. Resolution order: increment turn, call `resolveEnemies` with guard false, then if `player.hp>0` set `status='extracted'` and log "You escaped with enemies still breathing." If hp reaches zero the existing died path applies.
+Acceptance: tests for escape succeeds when the alerted pursuer is two tiles away, escape fails when a charger lane covers the exit and damage kills the player, escape with a guard action on the previous turn does not carry the guard into the escape turn, and escape is rejected when the room is already clear (player must use `extract`). Items held at escape are whatever is in `items` at that moment; no new inventory rule.
+
+### T1-5 Author one floor with an optional cache (M)
+Depends on: T1-2, T1-4.
+Files: `packages/game/src/generation.ts`, `packages/game/src/funded-layout.ts`, `packages/game/test/floor-cache.test.ts`.
+Content: a single `RoomLayout` titled "Flooded Larder". Spawn, a short main corridor to the exit, one pursuer on the main route, and a side room reachable through a doorway on the grid that holds one reward slot flanked by a charger lane and an armed spike tile. The reward slot is mapped through the existing socket room and slot indices so that a maker can fund the cache or leave it empty. The side room must be optional: a player can reach the exit without entering it.
+Acceptance: test asserts a walkable path spawn to exit that never touches a cache tile, asserts the cache slot resolves to a socket index that `funded-layout.ts` can fill, and asserts a scripted sequence (walk, shove charger onto spikes, pick up reward, escape) ends `extracted` with the reward in inventory. A second scripted sequence (ignore cache, walk to exit, escape) ends `extracted` with no dungeon items. If `funded-layout.ts` cannot express an off-path slot with its current indices, stop and report rather than change `Socket` in `packages/shared/src/types.ts`.
+
+### T1-6 Deterministic replay fixture for the floor (S)
+Depends on: T1-5.
+Files: `packages/game/test/fixtures/flooded-larder.json`.
+A fixed seed, fixed socket funding, and the two scripted action lists from T1-5, stored as data so the server and UI phases can reuse the same scenario.
+Acceptance: a test loads the fixture and reproduces the two outcomes.
+
+**Phase 1 gate.** `npm run test:game` and `npm run typecheck` pass with evidence in `docs/evidence/loop-v1/10-engine.md`. Codex reviews the engine diff against the invariants file. No UI work starts until that review is written down.
+
+---
+
+## Phase 2 — Fixed-window UI for the new actions
+
+### U2-1 Confirm the current run window inventory of controls (S)
+Depends on: nothing.
+Read `apps/web/src/Run.tsx` and `apps/web/src/GamePanels.tsx` and list the existing action controls, keyboard bindings and panel sizes. Do not change anything.
+Files: `docs/design/loop-v1-ui-inventory.md`.
+Acceptance: list exists. This prevents inventing a layout that collides with the fixed-window rules in `apps/web/src/fixed-windows.css`.
+
+### U2-2 Add shove and escape controls inside the existing run window (M)
+Depends on: U2-1, T1-4.
+Files: `apps/web/src/Run.tsx`, `apps/web/src/GamePanels.tsx`, `apps/web/src/game-screen.css`.
+Shove appears only when the player holds the club and an adjacent enemy exists; it is targeted the same way attack is. Escape appears only when the player stands on the exit with enemies alive, with the hint text "Enemies act first." No new panel, no new window, no page scroll, no modal.
+Acceptance: window dimensions before and after the change are identical at the project's fixed viewport. Evidence screenshot pair in `docs/evidence/loop-v1/20-run-window-before.png` and `-after.png`, plus a line in `docs/loop-verification.md` confirming `document.scrollingElement.scrollHeight` equals the viewport height in both states.
+
+### U2-3 Telegraph shove destination and escape risk (M)
+Depends on: U2-2.
+Files: `apps/web/src/Run.tsx`, `apps/web/src/tileset.tsx`, `apps/web/src/tileset.css`.
+When hovering or selecting shove, highlight the destination tile and show whether it is spikes. When standing on the exit with enemies alive, highlight every enemy whose current intent or charger lane reaches the player tile. These reuse the existing `intent` and `lane` data; no new engine query.
+Acceptance: a Vite dev screenshot with the fixture from T1-6 at the moment before the scripted shove, and one before the scripted escape, both filed under evidence. Readability itself is judged by humans in Phase 4, not here.
+
+### U2-4 Floor Builder exposure of the cache slot (S)
+Depends on: T1-5.
+Files: `apps/web/src/FloorBuilder.tsx`, `apps/web/src/Maker.tsx`.
+The maker sees the cache socket labelled "optional cache" and can fund it, or leave it unfunded as a no-reward attraction. Fee entry and refresh paths are untouched.
+Acceptance: screenshot of the builder with the cache labelled, and a typecheck pass.
+
+**Phase 2 gate.** `npm run build` and `npm run typecheck` pass. Andrew confirms in one line that the run window still fits the fixed screen on his machine.
+
+---
+
+## Phase 3 — Server and economy wiring
+
+The engine change must not alter any settlement or disposition rule. Phase 3 is mostly proof.
+
+### S3-1 Server accepts the new actions through the existing action path (S)
+Depends on: T1-4.
+Files: `apps/server/src/runs.ts`, `apps/server/src/http.ts`.
+If the server validates action shapes before passing to `act`, add `shove` and `escape` to that allow list. If it forwards opaque actions to the engine, record that fact and change nothing.
+Acceptance: a server test posts the two fixture action lists from T1-6 and gets the expected terminal status.
+
+### S3-2 Prove escape settles identically to extract (M)
+Depends on: S3-1.
+Files: `apps/server/test/escape-settlement.test.ts`.
+Play the fixture to an escape with the cache reward in hand. Assert the settle command has `outcome:'extracted'`, the reward id appears in `dungeon_extracted`, loadout town items appear in `town_returned`, and the maker's fee position is unchanged relative to a cleared extract on the same edition. Then play to a death during the escape turn and assert the reward id appears in `dungeon_returned` and the town club appears in `town_forfeited`.
+Acceptance: test passes; the assertion text quotes the invariant line from P0-2.
+
+### S3-3 Restart and idempotency under the new actions (M)
+Depends on: S3-2.
+Files: `apps/server/test/run-recovery.test.ts` (extend, do not fork).
+Kill the server mid-escape sequence, restart, replay the settle, and assert one applied operation with matching `op_id` and `payload_hash`, mirroring the existing recovery test structure.
+Acceptance: existing recovery assertions still pass, plus one new case named for escape.
+
+### S3-4 Concurrency cap unchanged (S)
+Depends on: S3-1.
+Files: `apps/server/test/` (extend the existing admission test).
+Admit four runs on the Flooded Larder edition, assert the fifth is refused, settle one by escape, assert the fifth now admits. The cap is concurrent, not lifetime.
+Acceptance: test passes; evidence line in `docs/evidence/loop-v1/30-server.md`.
+
+### S3-5 Contract tests: confirm no Rust change is required (S)
+Depends on: S3-2.
+Files: `tests/contract/`.
+Add one contract test that feeds the escape settle payload to the sandbox and asserts the same `EconomicEdition` extracted and consumed values as the cleared-extract payload. If the Rust handler in `contracts/economy/src/settlement.rs` or `runs.rs` rejects it, that is a finding to report, not a reason to edit Rust in this phase.
+Acceptance: `npm run test:contract` passes, or a documented blocker.
+
+### S3-6 Transparency record shows the new floor without new fields (S)
+Depends on: S3-2.
+Files: `apps/server/test/edition-record.test.ts` (extend).
+Assert that escape runs are counted as `extracted` in `editionRecord` and that a zero-loot escape pushes a loot sample of zero. No change to `apps/server/src/edition-record.ts` or `packages/shared/src/edition-record.ts`.
+Acceptance: test passes.
+
+**Phase 3 gate.** `npm run test:server` and `npm run test:contract` pass. Codex reviews S3-2 and S3-3 line by line against the invariants file.
+
+---
+
+## Phase 4 — Human playtesting
+
+Humans only. No agent output may be recorded as a playtest result. Sessions are local, in person or on Andrew's own machine, with no messages sent to anyone by an agent.
+
+### H4-1 Session kit (S)
+Depends on: Phase 2 gate, Phase 3 gate.
+Files: `docs/playtest/loop-v1/kit.md`, `docs/playtest/loop-v1/session-template.md`.
+The kit is a one-page start checklist: local server up, sandbox reset, a seeded Flooded Larder edition with the cache funded, a second edition with the cache unfunded, a starting wallet that can afford at least five admissions, and the transparency page open in its fixed window.
+
+### H4-2 Human test script (S)
+Depends on: H4-1.
+Files: `docs/playtest/loop-v1/script.md`.
+
+Script, about thirty minutes per tester:
+1. **Cold start, 3 minutes.** Tester walks the town with no instruction except "find a dungeon door and go in." Observer notes whether they find the gate and whether the fee display was understood.
+2. **Run one.** No hints. Observer records outcome, duration, loot value, cause of death if any, and whether the cache room was entered.
+3. **Run two.** Observer asks "what did the highlighted tiles mean?" before the run, then records the same fields.
+4. **Run three.** Tester is told once that the club can shove and that escape is allowed with enemies alive. Same fields.
+5. **Shop stop.** Tester visits a shop with finite stock, buys or declines, observer notes whether price and remaining stock were read correctly.
+6. **Maker flip, 5 minutes.** Tester opens the transparency page for the edition they played and answers "would you fund this floor, and at what fee?" Observer records the answer verbatim.
+7. **Questionnaire.** Five questions on a 1 to 5 scale: I wanted another run; I understood why I died or survived; the cache felt worth the risk; the shop prices made sense; I understood what the maker earns. One free-text question: what would you change first.
+
+### H4-3 Run the first round with at least four humans (L, human time)
+Depends on: H4-2.
+Files: `docs/playtest/loop-v1/round-1/<tester-number>.md`, `docs/playtest/loop-v1/round-1/summary.md`.
+Testers are numbered, not named, in the files. The summary tabulates the recorded fields and the questionnaire medians.
+Acceptance: four completed session files exist. Agents may format the summary from the raw files but may not fill in any score.
+
+### H4-4 Stop and refine gates (S)
+Depends on: H4-3.
+Files: `docs/playtest/loop-v1/round-1/gates.md`.
+- **Readability gate.** If two or more testers could not explain the highlights before run two, Phase 5 starts with telegraph fixes only. No content work.
+- **Cache gate.** If no tester entered the cache in runs two or three, the cache is either invisible or not worth it; Phase 5 addresses placement before rewards.
+- **Economy gate.** If the median on "I understood what the maker earns" is below three, the transparency window wording is the first fix.
+- **Fun gate.** The round passes only if the median on "I wanted another run" is four or higher across at least four humans and Andrew signs the summary. An agent never marks this gate.
+
+---
+
+## Phase 5 — Refinement cycles
+
+### R5-1 One hypothesis per cycle (S each)
+Depends on: H4-4.
+Files: `docs/playtest/loop-v1/round-<n>/hypothesis.md`.
+Each cycle states one change, the gate it targets, and the expected questionnaire movement. Candidate knobs, in the order I would try them: stagger flag from T1-3, cache placement within the side room, charger lane length, spike position, escape hint wording.
+
+### R5-2 Apply the change with tests first (S to M each)
+Depends on: R5-1.
+Files: the Phase 1 or Phase 2 file the hypothesis names, plus its test.
+Acceptance: engine and server suites still pass, evidence appended to `docs/evidence/loop-v1/50-refine-<n>.md`.
+
+### R5-3 Re-run the script (L, human time)
+Depends on: R5-2.
+Same script, at least two returning testers and two new ones where possible.
+Acceptance: a new round folder and summary.
+
+### R5-4 Cycle limit (S)
+After three cycles without passing the fun gate, stop and hold a design review with Andrew. The plan does not authorise adding content beyond the experiment to force a pass.
+
+---
+
+## Phase 6 — Technical verification
+
+### V6-1 Full suite with evidence (S)
+Depends on: all refinement cycles complete.
+Commands as in P0-1. Evidence: `docs/evidence/loop-v1/60-final-suite.md` with commit hash.
+
+### V6-2 Verification document (M)
+Depends on: V6-1.
+Files: `docs/loop-verification.md`.
+Sections: what changed by file, each invariant from P0-2 with its covering test name, the fixed-window check from U2-2, the playtest rounds with their gate outcomes, and a plain statement of what was not verified. It must state that transparency does not prove maker incentive safety and that maker results exclude acquisition costs.
+
+### V6-3 Close uncovered invariants (M)
+Depends on: P0-3.
+Write the tests for any invariant that P0-3 marked uncovered, in the matching test directory.
+Acceptance: the coverage column in the invariants file has no blanks.
+
+### V6-4 Independent re-run (S)
+Depends on: V6-2.
+Codex re-runs V6-1 from a clean checkout and records matching exit codes. Disagreement blocks the merge.
+
+---
+
+## Minimum deliverable versus later expansion
+
+**Minimum deliverable for this plan to be called done:**
+- Shove, escape, and the Flooded Larder floor in the engine with tests (T1-1 to T1-6).
+- Controls and telegraphs inside the existing fixed run window (U2-2, U2-3).
+- Cache slot visible to makers (U2-4).
+- Proof that settlement, recovery, concurrency and transparency are unchanged (S3-1 to S3-6).
+- One completed human round with four session files and a signed gate file (H4-3, H4-4).
+- Verification doc and clean suite (V6-1, V6-2, V6-4).
+
+**Later expansion, each needing Andrew's separate approval:**
+- An `escaped` count in the edition record, which touches `packages/shared/src/edition-record.ts` and the four-page transparency view.
+- A third enemy behaviour that punishes shove, to keep stagger from dominating.
+- A second authored floor so makers have a real choice.
+- Cache take rate in transparency, so makers can see whether optional rewards are being claimed.
+- Artisan minigame variants per good type, inside the existing per-batch structure.
+
+---
+
+## Merge protocol with Codex
+
+- Both plans are compared by phase. Where IDs map to the same work, keep whichever has the tighter acceptance evidence.
+- Engine changes are written by one side and reviewed by the other against `docs/design/loop-v1-invariants.md`. Server proofs (S3-2, S3-3) are reviewed by the side that did not write them.
+- Any step that would change a user-fixed rule is struck, not merged.
+- Conflicts on tuning defaults, such as stagger, go to the playtest, not to argument.
+
+---
+
+**Recap.** This plan adds only the proposed tactical experiment, contains it inside the existing fixed windows, proves the economy and guards are untouched with named tests, and makes human sessions the sole judge of fun through a written script and explicit stop gates. The minimum deliverable is one floor, two actions, one verified settlement proof and one completed human round. Expansion items are listed but not authorised.
+
+CODEX PLAN
+# Gameplay and Economy Implementation Plan — independent Codex draft
+
+> **For agentic workers:** Execute task-by-task using superpowers:subagent-driven-development or superpowers:executing-plans. Keep checkboxes open until their evidence exists. This draft is input to cross-review, not the merged authority.
+
+**Goal:** Make preparing, adventuring, extracting or losing, trading and authoring form a repeatable game people choose to play.
+
+**Architecture:** Deepen the existing deterministic tile engine first in free practice. Promote accepted mechanics through explicit versioned server/contract boundaries, then improve economic choices and maker feedback using authoritative records. Preserve the fixed-window shell.
+
+**Tech Stack:** TypeScript, React/Vite, SQLite authoritative server/outbox, Rust local NEAR sandbox.
+
+**Spec:** `docs/design/economy-gameplay-review/review-decisions.md`, its transparency follow-up, and `../design/dungeon-economy/GAME-DESIGN-v1.2-reviewed.md`. User rules prevail over numerical proposals.
+
+## Global constraints
+
+- Local development/simulation only. No paid calls, testnet, production, deployments, submissions or unsolicited participant messages.
+- Maker funds treasure; ordinary completion/death fees go to maker; unconsumed dungeon loot returns to pool on loss; town gear goes to bank; consumed goods remain spent; closure residual goes to bank.
+- Preserve finite funded stock, item origins/IDs, admission quotes, reserves, concurrent capacity, void refunds and exactly-once settlement. Four simultaneous runs is not four lifetime admissions.
+- No-reward attractions remain supported. Operator is bank, not an unlabeled player-maker. Demo grants/accounts remain disclosed.
+- Fixed map and inspector geometry, one screen, no page scrolling; keyboard and click equivalent actions.
+- Historical completion counts are not new evidence. Existing telemetry does not establish fun or organic demand. Unknown acquisition cost is not zero.
+- No mandatory oil, new token, PvP, permanent stat progression, broad crafting catalog or speculative multiplayer expansion in the first slice.
+
+## Review focus
+
+1. Displacement invalidating committed intent must never silently retarget a hit (P03).
+2. Extraction response, death, expiry and duplicate requests must select exactly one terminal result (P04/P10).
+3. A restart during promotion must not reinterpret admitted runs under new rules (P10).
+4. Reused/gifted/seeded/transformed goods must not create fictitious profit or double-count costs (P13).
+5. Human tests must expose confusion, coercive recovery and small-sample bias rather than optimize only success rates (P07/P15/P18).
+
+## Working method and sizing
+
+Each engineering card targets one reviewable deliverable, roughly 30–120 focused minutes after prerequisites; estimates are planning ranges, not deadlines. Split any card that exceeds this into subcards before marking progress. Human sessions are separate scheduled work, not agent time estimates. Correctness tests should fail for the intended missing behavior, then pass after implementation; no tests that merely mirror a CSS change. Commit only task-scoped files when appropriate; preserve existing uncommitted work, never `git add .`, no push or production merge. A second model reviews source when the eventual implementation warrants it; the cross-review here concerns plans only.
+
+## Baseline and experiment contract
+
+### P01 — Freeze a reproducible baseline (no dependencies)
+Files: new `docs/playtests/baseline.md`; existing package scripts and verification reports.
+- [ ] Record git revision plus dirty diff inventory/hash; do not print `.state/sandbox.json` or include keys in artifacts.
+- [ ] Record existing catalog/combat values, tested viewport sizes and local startup commands. Capture a free-practice trace and current shop/return path without spending or resetting live local state.
+- [ ] Run game tests/typecheck/build; document baseline failures separately from new regressions. Preserve current practice as a comparison fixture rather than replacing its evidence.
+Output: reproducible fixture ID/version and baseline evidence, not a fun verdict. Checkpoint: reviewer can replay the same starting situation.
+
+### P02 — Pin the experimental rules and observations (P01)
+Files: new `docs/playtests/smugglers-choice-rules.md`, `docs/playtests/session-template.md`.
+- [ ] Record proposed one-floor/two-space fixture, club/sword/tonic kits, optional cache and reachable extraction tile. Preserve existing HP/damage/healing initially.
+- [ ] Specify shove targeting, displacement, cooldown, collision, intent interaction and turn costs before code. Proposed safety default: club only, adjacent target, one empty cardinal tile away, no collision damage; one intervening non-shove action before another shove. No extra enemy phase on an invalid action. A displaced committed attack may only resolve if its original path/adjacency is still legal; otherwise fizzles without retargeting. Threat preview must predict this. These are tuning proposals; record any change.
+- [ ] Pin escape resolution: standing on designated exit, action takes a turn, enemy/hazard response, death takes priority, otherwise extraction. Old rules unchanged. No enemy-clear requirement in experimental rules.
+- [ ] Define event schema `PlayEvent {runId, rulesVersion, fixtureId, seq, turn, action, hpBefore, hpAfter, cause?, outcome?}`; no credentials or hidden reward locations in public views. Record optional-cache visit, kit and extraction choice as private test observations.
+Output: reviewable rules table and session script. Gate: resolve conflicting mechanics in writing, no implementer silently chooses them.
+
+## One excellent expedition
+
+### P03 — Implement displacement in practice (P02)
+Files: `packages/game/src/actions.ts`, `combat.ts`, `state.ts`; new `packages/game/test/shove.test.ts`; `apps/web/src/Run.tsx`, `controls.ts` as needed.
+- [ ] Tests cover wall/occupied boundary, wrong weapon, remote target, inactive run, cooldown, spike phase, displaced charger path and no silent re-aim.
+- [ ] Add `{type:'shove';enemyId:string}` with explicit experimental rules guard and saved cooldown state. Older saved states default to legacy rules, never opt in implicitly.
+- [ ] Expose an action beside attack with a clear disabled reason; preview committed response without hidden-state leakage.
+- [ ] Run focused/game tests and keyboard/pointer rehearsal. Record one useful shove and one rejected move; inspect potential infinite pinning.
+Output: deterministic practice shove; no new economic item type or paid mechanic yet.
+
+### P04 — Implement extraction under threat (P02; can develop separately from P03)
+Files: `actions.ts`, `generation.ts`, `state.ts`, `Run.tsx`; new `packages/game/test/risky-extraction.test.ts`.
+- [ ] Tests: wrong tile invalid; living enemies allowed under experimental rules; response kills player means death; surviving response means extraction; old rules still require clear; repeated terminal action inert.
+- [ ] Add separate exit eligibility from cleared-exit continuation so changing extraction cannot accidentally change floor descent/shrine eligibility.
+- [ ] Preview danger and action timing on the extract button. Keep a safe path out possible; do not force taking optional loot.
+Output: one unambiguous terminal result and an understandable decision.
+
+### P05 — Author the encounter and two variants (P03/P04)
+Files: new `content/playtests/smugglers-choice.json`; game fixture loader and new fixture-validation test.
+- [ ] Build baseline geometry with charger lane, pursuer, two readable spikes and optional reward detour; no spawn ambush or mandatory damage.
+- [ ] Build two small alternatives changing one variable each: cache placement or escape access. Keep item/HP budget constant for comparisons.
+- [ ] Validate reachability, unique IDs, spawn/exit/socket bounds and deterministic replay. Hand-play plausible clear, evade and early-escape routes; no assertion that a solver proves fun.
+Output: fixtures A/B/C and intended decisions; no production content expansion.
+
+### P06 — Make consequences legible and loggable (P03–P05)
+Files: `Run.tsx`, `GamePanels.tsx`; new `packages/game/src/play-events.ts` and tests; `docs/playtests/`.
+- [ ] Produce bounded complete test-session action trace from pre/post authoritative engine states, rather than relying on the eight-line combat display log.
+- [ ] Show selected target, intent, recovery, damage source, inventory action cost and extract warning. Fixed-window paged journal; no map shift or page scroll.
+- [ ] Return screen offers a concise outcome and retry/re-equip choice. Free practice awards no goods. No full replay editor.
+- [ ] Check 1366×768 and 390×844, keyboard, reduced motion, and a longer damage message; capture viewport/console evidence.
+Output: reproducible decisions, not just final HP screenshots.
+
+### P07 — Observe first human sessions (P06)
+Files: `docs/playtests/session-<anonymous-id>.md`, consented event exports.
+- [ ] Andrew first: up to three short attempts, initially without coaching; ask him to choose kit, assess a threat and decide when to leave. Record interventions explicitly.
+- [ ] Then recruit 3–5 willing people through user-arranged sessions; do not message anyone automatically. Include different prior roguelike experience; offer keyboard/pointer choice.
+- [ ] After each run ask: what did you expect; what surprised you; what would you do differently? After final run offer stop/another run neutrally. Do not imply payout is the reason to continue.
+- [ ] Record actions, understandable/unclear loss, kit/route change, optional-loot decision, replay choice and exact comments. No inferred emotions or fabricated users.
+Gate: Andrew accepts that the core is worth iterating and external participants show legible choices. Small samples diagnose problems, not prove retention. If no people available, technical work may continue in parallel; gameplay gate stays OPEN, not passed.
+
+### P08 — Refine one cause at a time (P07)
+Files: rules/fixtures, tuning log, affected tests.
+- [ ] Classify observed failures: unclear input, unreadable threat, dominant kit, tedious safe loop, arbitrary loss, irrelevant treasure or no reason to return.
+- [ ] Choose highest-impact failure, state hypothesis, change one primary variable and retain prior version. Example: relocate charger approach before adding enemy types.
+- [ ] Re-run regression tests and 2–3 short human sessions; include an unfamiliar participant when possible. Stop after two unsuccessful rounds for explicit redesign review, not endless tweaking or content padding.
+- [ ] Record accepted/rejected variants and why. Do not optimize for forced deaths or mandatory abandoned loot.
+Gate G1: accepted core decision loop with evidence. If rejected, keep P09 onward out of paid-facing integration; source-independent accounting work may proceed.
+
+## Connect the accepted loop to the economy
+
+### P09 — Define promotion boundary (G1)
+Files: new `docs/protocol/gameplay-v4.md`; `types.ts`, Rust `model.rs`/validation source identified during execution.
+- [ ] Trace every rules-version check, saved-state decoder and builder publication path; enumerate migrations and existing in-flight versions.
+- [ ] Define new version for accepted gameplay and how authored layouts opt in. Old layout/terms hashes unchanged. New tests prove legacy runs resume with their admitted rules.
+- [ ] Map new state/action fields to server validation and immutable admitted configuration. No synthetic practice rewards cross admission.
+Output: version/migration checklist and backwards-compatibility cases.
+
+### P10 — Promote authoritative gameplay safely (P09)
+Files: `apps/server/src/runs.ts`, `http.ts`, shared version validation, Rust edition validation, `FloorBuilder.tsx`; game/server/contract tests.
+- [ ] Implement smallest versioned admission and action change; contract still verifies economic partition, not combat truth.
+- [ ] Test extraction-vs-death/expiry, duplicate actions, stale sequences, crash after action-before-settlement, restart, void and late settlement. Assert exact item IDs in all origin partitions.
+- [ ] Test no-reward version, concurrent reservations, consumed potion then death, old editions plus new editions. Verify quote changes don't affect admitted runs.
+- [ ] Run affected server/contract suites, WASM build and typecheck. Use isolated local sandbox; never migrate/reset user's current state as a shortcut.
+Output: reliable funded loop with existing custody/trust limitations disclosed.
+
+### P11 — Play one complete trade circuit (P10)
+Files: existing Shop/Crafting/Maker/Demo flows; new `docs/playtests/trade-circuit.md`, scenario integration test.
+- [ ] Separate labeled artisan, maker and adventurer profiles. Use ordinary finite listings and recorded stock; disclose initial grants.
+- [ ] Artisan crafts existing tonic batch; maker buys/funds; adventurer buys kit/potion, enters, consumes or extracts, returns and sells/keeps goods. Record exact inventories/receipts each step.
+- [ ] Repeat with death and no-treasure edition. Fees/forfeitures/stock movements must follow fixed rules. Show pending settlement honestly.
+- [ ] Observe whether a participant can say what they want to buy or produce next. Local role-switching proves plumbing, not organic demand.
+Gate: end-to-end loop works without developer intervention; otherwise fix the transition that fails before more content.
+
+### P12 — Improve one artisan/shop decision (P11)
+Files: `Crafting.tsx`, `Shop.tsx`, server craft as needed; `docs/playtests/merchant-loop.md`.
+- [ ] Observe production choice, batch minigame and actual sale. Measure repetitive waiting, unclear output, stock visibility and unprofitable pricing misunderstandings.
+- [ ] Change one evidenced problem: shorten redundant timing waits, clarify batch cost/output, or expose available buyer/stock information. Do not add recipes simply to fill a menu.
+- [ ] Re-test with 2–3 users, including a person who prefers town play. Keep per-batch minigame; label automation limitations.
+Output: an observed better production/sale decision. New recipes/buy orders require evidence of unmet demand, not assumed value.
+
+### P13 — Record costs before displaying profit (parallel after P01; integration after P11)
+Files: new `apps/server/src/cost-basis.ts`, new server tests; existing market/craft receipt handling, `Maker.tsx`, `Wallet.tsx`.
+- [ ] Specify immutable cost events linked to authoritative receipt/lot IDs. Purchases use actual prices; crafts allocate known input cost deterministically across outputs; seeded/gifted/unknown history stays labeled unknown, not zero. Labor time separately disclosed.
+- [ ] Demonstrate cost lineage through buy→craft→list→sale and buy→fund→refresh→close, with retry/restart and a consumed input. Don't expense an input twice.
+- [ ] Maker closed-edition contribution deducts all committed treasure acquisition/placement costs once; leftovers never refunded. Pending fees excluded; open results provisional. If any cost unknown, no unqualified net-profit number.
+- [ ] Distinguish cash flow, inventory reference value, realized contribution and replacement-cost estimate in fixed panels.
+Output: auditable economic result, not a promised return.
+
+### P14 — Harden transparency and maker feedback (P11; existing feature preserved)
+Files: `edition-record.ts` server/shared, `EditionRecord.tsx`, `Maker.tsx`, `matcher.ts`, tests.
+- [ ] Re-verify zero-loot losses, mean/median, durations with coverage, confirmed outcomes and exclusion of void/active. Show current fee/pool alongside historical population; no winner-only averages.
+- [ ] Maker sees same public record plus room/outcome observations from consenting tests; no hidden player identity or unvisited loot leakage.
+- [ ] With several eligible editions, compare cheapest-first against explicit-filter+rotation discovery including an under-observed offer. No fake popularity, guaranteed impressions or completion-rate-only ranking.
+- [ ] Test fee changes, refresh depletion, mixed skill, tiny samples and alt profiles. Clearly label limitations; don't claim Sybil resistance.
+Output: informed player choice and useful maker feedback without changing return rules.
+
+### P15 — Test the full human loop (P11–P14)
+- [ ] 3–5 people, roles chosen freely; sequential sessions can expose usability, simultaneous play not required to prove plumbing. Record whether low population prevents a desired trade.
+- [ ] Observe preparation→run→return→sale/craft→another plan. Include a loss, cheap recovery path and voluntarily chosen no-reward attraction; never force spending for test success.
+- [ ] Run a maker iteration: watch problems, revise a new edition, keep old record, test again. Record attendance intention and costs separately.
+- [ ] Ask players to explain fees, loot averages, gear loss and maker incentives. Averages understood incorrectly trigger UI refinement.
+Gate G2: participants can complete and explain the circuit; at least some voluntarily seek another attempt or transaction. This is formative acceptance, not a stable-market claim.
+
+### P16 — Stress low-population and depleted-budget scenarios (P13/P14)
+Files: new `scripts/simulate-economy.ts`, tests and `docs/playtests/economy-scenarios.md`.
+- [ ] Use deterministic 1/5/20-profile scenarios, repeated players with no new grants, high/low extraction, consumption, empty pool, unsold shop goods, depleted NPC budget, collusive extraction and refunds.
+- [ ] Report all coin transfers, budget ownership, item consumption/transformation and inventory buildup. Goods/coins banked are transfers, not burns. Never infer real demand from simulated policies.
+- [ ] Verify conservation, no double fill/duplicate credit, complete reservations, closed edition bank transfer, recovery caps and unknown-cost behavior.
+Output: explicit dead ends and subsidies. Repair rules only through documented proposals, not concealed minting.
+
+### P17 — Refine the weakest economic link (G2/P16)
+- [ ] Choose one evidenced bottleneck: inability to find buyers, recovery too tedious, maker stock loss, unclear price, or insufficient differentiated demand.
+- [ ] Pick smallest intervention and forecast its side effects. New orders need escrow/expiry/partial-fill specification; a second recipe needs a combat use and stock source; neither enters automatically.
+- [ ] Change, verify, repeat targeted human sessions and stress scenarios. After two unsuccessful rounds, narrow/redesign and report; do not mark viable by fiat.
+Output: decision log and revised accepted loop, or honest unresolved blocker.
+
+### P18 — Independent final review and acceptance (P08/P10–P17)
+- [ ] Reviewer traces one success, loss, void and crash/recovery using source+evidence; reconcile technical findings before final verification.
+- [ ] Run `npm run typecheck`, `npm run test:game`, `npm run test:server`, `npm run test:contract`, `npm run build:contract`, `npm run build` as relevant to final changes. Record actual counts, failures and retries.
+- [ ] Aside walkthrough fixed desktop/phone windows, keyboard, invalid actions, transactions/pending states and transparency; no external actions.
+- [ ] Human acceptance explicitly separate: Andrew's verdict, participant sessions, unresolved feedback, market limitations and next measured experiment. Link artifacts in a final report. Stop before any release/testnet step.
+
+## Minimum and later
+
+Minimum convincing local deliverable is P01–P11 plus truthful existing transparency: a human-accepted expedition and working supply/trade cycle. P13 becomes mandatory before any profit claim. P12/P14–P17 establish better economy play, not prerequisites to observing the first run. Later catalog expansion, buy orders, procedural families and social luxuries must earn a place through evidence. No contest-date promise; estimate the next card only after its dependencies are observed.

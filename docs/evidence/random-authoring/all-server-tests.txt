@@ -1,0 +1,76 @@
+
+> dungeon-economy@0.1.0 test:server
+> tsx --test --test-concurrency=2 apps/server/test/*.test.ts
+
+✔ exact complete bundles rather than item count determine availability (0.490542ms)
+✔ random and fixed pools cannot substitute; explicit no-reward editions open (0.092709ms)
+✔ broadcast budgets survive failed requests and restart; receipt recovery remains readable (5.315333ms)
+✔ persist challenge and begin atomically; require matching confirmed batch before play (7.947875ms)
+✔ three server-timed inputs finish fine exactly once and stay pending until confirmation (4.424792ms)
+✔ restart preserves explicit start; spoofed timings cannot improve tier; IDs and ownership enforced (3.790916ms)
+✔ deadline expires to normal once across restart, including a retry of the triggering input (3.479875ms)
+✔ worker expires an untouched batch after restart and late admission confirmation (3.626708ms)
+✔ rejected begins release profile but same request never rerolls or re-enqueues (3.425041ms)
+✔ enqueue failures roll back both challenge creation and final input (13.268084ms)
+✔ normal tier is derived from early and late server timings; final input rollback is atomic (5.142125ms)
+✔ premature expiry retries once only after confirmed chain deadline without reopening play (19.194875ms)
+✔ request history is bounded and independent profiles cannot affect one another (52.663083ms)
+✔ authored mixed rewards publish, reserve real goods, materialize at authored positions, and replenish without touching reservations (5380.063583ms)
+✔ custom codec validates geometry, connectivity and unique traversable markers (1.612791ms)
+Full local loop confirmed: artisan made stock, buyer paid shop and entry, used purchased tonic during gameplay, extracted, zero-capital worker earned wage.
+✔ extended local loop: craft -> stock shop -> buyer purchases -> paid run uses purchased potion -> extract; recovery wage (8547.580625ms)
+✔ includes losses as zero, excludes void/active, scopes edition and survives restart (6.503583ms)
+✔ unconfirmed extraction and legacy or invalid timing are missing, never fabricated zeros (3.2155ms)
+✔ receipt mismatches cannot inflate loot; aggregates reveal no assignments or player ids (2.640125ms)
+✔ requires a stored run owned by the caller and a local terminal outcome (4.56225ms)
+✔ accepts each terminal outcome and all three feedback choices (4.420083ms)
+✔ same-choice retries persist across restart; changing choice or owner cannot rewrite it (3.502542ms)
+✔ runtime rejects unsupported choices without saving any feedback (2.427666ms)
+✔ counts are edition-scoped; feedback has no run or economic effects (3.197959ms)
+HTTP action response ms {"samples":19,"min":0.6546669999997903,"median":1.1331669999999576,"max":2.8990420000000086}
+HTTP played extraction: turns 20 ; buyer credits 8; maker credits 91; sword owned; used tonic consumed; unvisited tonic returned
+✔ HTTP maker funding -> paid play -> consumed tonic -> extracted sword, session isolation and CSRF (7370.078041ms)
+✔ save command and signed bytes before broadcast, preserve ID on uncertain retry and restart (5.829458ms)
+✔ missing receipt keeps uncertainty and blocks later signing (3.741167ms)
+✔ exclusive writer and bounded request storage (2.293625ms)
+✔ confirmed failed transaction can be replaced under the SAME operation and command (2.799916ms)
+✔ capacity preserves terminal headroom for admitted run (147.072125ms)
+✔ malformed string fields reject before persisting and cannot jam later settlements (4.513458ms)
+Fog-limited paid expedition extracted after 113 turns; bought tonic consumed; funded sword owned.
+✔ a bought tonic and funded rewards survive a played, fog-limited two-floor expedition (5805.502917ms)
+✔ HTTP shop builder to stocked sale, scoped ownership and restart recovery (5689.345209ms)
+✔ a sync requested after the current scan drains newly queued work before resolving (0.839375ms)
+✔ a failed pass rejects callers and a later request can recover (0.280459ms)
+✔ background polling joins an active pass without extending it forever (0.092291ms)
+✔ later requests do not hold an earlier caller hostage to a subsequent pass (0.154708ms)
+✔ only applied admissions materialize; hidden seed/rewards absent from run view (6.712916ms)
+✔ actions commit once, survive restart, reject stale sequence and expire once (7.398167ms)
+✔ terminal view redacts receipt seed/assignments and expiry retries replay consistently (6.623208ms)
+✔ consumed potion and exact retry response survive process restart (5.463ms)
+✔ v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart (5.96925ms)
+✔ v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns (14.160875ms)
+✔ v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent (25.12125ms)
+✔ v3 authored geometry, funded positions, fog and settlement survive restart (9.414083ms)
+✔ run timing persists once and expiry excludes delayed worker/settlement time (3.934666ms)
+✔ real WASM admission survives broadcast-response crash and restart without a second fee (4841.455208ms)
+✔ independent sessions get random cookies and exclusive server-assigned profiles (0.999833ms)
+✔ spoofed actor fields cannot authorize commands or access another owner (0.535125ms)
+✔ release permits an exclusive claim and logout invalidates the token (0.172333ms)
+✔ expiration is absolute, enforced at the boundary and releases claims (0.131708ms)
+✔ session capacity is bounded even when clients release profiles (0.114958ms)
+✔ only confirmed shop purchases count, duplicates cannot inflate income (0.638375ms)
+✔ missing historical receipts do not silently turn into zero economic sales (0.074416ms)
+✔ cancelled unsold stock never becomes fictional sales (0.082459ms)
+✔ a genuine resale in another listing counts again, while mismatched quotes do not (0.08625ms)
+✔ wallet separates purse, reserved fees, catalog assets and unearned wages exactly (3.4505ms)
+✔ only matching authoritative receipts survive restart; unknown is never a receipt (3.937625ms)
+✔ wallet API requires a session and ignores requested actors; world embeds the same view (48.851959ms)
+✔ run fee history uses edition ownership, exact amounts and settled outcomes, excluding voids (2.5415ms)
+ℹ tests 60
+ℹ suites 0
+ℹ pass 60
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22228.958917

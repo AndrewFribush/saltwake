@@ -1,0 +1,10 @@
+✔ wallet snapshot discovery materializes exact reservations without inventing receipts/timing and survives replay/restart (8172.220416ms)
+✔ existing discovered progress imports actual external terminal status without fabricated settlement evidence (7857.531333ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16249.029125

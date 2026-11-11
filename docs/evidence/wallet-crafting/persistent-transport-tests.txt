@@ -1,0 +1,31 @@
+
+> dungeon-economy@0.1.0 test:web
+> tsx --test apps/web/test/*.test.ts
+
+✔ NEP413 binding and exact account-bound register/execute descriptors (7.348083ms)
+✔ changed account, network, or away-and-back revision during NEP413 signing invalidates proof (0.488291ms)
+✔ cancelled and rejected message signing never verifies or grants a local session (0.212416ms)
+✔ wrong configured network or challenge contract is rejected before signing (0.174625ms)
+✔ reject altered destination, method, deposit, gas, args and extra transaction fields (2.5685ms)
+✔ account change during transaction approval discards its result and does not receipt-sync (0.533584ms)
+✔ session invalidation and expiry during signing invalidate results (0.686083ms)
+✔ server session changed during approval blocks receipt sync (0.44175ms)
+✔ explicit approval cancellation/rejection permits same-ID retry; ambiguous SDK failure does not resubmit (1.855ms)
+✔ logout invalidates pending proof and blocks new login until logout completes (0.281209ms)
+✔ wrong proof account and server session network are rejected before transaction approval (0.304167ms)
+✔ action is copied before awaits; concurrent approvals are rejected (1.599125ms)
+✔ browser Borsh SHA256 operation ID matches server identity helper (2.417459ms)
+✔ foreign account/request operation IDs reject before approval and after receipt confirmation (1.007584ms)
+✔ reload preserves uncertain approval and exact payload without resubmitting (0.782667ms)
+✔ durable write failure prevents approval and corrupt saved intents are not silently discarded (0.219083ms)
+✔ explicit wallet cancellation remains retryable after reload (0.705958ms)
+✔ prepared crafting binds input copies, account batch, commitment and chain deadline before approval (2.716833ms)
+✔ identity change during preparation cannot open a crafting approval (0.465208ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 161.624

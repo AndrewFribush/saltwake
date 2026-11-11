@@ -1,0 +1,227 @@
+Review this local creator-kit change for concrete important defects, no tools or edits. The product is a reusable game/building kit, NOT authored adventures. Added actionable diagnostics, in-tool guide, safe blueprint clone/export/import. Blueprint files contain definitions only, no funding/ownership; imports create a new draft with fresh ID. Fixed windows/no scroll are required. Prior work must remain intact. Check async import race/state, validation robustness and rendering correctness. Do not claim running tests. Return concise findings with severity and exact code reasons, or no important findings.
+
+FILE packages/shared/src/blueprint.ts
+import {catalog} from './catalog';
+import {validateCustomFloor,type CustomFloor} from './custom-layout';
+import type {Socket,ItemType} from './types';
+export type Blueprint={title:string;fee:string;floors:CustomFloor[];placements:{enemy:Socket['enemy'];trap:boolean;reward:ItemType|null}[][]};
+function normalize(value:unknown):Blueprint{
+ if(!value||typeof value!=='object')throw Error('Expected a blueprint');
+ const d=value as Blueprint;
+ if(typeof d.title!=='string'||!d.title.trim()||new TextEncoder().encode(d.title).length>80)throw Error('Name must be 1–80 UTF-8 bytes');
+ if(typeof d.fee!=='string'||!/^\d{1,7}$/.test(d.fee)||BigInt(d.fee)>1000000n)throw Error('Entry fee must be a whole number from 0 to 1000000');
+ if(!Array.isArray(d.floors)||d.floors.length<2||d.floors.length>4||!Array.isArray(d.placements)||d.placements.length!==d.floors.length)throw Error('Expected 2–4 floors with matching encounters');
+ const point=(p:{x:number;y:number})=>({x:p.x,y:p.y});
+ const floors=d.floors.map((f,i)=>{const errors=validateCustomFloor(f);if(errors.length)throw Error(`Floor ${i+1}: ${errors.join('; ')}`);return {tiles:[...f.tiles],spawn:point(f.spawn),exit:point(f.exit),sockets:f.sockets.map(point)};});
+ const placements=d.placements.map(ps=>{if(!Array.isArray(ps)||ps.length!==4)throw Error('Each floor needs four encounter slots');return ps.map(p=>{
+  if(!p||!['none','pursuer','charger'].includes(p.enemy)||typeof p.trap!=='boolean'||(p.reward!==null&&!Object.hasOwn(catalog,p.reward)))throw Error('Unsupported encounter or reward');
+  return {enemy:p.enemy,trap:p.trap,reward:p.reward};
+ });});
+ return {title:d.title,fee:d.fee,floors,placements};
+}
+export function encodeBlueprint(value:unknown):string{return JSON.stringify({format:'saltwake-blueprint',version:1,...normalize(value)},null,2);}
+export function decodeBlueprint(text:string):Blueprint{
+ if(typeof text!=='string'||new TextEncoder().encode(text).length>100000)throw Error('Blueprint limit is 100 KB');
+ const value=JSON.parse(text);if(value?.format!=='saltwake-blueprint'||value?.version!==1)throw Error('Unsupported blueprint format or version');return normalize(value);
+}
+
+FILE packages/game/src/builder-diagnostics.ts
+import {validateCustomFloor,type CustomFloor} from '../../shared/src/custom-layout';
+export type FloorDiagnostic={message:string;at?:{x:number;y:number}};
+/** Editor repair hints; authoritative structural validation remains the shared validator. */
+export function floorDiagnostics(value:unknown):FloorDiagnostic[]{
+ const errors=validateCustomFloor(value);if(!errors.length)return [];
+ if(!value||typeof value!=='object')return errors.map(message=>({message}));
+ const f=value as CustomFloor;const issues:FloorDiagnostic[]=[];
+ const point=(p:any):p is {x:number;y:number}=>!!p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>=0&&p.x<13&&p.y>=0&&p.y<9;
+ const valid=Array.isArray(f.tiles)&&f.tiles.length===9&&f.tiles.every(r=>typeof r==='string'&&/^[#.]{13}$/.test(r));
+ if(!valid)return errors.map(message=>({message}));
+ for(let y=0;y<9;y++)for(let x=0;x<13;x++)if((x===0||x===12||y===0||y===8)&&f.tiles[y][x]!== '#')issues.push({message:`Close the boundary at column ${x}, row ${y} with a wall.`,at:{x,y}});
+ const markers=[{name:'Arrival',p:f.spawn},{name:'Exit',p:f.exit},...(Array.isArray(f.sockets)?f.sockets.map((p,i)=>({name:`Socket ${i}`,p})):[])];
+ const occupied=new Map<string,string>();
+ for(const {name,p} of markers){if(!point(p))continue;const key=`${p.x},${p.y}`;
+  if(f.tiles[p.y][p.x]!=='.')issues.push({message:`${name} is on a wall. Paint floor here or move the marker.`,at:{...p}});
+  if(occupied.has(key))issues.push({message:`${name} overlaps ${occupied.get(key)}. Move one marker to another floor tile.`,at:{...p}});
+  occupied.set(key,name);
+ }
+ if(point(f.spawn)&&f.tiles[f.spawn.y][f.spawn.x]==='.'){
+  const q=[f.spawn],seen=new Set([`${f.spawn.x},${f.spawn.y}`]);
+  for(const p of q)for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n={x:p.x+dx,y:p.y+dy},key=`${n.x},${n.y}`;if(f.tiles[n.y]?.[n.x]==='.'&&!seen.has(key)){seen.add(key);q.push(n);}}
+  let first:{x:number;y:number}|undefined,count=0;
+  for(let y=0;y<9;y++)for(let x=0;x<13;x++)if(f.tiles[y][x]==='.'&&!seen.has(`${x},${y}`)){first??={x,y};count++;}
+  if(first)issues.push({message:`${count} floor tiles cannot be reached from arrival. Connect this area with a corridor or remove unused floor.`,at:first});
+ }
+ // Keep every authoritative rejection visible, including malformed marker arrays.
+ return [...issues,...errors.map(message=>({message}))];
+}
+
+FILE packages/game/src/component-catalog.ts
+/** Rules-v1–v3 encounter vocabulary. New behavior requires a versioned addition. */
+export const encounterRules={pursuer:{hp:4,damage:3},charger:{hp:6,damage:4},spikes:{damage:3}} as const;
+export const componentGuide=[
+ {name:'Floor and walls',text:'Paint connected floor for routes, loops and side rooms. Walls block movement and shape charges. Keep the outer boundary closed.'},
+ {name:'Arrival and exit',text:'S is arrival; E is the exit. Each floor needs its own distinct markers. Current published rules require defeating all enemies before using the exit.'},
+ {name:'Encounter sockets',text:'Each floor has four sockets, numbered 0–3. Move them with the painting tool. Each can combine an enemy, spikes and a funded reward. Markers must occupy distinct floor tiles.'},
+ {name:'Pursuer',text:'4 health. Follows walkable routes and shows its next move. Adjacent committed attacks deal 3 damage. Costs 2 placement coins. Corners and corridors change its approach.'},
+ {name:'Charger',text:'6 health. Commits to a straight lane when aligned with the player. Hits the first creature for 4 damage, then recovers for a turn. Costs 3 placement coins.'},
+ {name:'Spike trap',text:'Alternates armed and safe every valid turn. Armed spikes deal 3 damage to creatures on their tile after enemies act. Costs 1 placement coin. Test timing in rehearsal.'},
+ {name:'Fixed reward',text:'Choose a good at a socket; fund real copies in Treasure before opening. One reward socket costs 1 placement coin. Rehearsal uses synthetic copies and does not spend your stock.'},
+ {name:'Floors and revision',text:'Edit 2–4 floors, duplicate or reorder them. Floor order changes progression. Rehearse with different kits, return to editing, and save your draft. Published editions keep their admitted rules.'},
+ {name:'Empty and no-reward creations',text:'Enemies, traps and rewards are optional. A no-reward creation needs no treasure stock. The base placement charge and any configured encounters still apply.'},
+ {name:'Current kit limits',text:'Two enemy behaviors, alternating spikes and fixed reward sockets are available here. Random reward tables are supported by the economy but not yet exposed in this editor. Tileset artwork changes appearance, not rules.'},
+] as const;
+
+FILE apps/web/src/FloorBuilder.tsx
+import {encodeBlueprint,decodeBlueprint} from '../../../packages/shared/src/blueprint';
+import {Pages} from './GamePanels';
+import {floorDiagnostics} from '../../../packages/game/src/builder-diagnostics';
+import {componentGuide} from '../../../packages/game/src/component-catalog';
+import {authoredRehearsal,type RehearsalKit} from '../../../packages/game/src/authored-layout';
+import {BuilderStudio,StudioTabs,IssuePager,StudioStatus} from './BuilderStudio';
+import {TileArt,TilesetPanel} from './tileset';
+import React, {useRef, useState} from 'react';
+import {catalog} from '../../../packages/shared/src/catalog';
+import type {EditionTerms, Item, ItemType, Socket} from '../../../packages/shared/src/types';
+import {type CustomFloor, validateCustomFloor, encodeCustomModule} from '../../../packages/shared/src/custom-layout';
+import {createRun, type RunState, type RoomLayout} from '../../../packages/game/src/state';
+import {act} from '../../../packages/game/src/actions';
+import {addItem} from '../../../packages/game/src/inventory';
+import {enterRoom, atClearedExit, hasNextRoom, roomExit} from '../../../packages/game/src/generation';
+import {explore} from '../../../packages/game/src/roguelike';
+import {Run} from './Run';
+import './floor-builder.css';
+
+export type FloorBuilderProps={world:any;busy:boolean;selected:string[];command:(action:any)=>Promise<void>;refresh:()=>Promise<void>;onToggleFunding?:(id:string)=>void;onBusyChange?:(busy:boolean)=>void};
+type Placement={enemy:Socket['enemy'];trap:boolean;reward:ItemType|null};
+type Draft={id:string;title:string;fee:string;floors:CustomFloor[];placements:Placement[][]};
+type Tool='wall'|'floor'|'spawn'|'exit'|0|1|2|3;
+const freshFloor=():CustomFloor=>({tiles:Array.from({length:9},(_,y)=>y===0||y===8?'#############':'#...........#'),spawn:{x:1,y:1},exit:{x:11,y:7},sockets:[{x:3,y:2},{x:8,y:2},{x:3,y:5},{x:8,y:5}]});
+const emptyPlacements=():Placement[]=>Array.from({length:4},()=>({enemy:'none',trap:false,reward:null}));
+const freshDraft=():Draft=>({id:crypto.randomUUID(),title:'My catacombs',fee:'0',floors:[freshFloor(),freshFloor()],placements:[emptyPlacements(),emptyPlacements()]});
+const itemTypes=Object.keys(catalog) as ItemType[];
+const message=(e:unknown)=>(e instanceof Error?e.message:String(e)).slice(0,600);
+// Shape checks intentionally allow unfinished geometry to be saved and repaired.
+function isDraft(d:any):d is Draft {
+ const point=(p:any)=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&p.x>=0&&p.x<13&&p.y>=0&&p.y<9;
+ return !!d&&typeof d.id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(d.id)&&typeof d.title==='string'&&d.title.length<=160&&typeof d.fee==='string'&&d.fee.length<=16&&Array.isArray(d.floors)&&d.floors.length>=2&&d.floors.length<=4&&d.floors.every((f:any)=>f&&Array.isArray(f.tiles)&&f.tiles.length===9&&f.tiles.every((r:any)=>typeof r==='string'&&/^[#.]{13}$/.test(r))&&point(f.spawn)&&point(f.exit)&&Array.isArray(f.sockets)&&f.sockets.length===4&&f.sockets.every(point))&&Array.isArray(d.placements)&&d.placements.length===d.floors.length&&d.placements.every((ps:any)=>Array.isArray(ps)&&ps.length===4&&ps.every((p:any)=>p&&['none','pursuer','charger'].includes(p.enemy)&&typeof p.trap==='boolean'&&(p.reward===null||itemTypes.includes(p.reward))));
+}
+function loadDrafts(key:string):{drafts:Draft[];error:string;active?:string} {
+ try {
+  const raw=localStorage.getItem(key);if(!raw)return {drafts:[freshDraft()],error:''};
+  if(raw.length>500_000)throw Error('Saved drafts are too large.');
+  const data=JSON.parse(raw);
+  if(data?.version!==1||!Array.isArray(data.drafts)||!data.drafts.length||data.drafts.length>20||!data.drafts.every(isDraft)||new Set(data.drafts.map((d:Draft)=>d.id)).size!==data.drafts.length)throw Error('Saved draft format is invalid.');
+  return {drafts:data.drafts,error:'',active:typeof data.active==='string'&&data.drafts.some((d:Draft)=>d.id===data.active)?data.active:undefined};
+ }catch(e){return {drafts:[freshDraft()],error:`Could not load saved drafts: ${message(e)} Existing storage has not been replaced. Save explicitly to replace it.`};}
+}
+function socketsFor(d:Draft):Socket[]{return d.placements.flatMap((ps,room)=>ps.map((p,slot)=>({...p,id:`floor-${room}-slot-${slot}`,room,slot})));}
+function previewFor(d:Draft,kit:RehearsalKit='club'):RunState {return authoredRehearsal(d.floors,socketsFor(d),kit);}
+
+/** Remount the entire local session on profile change; drafts and undo never cross accounts. */
+export function FloorBuilder(props:FloorBuilderProps){return typeof props.world?.profile==='string'?<BuilderSession key={props.world.profile} {...props}/>:null;}
+function BuilderSession({world,busy,selected,command,refresh,onBusyChange,onToggleFunding}:FloorBuilderProps){
+ const [open,setOpen]=useState(false),[tab,setTab]=useState<'Layout'|'Encounters'|'Art'|'Treasure'|'Open'|'Guide'|'Check'|'Library'>('Layout'),[socketIndex,setSocketIndex]=useState(0),[stockPage,setStockPage]=useState(0);
+ const storageKey=`dungeon-floor-builder:v1:${encodeURIComponent(world.profile)}`;
+ const [loaded]=useState(()=>loadDrafts(storageKey));
+ const [drafts,setDrafts]=useState(loaded.drafts);
+ const [active,setActive]=useState(loaded.active??loaded.drafts[0].id);
+ const [history,setHistory]=useState<Record<string,Draft[]>>({});
+ const [future,setFuture]=useState<Record<string,Draft[]>>({});
+ const [floorSelection,setFloorIndex]=useState(0);
+ const [tool,setTool]=useState<Tool>('wall');
+ const [notice,setNotice]=useState('');
+ const [saveError,setSaveError]=useState(loaded.error);
+ const [saveStatus,setSaveStatus]=useState('');
+ const [working,setWorking]=useState(false);
+ const [preview,setPreview]=useState<RunState|null>(null);
+ const [issueFocus,setIssueFocus]=useState<{floor:number;x:number;y:number}|null>(null);
+ const [rehearsalKit,setRehearsalKit]=useState<RehearsalKit>('club');
+ const inflight=useRef(false);
+ const draft=drafts.find(d=>d.id===active)!;
+ const floorIndex=Math.min(Math.max(0,floorSelection),draft.floors.length-1);
+ const floor=draft.floors[floorIndex];
+ const locked=busy||working;
+ const unresolved=(world.operations??[]).some((o:any)=>['Pending','Unknown'].includes(o.status));
+ const placements=socketsFor(draft);
+ const geometryErrors=draft.floors.flatMap((f,i)=>validateCustomFloor(f).map(e=>`Floor ${i+1}: ${e}`));
+ const formErrors=[...geometryErrors];
+ if(!draft.title.trim()||new TextEncoder().encode(draft.title).length>80)formErrors.push('Give the expedition a name of at most 80 bytes.');
+ if(!/^\d{1,7}$/.test(draft.fee)||Number(draft.fee)>1_000_000)formErrors.push('Entry fee must be a whole number from 0 to 1,000,000.');
+ const cost=placements.reduce((sum,p)=>sum+(p.enemy==='pursuer'?2:p.enemy==='charger'?3:0)+Number(p.trap)+Number(p.reward!==null),2);
+ const required:Partial<Record<ItemType,number>>={};
+ for(const p of placements)if(p.reward)required[p.reward]=(required[p.reward]??0)+1;
+ const funding=[...new Set(selected)];
+ const owned=funding.map(id=>(world.items as Item[]).find(i=>i.id===id&&i.location.kind==='owned'&&i.location.profile===world.profile));
+ const available:Partial<Record<ItemType,number>>={};
+ for(const item of owned)if(item)available[item.item_type]=(available[item.item_type]??0)+1;
+ const fundingErrors:string[]=[];
+ if(funding.length!==selected.length)fundingErrors.push('Remove duplicate funding selections.');
+ if(funding.length>128)fundingErrors.push('Select at most 128 funding items.');
+ if(owned.some(i=>!i))fundingErrors.push('Some selected items are no longer owned by this profile. Refresh and select again.');
+ if(owned.some(i=>i&&!required[i.item_type]))fundingErrors.push('Deselect items whose type is not used by a reward socket.');
+ for(const type of itemTypes)if((available[type]??0)<(required[type]??0))fundingErrors.push(`Select ${required[type]} ${catalog[type].name} for one complete attempt (${available[type]??0} selected).`);
+ if(!/^\d+$/.test(String(world.credits))||BigInt(world.credits)<BigInt(cost))fundingErrors.push(`You need ${cost} coins for placement.`);
+ const edit=(change:(next:Draft)=>void)=>{
+  if(locked||inflight.current||preview)return;
+  const next=structuredClone(draft);change(next);
+  if(JSON.stringify(next)===JSON.stringify(draft))return;
+  setFuture(f=>({...f,[active]:[]}));setHistory(h=>({...h,[active]:[...(h[active]??[]).slice(-49),draft]}));
+  setDrafts(ds=>ds.map(d=>d.id===active?next:d));setSaveStatus('Unsaved changes');setNotice('');
+ };
+ const paint=(x:number,y:number)=>edit(d=>{
+  const f=d.floors[floorIndex];
+  if(tool==='wall'||tool==='floor')f.tiles[y]=f.tiles[y].slice(0,x)+(tool==='wall'?'#':'.')+f.tiles[y].slice(x+1);
+  else if(tool==='spawn'||tool==='exit')f[tool]={x,y};else f.sockets[tool]={x,y};
+ });
+ const save=()=>{
+  if(locked||inflight.current)return;
+  try {localStorage.setItem(storageKey,JSON.stringify({version:1,drafts,active}));setSaveError('');setSaveStatus('All drafts saved on this device.');}
+  catch(e){setSaveError(`Save failed: ${message(e)} Keep this page open; your edits remain in memory.`);setSaveStatus('');}
+ };
+ const execute=async(publish:boolean)=>{
+  if(locked||inflight.current||(publish&&(unresolved||formErrors.length||fundingErrors.length)))return;
+  inflight.current=true;setWorking(true);onBusyChange?.(true);setNotice('');
+  let published=false;
+  try {
+   if(publish){
+    // Read at submission time: cleared receipts must never revive an old publication.
+    const saved=sessionStorage.getItem('dungeon-pending-command:'+world.profile);
+    const pending=saved?JSON.parse(saved)?.action:undefined;
+    const pendingTerms=pending?.type==='publish'?pending.terms:undefined;
+    const now=Date.now();const terms:EditionTerms={title:draft.title.trim(),rules_version:3,modules:draft.floors.map(encodeCustomModule),sockets:placements,opens_at_ms:pendingTerms?.opens_at_ms??String(now-1000),closes_at_ms:pendingTerms?.closes_at_ms??String(now+3_600_000),no_reward:placements.every(s=>s.reward===null),difficulty_tag:'standard',style_tag:'combat',run_duration_ms:'900000',max_runs:4};
+    // Only IDs resolved against the current owned inventory can cross the command boundary.
+    await command({type:'publish',terms,fee:String(Number(draft.fee)),funding:[...funding]});published=true;
+   }
+   await refresh();setNotice(publish?'Publication submitted. Check your editions and receipts below for confirmation.':'Funding view refreshed.');
+  }catch(e){setNotice(`${published?'Publication submitted, but refresh failed. Check receipts before retrying. ':''}${message(e)}`);}
+  finally{inflight.current=false;setWorking(false);onBusyChange?.(false);}
+ };
+ const stock=(world.items as Item[]).filter(i=>i.location.kind==='owned'&&i.location.profile===world.profile);
+ const stockPages=Math.max(1,Math.ceil(stock.length/4)),stockIndex=Math.min(stockPage,stockPages-1);
+ const undo=()=>{const h=history[active];if(!h?.length)return;setFuture(f=>({...f,[active]:[draft,...(f[active]??[])]}));setDrafts(ds=>ds.map(d=>d.id===active?h.at(-1)!:d));setHistory(all=>({...all,[active]:h.slice(0,-1)}));setSaveStatus('Unsaved changes');};
+ const redo=()=>{if(!future[active]?.length)return;setHistory(h=>({...h,[active]:[...(h[active]??[]),draft]}));setDrafts(ds=>ds.map(d=>d.id===active?future[active][0]:d));setFuture(f=>({...f,[active]:f[active].slice(1)}));setSaveStatus('Unsaved changes');};
+ if(!open)return <div className="builder-launch"><button type="button" data-builder-launch="dungeon" disabled={locked} onClick={()=>setOpen(true)}>Open dungeon builder</button><p>Draw floors, stock treasure and rehearse in one workspace.</p></div>;
+ return <BuilderStudio title="Dungeon workshop" returnFocus="[data-builder-launch=dungeon]" locked={locked} onClose={()=>setOpen(false)}><section className="floor-builder studio-editor" aria-label="Dungeon floor builder">
+ <fieldset disabled={locked} className="fb-session">
+ <div className="studio-draftbar"><label>Draft <select aria-label="Draft" value={active} disabled={!!preview} onChange={e=>{setActive(e.target.value);setFloorIndex(0);setNotice('');}}>{drafts.map((d,i)=><option key={d.id} value={d.id}>{d.title||`Untitled ${i+1}`}</option>)}</select></label><button type="button" disabled={!!preview||drafts.length>=20} onClick={()=>{const d=freshDraft();setDrafts(ds=>[...ds,d]);setActive(d.id);setFloorIndex(0);setSaveStatus('Unsaved changes');}}>New</button><button type="button" onClick={save}>Save drafts</button></div>
+ {preview?<div className="studio-rehearsal"><div className="studio-row"><label>Test kit <select aria-label="Rehearsal kit" value={rehearsalKit} onChange={e=>{const kit=e.target.value as RehearsalKit;setRehearsalKit(kit);setPreview(previewFor(draft,kit));}}><option value="club">Club + tonic</option><option value="sword">Sword + tonic</option><option value="armored">Club + armor + tonic</option></select></label><button type="button" onClick={()=>setPreview(null)}>Back to editor</button><button type="button" onClick={()=>setPreview(previewFor(draft,rehearsalKit))}>Restart</button></div><Run compact remote={{state:preview,send:a=>{if(!locked&&!inflight.current)setPreview(s=>s?act(s,a):s);},busy:locked,title:`Rehearsal`,roomCount:draft.floors.length,terminal:null,settlement:null,exit:roomExit(preview),canExtract:atClearedExit(preview),hasNextRoom:hasNextRoom(preview)}}/></div>:<>
+ <div className="studio-page integrated-workspace">
+ <div className="studio-drawing">
+ <div className="studio-row"><label>Floor <select aria-label="Floor" value={floorIndex} onChange={e=>setFloorIndex(Number(e.target.value))}>{draft.floors.map((_,i)=><option key={i} value={i}>{i+1} of {draft.floors.length}</option>)}</select></label>{tab!=='Encounters'?<label>Paint <select aria-label="Painting tool" value={tool} onChange={e=>setTool(/^\d$/.test(e.target.value)?Number(e.target.value) as Tool:e.target.value as Tool)}>{(['wall','floor','spawn','exit',0,1,2,3] as Tool[]).map(t=><option key={t} value={t}>{typeof t==='number'?`Socket ${t}`:t}</option>)}</select></label>:<label>Encounter <select aria-label="Encounter socket" value={socketIndex} onChange={e=>setSocketIndex(Number(e.target.value))}>{floor.sockets.map((_,i)=><option key={i} value={i}>Socket {i}</option>)}</select></label>}</div>
+ <div className="studio-map-area"><div className="fb-grid" aria-label={`Floor ${floorIndex+1}, 13 by 9 tiles`}>{floor.tiles.flatMap((row,y)=>[...row].map((tile,x)=>{const markers=[...(floor.spawn.x===x&&floor.spawn.y===y?['S']:[]),...(floor.exit.x===x&&floor.exit.y===y?['E']:[]),...floor.sockets.flatMap((p,i)=>p.x===x&&p.y===y?[String(i)]:[])];return <button type="button" key={`${x},${y}`} className={`tile fb-cell ${tile==='#'?'fb-wall':'fb-ground'} ${markers.length?'fb-marked':''} ${issueFocus?.floor===floorIndex&&issueFocus.x===x&&issueFocus.y===y?'fb-issue-focus':''}`} aria-label={`Column ${x}, row ${y}: ${tile==='#'?'wall':'floor'}${markers.length?`, ${markers.join(', ')}`:''}`} onClick={()=>{if(tab==='Encounters'){const slot=floor.sockets.findIndex(p=>p.x===x&&p.y===y);if(slot>=0)setSocketIndex(slot);}else paint(x,y);}}><TileArt wall={tile==='#'}/><span>{markers.join('/')|| (tile==='#'?'':'·')}</span></button>;}))}</div></div>
+ {<div className="studio-floor-actions"><button type="button" disabled={draft.floors.length===4} onClick={()=>{edit(d=>{d.floors.push(freshFloor());d.placements.push(emptyPlacements());});setFloorIndex(draft.floors.length);}}>Add floor</button><button type="button" disabled={draft.floors.length===4} onClick={()=>{edit(d=>{d.floors.splice(floorIndex+1,0,structuredClone(floor));d.placements.splice(floorIndex+1,0,structuredClone(d.placements[floorIndex]));});setFloorIndex(floorIndex+1);}}>Duplicate</button><button type="button" disabled={draft.floors.length===2} onClick={()=>{edit(d=>{d.floors.splice(floorIndex,1);d.placements.splice(floorIndex,1);});setFloorIndex(Math.max(0,floorIndex-1));}}>Remove</button>{([-1,1] as const).map(delta=><button type="button" key={delta} disabled={floorIndex+delta<0||floorIndex+delta>=draft.floors.length} onClick={()=>{edit(d=>{for(const list of [d.floors,d.placements]){const [value]=list.splice(floorIndex,1);(list as any[]).splice(floorIndex+delta,0,value);}});setFloorIndex(floorIndex+delta);}}>{delta<0?'Earlier':'Later'}</button>)}<button type="button" onClick={()=>edit(d=>{d.floors[floorIndex]=freshFloor();d.placements[floorIndex]=emptyPlacements();})}>Reset floor</button></div>}
+ </div><aside className="builder-inspector"><label>Inspector <select aria-label="Builder inspector" value={tab} onChange={e=>setTab(e.target.value as typeof tab)}>{['Layout','Encounters','Art','Treasure','Open','Guide','Check','Library'].map(v=><option key={v}>{v}</option>)}</select></label>
+ {tab==='Library'&&<div className="studio-library"><h3>Your blueprints</h3><p>Copy or share a design. Goods, funds, ownership and uploaded artwork are not included.</p><button type="button" disabled={drafts.length>=20} onClick={()=>{const copy={...structuredClone(draft),id:crypto.randomUUID(),title:draft.title+' copy'};setDrafts(ds=>[...ds,copy]);setActive(copy.id);setFloorIndex(0);setSaveStatus('Copy created. Save drafts to keep it.');}}>Clone draft</button><button type="button" onClick={()=>{try{const text=encodeBlueprint(draft);const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='saltwake-blueprint.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setNotice('Blueprint exported. It contains no funded goods.');}catch(e){setNotice(message(e));}}}>Export blueprint</button><label>Import blueprint <input type="file" accept="application/json,.json" disabled={drafts.length>=20} onChange={async e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;setWorking(true);onBusyChange?.(true);try{if(file.size>100000)throw Error('Blueprint limit is 100 KB');const data=decodeBlueprint(await file.text());const imported={...data,id:crypto.randomUUID()};setDrafts(ds=>ds.length>=20?ds:[...ds,imported]);setActive(imported.id);setFloorIndex(0);setSaveStatus('Blueprint imported. Save drafts, rehearse, then fund your own copy.');}catch(error){setNotice(message(error));}finally{setWorking(false);onBusyChange?.(false);}}}/></label><p>Imports must pass layout checks. Existing drafts are kept. Attribution and asset licensing are not verified by this file format.</p></div>}
+ {tab==='Guide'&&<Pages items={[...componentGuide]} label="Component guide" render={entry=><><h3>{entry.name}</h3><p>{entry.text}</p></>}/>}
+ {tab==='Check'&&<Pages items={draft.floors.flatMap((f,index)=>floorDiagnostics(f).map(issue=>({...issue,floor:index})))} label="Floor checks" empty="All geometry checks pass. Rehearse to judge difficulty and playability." render={issue=><><h3>Floor {issue.floor+1}</h3><p>{issue.message}</p>{issue.at&&<button type="button" onClick={()=>{setFloorIndex(issue.floor);setIssueFocus({floor:issue.floor,...issue.at!});}}>Show tile {issue.at.x}, {issue.at.y}</button>}</>}/>}
+ {tab==='Layout'&&<><h3>Build on the map</h3><p>Choose a brush, then a tile. S marks arrival, E the stairs, and 0–3 the encounter sockets.</p><IssuePager issues={geometryErrors}/></>}
+ {tab==='Encounters'&&<div className="studio-encounter"><label>Enemy <select value={draft.placements[floorIndex][socketIndex].enemy} onChange={e=>edit(d=>{d.placements[floorIndex][socketIndex].enemy=e.target.value as Placement['enemy'];})}><option value="none">None</option><option value="pursuer">Pursuer · 2 coins</option><option value="charger">Charger · 3 coins</option></select></label><label>Reward <select value={draft.placements[floorIndex][socketIndex].reward??''} onChange={e=>edit(d=>{d.placements[floorIndex][socketIndex].reward=e.target.value as ItemType||null;})}><option value="">None</option>{itemTypes.map(t=><option key={t} value={t}>{catalog[t].name}</option>)}</select></label><label><input type="checkbox" checked={draft.placements[floorIndex][socketIndex].trap} onChange={e=>edit(d=>{d.placements[floorIndex][socketIndex].trap=e.target.checked;})}/> Spike trap · 1 coin</label></div>}
+ <div className="studio-art" hidden={tab!=='Art'}><TilesetPanel embedded/></div>
+ {tab==='Treasure'&&<div className="studio-funding"><h3>Stock your expedition</h3><p>{funding.length} selected. Match the rewards in Encounters. Extra matching goods fund more attempts; unused stock goes to the bank at closure.</p><div className="studio-stock">{stock.slice(stockIndex*4,stockIndex*4+4).map(i=><button type="button" key={i.id} aria-pressed={selected.includes(i.id)} disabled={!onToggleFunding} onClick={()=>onToggleFunding?.(i.id)}><strong>{selected.includes(i.id)?'✓ ':''}{catalog[i.item_type].name}</strong><small>{i.id}</small></button>)}</div><div className="studio-row"><button type="button" disabled={stockIndex===0} onClick={()=>setStockPage(stockIndex-1)}>Previous goods</button><span>{stockIndex+1}/{stockPages}</span><button type="button" disabled={stockIndex===stockPages-1} onClick={()=>setStockPage(stockIndex+1)}>Next goods</button></div><IssuePager issues={fundingErrors}/></div>}
+ {tab==='Open'&&<div className="studio-publish"><h3>Open the doors</h3><label>Expedition name <input value={draft.title} maxLength={80} onChange={e=>edit(d=>{d.title=e.target.value;})}/></label><label>Entry fee <input type="number" min="0" max="1000000" step="1" value={draft.fee} onChange={e=>edit(d=>{d.fee=e.target.value;})}/></label><p>Placement: <strong>{cost} coins</strong> · {funding.length} goods committed.<br/>One hour opening · 4 concurrent runs · 15 minutes per run.</p><IssuePager issues={[...formErrors,...fundingErrors,...(unresolved?['An operation is unresolved. Refresh before opening another expedition.']:[])]}/><div className="studio-row"><button type="button" className="primary" disabled={unresolved||!!formErrors.length||!!fundingErrors.length} onClick={()=>void execute(true)}>Pay {cost} coins & open</button><button type="button" onClick={()=>void execute(false)}>Refresh funding</button></div><p className="studio-hint">Base 2 + pursuer 2 / charger 3 + trap 1 + reward socket 1. Reward goods are funded separately.</p></div>}
+ </aside></div>
+ <div className="studio-actions"><button type="button" disabled={!history[active]?.length} onClick={undo}>Undo</button><button type="button" disabled={!future[active]?.length} onClick={redo}>Redo</button><button type="button" disabled={geometryErrors.length>0} onClick={()=>{try{setPreview(previewFor(draft,rehearsalKit));setNotice('');}catch(e){setNotice(message(e));}}}>Play rehearsal</button>{geometryErrors.length>0&&<button type="button" onClick={()=>setTab('Check')}>{geometryErrors.length} map issues</button>}</div>
+ </>}
+ </fieldset><StudioStatus text={working?'Waiting for confirmation…':notice||saveError||saveStatus||'Drafts stay on this device. Save before leaving the guild.'}/>
+ </section></BuilderStudio>;
+}

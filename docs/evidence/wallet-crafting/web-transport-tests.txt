@@ -1,0 +1,26 @@
+
+> dungeon-economy@0.1.0 test:web
+> tsx --test apps/web/test/*.test.ts
+
+✔ NEP413 binding and exact account-bound register/execute descriptors (6.795417ms)
+✔ changed account, network, or away-and-back revision during NEP413 signing invalidates proof (0.368834ms)
+✔ cancelled and rejected message signing never verifies or grants a local session (0.218083ms)
+✔ wrong configured network or challenge contract is rejected before signing (0.129ms)
+✔ reject altered destination, method, deposit, gas, args and extra transaction fields (2.125542ms)
+✔ account change during transaction approval discards its result and does not receipt-sync (0.449333ms)
+✔ session invalidation and expiry during signing invalidate results (0.626ms)
+✔ server session changed during approval blocks receipt sync (0.364708ms)
+✔ explicit approval cancellation/rejection permits same-ID retry; ambiguous SDK failure does not resubmit (1.706166ms)
+✔ logout invalidates pending proof and blocks new login until logout completes (0.226208ms)
+✔ wrong proof account and server session network are rejected before transaction approval (0.161208ms)
+✔ action is copied before awaits; concurrent approvals are rejected (0.590541ms)
+✔ browser Borsh SHA256 operation ID matches server identity helper (1.413583ms)
+✔ foreign account/request operation IDs reject before approval and after receipt confirmation (0.697875ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 143.587458

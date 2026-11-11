@@ -55,14 +55,7 @@ export function Workbench() {
 
   return <section aria-label="Alchemy crafting practice">
     <h2>Alchemy workbench · Local practice</h2>
-    <p>No herbs or flasks are spent. No tonics, credits, or inventory changes are awarded.
-      This challenge is not bound to an authoritative paid batch.</p>
-    <p>Recipe preview: 2 herbs + 2 flasks → 2 tonics. Land all three inputs in the target
-      band for fine quality; any miss gives normal quality. Practice restarts are free.</p>
-    <p>Start each step, then press Mix once as the marker enters the outlined band
-      ({CRAFT_TARGET.startMs / 1000}–{CRAFT_TARGET.endMs / 1000} seconds).
-      You can click Mix or use Enter/Space on its focused button. Each sweep lasts seven seconds;
-      a late input counts as a miss. Aim for about 15–25 seconds per batch.</p>
+    <p>Free practice: no inventory or money changes. Start, then Mix in the marked band. Three hits make fine tonics; misses make normal. Recipe: 2 herbs + 2 flasks.</p>
     <p>Practice attempt {batch.attempt} · {batch.inputs.length}/{CRAFT_STEPS} inputs recorded</p>
     <div aria-hidden="true" style={{position: 'relative', height: 44, margin: '16px 0',
       border: '1px solid currentColor', borderRadius: 6, overflow: 'hidden'}}>

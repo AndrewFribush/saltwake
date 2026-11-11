@@ -1,0 +1,25 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+TRIAL_SUMMARY=Trial view
+Summary
+Turns
+About
+
+unarmed · stopped · 2 turns · health 12/12.
+
+Matches current design. Synthetic random sample: tonic.
+
+Locate finish · floor 1Export trial & designSave notebook
+← Previous
+1 / 2
+Next →
+TRIAL_FIT={"width":1366,"height":768,"view":"Summary","scroll":false,"offscreen":[]}
+TRIAL_FIT={"width":1366,"height":768,"view":"Turns","scroll":false,"offscreen":[]}
+TRIAL_FIT={"width":1366,"height":768,"view":"About","scroll":false,"offscreen":[]}
+TRIAL_FIT={"width":390,"height":844,"view":"Summary","scroll":false,"offscreen":[]}
+TRIAL_FIT={"width":390,"height":844,"view":"Turns","scroll":false,"offscreen":[]}
+TRIAL_FIT={"width":390,"height":844,"view":"About","scroll":false,"offscreen":[]}
+LOCATED={"floor":"0","marker":"Column 1, row 1: floor, S"}
+NOTEBOOK_RELOAD=passed
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

@@ -1,0 +1,26 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+EDITION=Exit policies · tooling fixture
+FIT={"width":1366,"view":"Overview","scroll":false,"out":[]}
+FIT={"width":1366,"view":"Rules & hazards","scroll":false,"out":[]}
+FIT={"width":1366,"view":"Track record","scroll":false,"out":[]}
+FIT={"width":390,"view":"Overview","scroll":false,"out":[]}
+FIT={"width":390,"view":"Rules & hazards","scroll":false,"out":[]}
+FIT={"width":390,"view":"Track record","scroll":false,"out":[]}
+RULES=Exit policies · tooling fixture
+Offer details
+Overview
+Rules & hazards
+Track record
+Your attempt
+
+Up to 15 minutes per run. Death, abandonment or timeout forfeits town gear to the bank. Unused dungeon goods return to their pool; consumed goods stay spent.
+
+← Previous
+1 / 9
+Next →
+Pay 0 coins & descend
+PREPARATION_FIT={"scroll":false,"out":false}
+ASIDE_DIR=/Users/andrewfribush/.aside/u/0/sessions/2026-11-10_lxgzhIsIw0FDmdgH
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

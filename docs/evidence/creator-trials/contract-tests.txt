@@ -1,0 +1,48 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test --test-concurrency=2 tests/contract/*.test.ts
+
+✔ one complete bundle: racing admissions yield one charged run, exact loadout and deadline (3321.868458ms)
+✔ three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject (7297.938625ms)
+✔ zero-reward edition still caps at four and honors opening window (5608.795875ms)
+✔ bank trades exact finite inventory at reference/half-reference prices, never unlimited cash (9441.857041ms)
+✔ forfeited gear is finite resellable bank stock; racing buyers cannot share an instance (4315.761ms)
+✔ receipt exhaustion cannot strand paid runs or prevent later closure (150494.489ms)
+✔ cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once (7359.494958ms)
+✔ seeded mixed outcomes conserve all credits and funded items through closure (26530.037375ms)
+✔ recipe locks exactly two herbs/two flasks, excludes listed inputs, and issues two outputs once (20036.453958ms)
+✔ deadline is stored; late completion forces normal tier and timeout cannot mint twice (23006.024958ms)
+✔ receipt exhaustion preserves terminal capacity for a locked crafting batch (165757.099167ms)
+✔ WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock (11499.869625ms)
+✔ funded publication locks exact stock, charges pinned cost once; bad funding has no effects (4257.894ms)
+✔ explicit no-reward editions publish; invalid terms and incomplete bundles reject (7179.075042ms)
+✔ v2 accepts bounded seeded rules with unchanged module IDs and exact funding; unknown versions reject (5156.9065ms)
+✔ SetFee invalidates quotes without changing escrow; retries, ownership, limits and cutoff enforced (19051.694916ms)
+✔ Rust protocol exposes exact catalog, costs and canonical command hash (2472.303709ms)
+✔ unseeded order has no spendable budget (3642.683125ms)
+✔ seeded NPC demand pays at most 20 credits for four fine tonics, with atomic validation and replay (14456.779042ms)
+✔ player-owned shop placement, interiors, stock, purchase, closure and version checks on contract (11555.281333ms)
+✔ legacy local world migration retains every balance, item, listing and receipt (3875.462541ms)
+✔ random pools reserve without replacement, replay deterministically, return on death and exclude extracted/consumed goods (7654.478292ms)
+✔ random table validation and fixed/random funding isolation reject atomically (6301.070417ms)
+✔ recovery reserves finite bank materials and wages, pays once, and keeps output at bank; epoch cap and budget never reset (12429.021875ms)
+✔ competing jobs cannot reserve the same bank materials; timeout still pays the reserved wage once (13881.814334ms)
+✔ holdings include listed assets, town loadouts, crafting inputs, and pending maker fees (12588.17025ms)
+✔ refresh deposits exact owned stock without reallocating runs or charging again; partial pools cannot admit (20491.754042ms)
+✔ extraction partitions exact items; fees settle once; malformed claims cannot mutate economics (8322.480916ms)
+✔ death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards (7617.440042ms)
+Sandbox cleanup: forced exit after five-second grace.
+✔ extracted finds brought into a later run become town risk; expiry forfeits that loadout (45041.828834ms)
+✔ listing locks exact IDs, validates quotes atomically, and cancellation returns only unsold stock (11284.266875ms)
+✔ last-item concurrent buys yield one charged sale; listed gear cannot enter a loadout (7307.946916ms)
+✔ WASM initializes once and preserves rejected receipts for retired debit command (3311.7455ms)
+✔ starter town spends existing maker stock and funds two playable openings and finite shops (5389.462584ms)
+✔ edition reference values reconcile stock, reservations, extract, consume, refresh, void and closure exactly once (27438.520917ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 354263.799417

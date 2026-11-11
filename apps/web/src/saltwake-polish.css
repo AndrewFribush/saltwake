@@ -1,0 +1,85 @@
+/* Saltwake's visual layer. Window geometry lives exclusively in fixed-windows.css. */
+.saltwake {
+  --ink:#101f22; --panel:#192c2d; --paper:#f0e5cb;
+  --muted:#b9c5bd; --brass:#dfbd76; --risk:#efaa88;
+  color:var(--paper); background:var(--ink); color-scheme:dark;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.saltwake h1,.saltwake h2,.saltwake h3,.saltwake .character-token {font-family:Georgia,"Times New Roman",serif;color:var(--paper);letter-spacing:-.025em}
+.saltwake p {color:var(--muted)}
+.saltwake .player-hud {background:var(--panel);border:1px solid #54615a;border-radius:3px;box-shadow:none}
+.saltwake .player-hud .character-token {border-left:3px solid var(--brass);color:var(--paper)}
+.saltwake .player-hud small {color:var(--muted);font-family:system-ui,sans-serif;letter-spacing:.01em}
+.saltwake button:not(.tile):not(.place-sign):not(.character-token):not(.close-place) {
+  background:#283d3d;color:var(--paper);border-color:#68766c;border-radius:3px;box-shadow:none;
+  transition:background-color 120ms,border-color 120ms;
+}
+.saltwake button:not(.tile):not(.place-sign):not(.character-token):not(.close-place):hover:not(:disabled) {background:#354c49;border-color:var(--brass)}
+.saltwake button.primary:not(.tile):not(.place-sign):not(.character-token):not(.close-place),.saltwake button.checkout:not(.tile):not(.place-sign):not(.character-token):not(.close-place) {background:var(--brass);color:#182423;border-color:var(--brass);font-weight:650}
+.saltwake button.primary:not(.tile):not(.place-sign):not(.character-token):not(.close-place):hover:not(:disabled) {background:#f0d394;color:#101f22}
+.saltwake button[aria-pressed=true]:not(.tile),.saltwake button[aria-expanded=true]:not(.tile),.saltwake .studio-tabs button.active:not(.tile) {background:#34574e;border-color:var(--brass);color:#fff0c6;box-shadow:inset 0 -2px var(--brass)}
+.saltwake button:not(.tile):disabled {opacity:.55;cursor:not-allowed;box-shadow:none}
+.saltwake :is(button,input,select,summary,[tabindex]):focus-visible {outline:2px solid #f7d991!important;outline-offset:2px;position:relative;z-index:2}
+.saltwake :is(input,select) {color:var(--paper);background:#102224;border:1px solid #6b7b70;border-radius:3px;accent-color:var(--brass)}
+.saltwake input[type=checkbox] {width:16px;height:16px;flex:0 0 16px;margin:0}
+.saltwake input::file-selector-button {color:var(--paper);background:#314641;border:0;padding:5px 8px;margin-right:8px;border-radius:2px;cursor:pointer}
+.saltwake .game-stage :is(.room-service,.idle-inspector,.purse-drawer) {background:var(--panel)!important;border-color:#68766c;border-radius:3px}
+.saltwake .room-service-title {border-bottom:1px solid #52645d;padding-bottom:6px;align-items:center}
+.saltwake .room-service-title h3 {font-size:19px}
+.saltwake .room-heading,.saltwake .town-heading {color:var(--paper)}
+.saltwake .room-map-area,.saltwake .studio-map-area {background:#122326;box-shadow:inset 0 0 0 1px #52645d}
+.saltwake .world-hint {display:flex;align-items:center;gap:12px;height:100%;color:var(--muted);font-size:11px;padding:0 6px}
+.saltwake .world-hint>span {color:var(--brass);text-transform:uppercase;font-size:10px;letter-spacing:.15em}
+.saltwake .has-notice {border-left:2px solid var(--brass);background:#2c3630}
+.saltwake .has-notice p {color:var(--paper)}
+.saltwake .desk-nav {padding-bottom:5px;border-bottom:1px solid #435852}
+.saltwake .desk-caption {flex:1;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.saltwake .shop-toolbar {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.saltwake .shop-toolbar label {display:flex;align-items:center;gap:8px}
+.saltwake .trade-balance {border-bottom:1px solid #435852;padding-bottom:6px;color:var(--brass);font-variant-numeric:tabular-nums}
+.saltwake .shop-counter .stock-rack {margin:10px 0 6px}
+.saltwake .stock-rack .page-content {display:grid;gap:6px}
+.saltwake .stock-rack .item {display:flex;justify-content:flex-start;align-items:center;gap:10px;padding:8px;border:1px solid #52685e;border-radius:3px;background:#213735;min-width:0}
+.saltwake .stock-rack .item:has(input:checked) {border-color:var(--brass);background:#345047;box-shadow:inset 3px 0 var(--brass)}
+.saltwake .stock-rack .item:has(input:focus-visible) {outline:2px solid var(--brass);outline-offset:1px}
+.saltwake .stock-rack .item .item-icon {display:block;width:32px;height:32px;flex:0 0 32px}
+.saltwake .stock-rack .item span {flex:1;min-width:0;font-size:12px;line-height:1.4}
+.saltwake .stock-rack .item small {color:var(--muted);font-size:10px;display:block;margin:1px 0}
+.saltwake .trade-guidance {font-size:11px;color:var(--brass);min-height:16px}
+.saltwake .checkout {width:100%;text-align:center}
+.saltwake .page-controls {border-top:1px solid #435852;padding-top:5px;color:var(--muted)}
+.saltwake .page-controls button {background:transparent!important;border-color:transparent!important}
+.saltwake .page-controls button:hover:not(:disabled) {border-color:var(--brass)!important}
+.saltwake .empty-state {padding:12px;border:1px dashed #68766c;border-radius:3px;line-height:1.5}
+.saltwake .idle-service,.saltwake .idle-inspector {background:radial-gradient(ellipse at center,#263d37,var(--panel))!important}
+.saltwake .idle-service h3,.saltwake .idle-inspector h2 {color:var(--brass)}
+.saltwake .idle-service p,.saltwake .idle-inspector p {max-width:28ch;align-self:center;line-height:1.6}
+.saltwake .satchel-grid button.packed {border-color:var(--brass)!important;background:#345047!important}
+.saltwake .wallet-balances>div {background:#213735;border-color:#52685e;border-radius:3px}
+.saltwake .wallet-balances dd {color:var(--brass)}
+.saltwake .gate-warning,.saltwake .retreat p {color:var(--risk)}
+.saltwake .builder-inspector {background:var(--panel);border-color:#68766c}
+.saltwake .studio-header,.saltwake .studio-draftbar {background:var(--ink)}
+.saltwake .studio-status {background:var(--panel);color:var(--muted)}
+.saltwake .studio-tabs {border-bottom:1px solid #68766c;padding-bottom:4px}
+.saltwake .turn-feedback {border-left:3px solid var(--brass);background:#263d37;color:var(--paper)}
+.saltwake>footer {color:var(--muted);letter-spacing:.025em}
+@media(max-width:700px) {
+ .saltwake .world-hint {font-size:10px;gap:8px}.saltwake .world-hint>span {font-size:9px}
+ .saltwake .room-service-title h3 {font-size:15px}
+ .saltwake .stock-rack .item {padding:5px;gap:8px}
+ .saltwake .shop-counter .stock-rack {margin:5px 0}
+ .saltwake .trade-balance {padding-bottom:4px}
+ .saltwake .desk-nav {padding-bottom:3px}
+ .saltwake .desk-caption {font-size:9px}
+ .saltwake .stock-rack .item span {font-size:11px}
+ .saltwake .page-controls {padding-top:3px;margin:4px 0}
+ .saltwake .room-service-title {padding-bottom:3px}
+ .saltwake .trade-guidance {min-height:0}
+ .saltwake .idle-service p,.saltwake .idle-inspector p {max-width:36ch}
+}
+@media(prefers-reduced-motion:reduce) {.saltwake *, .saltwake *::before,.saltwake *::after {transition:none!important;animation:none!important}}
+
+/* Disabled movement must not dim the world while a counter is open. */
+.saltwake .room-board .room-tile:disabled {opacity:1;filter:none;cursor:default}

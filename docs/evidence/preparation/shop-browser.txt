@@ -1,0 +1,40 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+SHOP_FIT={"width":1366,"height":768,"group":"All","scroll":false,"offscreen":[]}
+SHOP_FIT={"width":1366,"height":768,"group":"Equipment","scroll":false,"offscreen":[]}
+SHOP_FIT={"width":1366,"height":768,"group":"Medicine","scroll":false,"offscreen":[]}
+SHOP_FIT={"width":1366,"height":768,"group":"Ingredients","scroll":false,"offscreen":[]}
+SHOP_FIT={"width":390,"height":844,"group":"All","scroll":false,"offscreen":[]}
+SHOP_FIT={"width":390,"height":844,"group":"Equipment","scroll":false,"offscreen":[]}
+SHOP_FIT={"width":390,"height":844,"group":"Medicine","scroll":false,"offscreen":[]}
+SHOP_FIT={"width":390,"height":844,"group":"Ingredients","scroll":false,"offscreen":[]}
+SHOP=Trade
+Supplies
+Traders
+Sell / list
+NPC order
+Refresh shop
+
+2 coins available · 0 selected
+
+Outfit your next expedition
+Supplies 
+All
+Equipment
+Medicine
+Ingredients
+Flask
+Tonic ingredient
+Buy 2 / sell 1 coins
+Flask
+Tonic ingredient
+Buy 2 / sell 1 coins
+← Previous
+1 / 4
+Next →
+
+Choose supplies to see your total.
+
+Buy 0 items · 0 coins
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

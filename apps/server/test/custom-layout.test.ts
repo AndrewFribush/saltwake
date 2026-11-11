@@ -12,3 +12,5 @@ test('custom codec validates geometry, connectivity and unique traversable marke
  const sparse=structuredClone(floor);delete sparse.tiles[3];assert.ok(validateCustomFloor(sparse).length);
  assert.throws(()=>decodeCustomModule('cellar'));assert.throws(()=>decodeCustomModule('custom:{'));assert.throws(()=>decodeCustomModule(encodeCustomModule(floor)+' '.repeat(2048)));
 });
+
+test('v4 codec supports zero through sixteen arbitrary encounter positions without weakening v3',()=>{for(const count of [0,1,5,16]){const f={...floor,sockets:Array.from({length:count},(_,i)=>({x:1+i%10,y:2+Math.floor(i/10)}))};assert.deepEqual(decodeCustomModule(encodeCustomModule(f,true)),f);if(count!==4)assert.throws(()=>encodeCustomModule(f));}const large={...floor,sockets:Array.from({length:17},(_,i)=>({x:1+i%10,y:2+Math.floor(i/10)}))};assert.throws(()=>encodeCustomModule(large,true),/sixteen/);assert.throws(()=>decodeCustomModule('custom4:'+JSON.stringify({...floor,sockets:[floor.spawn]})));});

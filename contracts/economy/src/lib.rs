@@ -1,4 +1,5 @@
 mod craft;
+mod shops;
 mod editions;
 mod market;
 mod model;
@@ -11,6 +12,24 @@ use std::collections::BTreeMap;
 #[near(contract_state)]
 #[derive(PanicOnDefault, Clone)]
 pub struct Economy {
+    shops: BTreeMap<String, Shopfront>,
+    operator: AccountId,
+    credits: BTreeMap<String, u64>,
+    bank: u64,
+    items: BTreeMap<String, Item>,
+    editions: BTreeMap<String, Edition>,
+    runs: BTreeMap<String, Run>,
+    receipts: BTreeMap<String, Receipt>,
+    next_edition: u64,
+    next_run: u64,
+    listings: BTreeMap<String, Listing>,
+    npc_order: NpcOrder,
+    batches: BTreeMap<String, CraftBatch>,
+    recovery: RecoveryState,
+}
+#[derive(borsh::BorshDeserialize)]
+#[borsh(crate = "near_sdk::borsh")]
+struct LegacyEconomy {
     operator: AccountId,
     credits: BTreeMap<String, u64>,
     bank: u64,
@@ -37,10 +56,17 @@ fn now_ms() -> u64 {
 
 #[near]
 impl Economy {
+    #[init(ignore_state)]
+    #[private]
+    pub fn migrate_shops() -> Self {
+        let old: LegacyEconomy = env::state_read().expect("Legacy state required");
+        Self {shops: BTreeMap::new(), operator:old.operator,credits:old.credits,bank:old.bank,items:old.items,editions:old.editions,runs:old.runs,receipts:old.receipts,next_edition:old.next_edition,next_run:old.next_run,listings:old.listings,npc_order:old.npc_order,batches:old.batches,recovery:old.recovery}
+    }
     #[init]
     #[private]
     pub fn init_demo() -> Self {
         let mut s = Self {
+            shops: BTreeMap::new(),
             operator: env::predecessor_account_id(),
             credits: BTreeMap::new(),
             bank: 0,
@@ -161,58 +187,45 @@ impl Economy {
             self.operator,
             "Operator only"
         );
-        assert!(
-            env::input().map(|b| b.len()).unwrap_or(0) <= 32768,
-            "Request too large"
-        );
-        assert!(
-            !op_id.is_empty() && op_id.len() <= 64,
-            "Invalid operation ID"
-        );
-        let payload_hash = hash(&command);
-        if let Some(r) = self.receipts.get(&op_id) {
-            assert_eq!(r.payload_hash, payload_hash, "Operation payload conflict");
-            return r.clone();
+        if command.actor.starts_with("wallet:") {
+            let bound = match &command.action {
+                Action::Settle { run_id, .. } | Action::Void { run_id, .. } =>
+                    self.runs.get(run_id).is_some_and(|run| run.player == command.actor),
+                Action::FinishCraft { batch_id, .. } => self.batches.get(batch_id)
+                    .is_some_and(|batch| batch.actor == command.actor && !batch.recovery),
+                Action::FinishRecovery { batch_id, .. } => self.batches.get(batch_id)
+                    .is_some_and(|batch| batch.actor == command.actor && batch.recovery),
+                _ => false,
+            };
+            assert!(bound, "Wallet actors require a bound oracle result");
         }
-        assert!(self.receipts.len() < 256, "Receipt capacity exhausted");
-        // All validation is transactional, including validation rejections retained as receipts.
-        let mut staged = self.clone();
-        let outcome = if !staged.credits.contains_key(&command.actor) {
-            Err("UnknownProfile".into())
-        } else {
-            staged.apply(command, &op_id)
-        };
-        let (status, result) = match outcome {
-            Ok(result) => {
-                assert!(
-                    staged.receipts.len() + 1 + staged.reserved_capacity() <= 256,
-                    "ReceiptCapacityReserved"
-                );
-                *self = staged;
-                ("Applied", result)
-            }
-            Err(code) => {
-                assert!(
-                    self.receipts.len() + 1 + self.reserved_capacity() <= 256,
-                    "ReceiptCapacityReserved"
-                );
-                ("Rejected", code)
-            }
-        };
-        let run = if status == "Applied" {
-            self.runs.get(&result).cloned()
-        } else {
-            None
-        };
-        let receipt = Receipt {
-            op_id: op_id.clone(),
-            payload_hash,
-            status: status.into(),
-            result,
-            run,
-        };
-        self.receipts.insert(op_id, receipt.clone());
-        receipt
+        self.process_command(op_id, command, false)
+    }
+    pub fn wallet_profile(&self, account_id: AccountId) -> String {
+        format!("wallet:{account_id}")
+    }
+    pub fn register_player(&mut self) -> String {
+        let profile = self.wallet_profile(env::predecessor_account_id());
+        if self.credits.contains_key(&profile) { return profile; }
+        assert!(self.credits.keys().filter(|p| p.starts_with("wallet:")).count() < 128, "Wallet profile capacity exhausted");
+        self.credits.insert(profile.clone(), 0);
+        profile
+    }
+    pub fn player_operation_id(&self, account_id: AccountId, request_id: String) -> String {
+        player_operation_key(&account_id, &request_id)
+    }
+    pub fn execute_player(&mut self, request_id: String, action: Action) -> Receipt {
+        let account = env::predecessor_account_id();
+        let op_id = player_operation_key(&account, &request_id);
+        let actor = self.wallet_profile(account);
+        assert!(self.credits.contains_key(&actor), "Player registration required");
+        assert!(player_action_allowed(&action), "Action requires operator orchestration");
+        if let Action::BeginCraft { batch_id, deadline_ms, .. }
+            | Action::BeginRecovery { batch_id, deadline_ms, .. } = &action {
+            assert_eq!(batch_id, &op_id, "Player batch must match account request");
+            assert_eq!(deadline_ms.0, 0, "Player craft deadline must use chain time");
+        }
+        self.process_command(op_id, Command { actor, action }, true)
     }
     pub fn operation(&self, op_id: String) -> Option<Receipt> {
         self.receipts.get(&op_id).cloned()
@@ -228,6 +241,7 @@ impl Economy {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            shops: self.shops.values().cloned().collect(),
             credits: self
                 .credits
                 .iter()
@@ -300,7 +314,97 @@ impl Economy {
         ])
     }
 }
+fn player_operation_key(account: &AccountId, request_id: &str) -> String {
+    assert!(!request_id.is_empty() && request_id.len() <= 40
+        && request_id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-'), "Invalid player request ID");
+    hash(&("saltwake.player-operation.v1", account, request_id))
+}
+fn player_action_allowed(action: &Action) -> bool {
+    matches!(action,
+        Action::Publish { .. } | Action::PublishRandom { .. } | Action::Admit { .. }
+        | Action::FinalizeClose { .. } | Action::Refresh { .. } | Action::SetFee { .. }
+        | Action::List { .. } | Action::CancelListing { .. } | Action::Buy { .. }
+        | Action::BankBuy { .. } | Action::BankSell { .. } | Action::FillNpcOrder { .. }
+        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. }
+        | Action::BeginCraft { .. } | Action::BeginRecovery { .. })
+}
 impl Economy {
+    fn process_command(&mut self, op_id: String, mut command: Command, player: bool) -> Receipt {
+        let input_limit = match &command.action {
+            Action::Publish { terms, .. } | Action::PublishRandom { terms, .. }
+                if matches!(terms.rules_version, 9 | 10 | 11) => 131072,
+            _ => 32768,
+        };
+        assert!(
+            env::input().map(|b| b.len()).unwrap_or(0) <= input_limit,
+            "Request too large"
+        );
+        assert!(
+            !op_id.is_empty() && op_id.len() <= 64,
+            "Invalid operation ID"
+        );
+        let payload_hash = hash(&command);
+        if let Some(r) = self.receipts.get(&op_id) {
+            assert_eq!(r.payload_hash, payload_hash, "Operation payload conflict");
+            return r.clone();
+        }
+        assert!(self.receipts.len() < 256, "Receipt capacity exhausted");
+        // Receipt identity is the submitted command. Derive execution randomness
+        // only for a new player admission, never for replay or operator demos.
+        if player {
+            // Bind new crafting windows to confirmed chain execution, not a
+            // caller's deadline or time spent approving the wallet request.
+            if let Action::BeginCraft { ref mut deadline_ms, .. }
+                | Action::BeginRecovery { ref mut deadline_ms, .. } = command.action {
+                *deadline_ms = U64(now_ms().saturating_add(120_000));
+            }
+            if let Action::Admit { ref mut seed, .. } = command.action {
+                let entropy = env::sha256(&borsh::to_vec(&(
+                    "saltwake.player-admission.v1", env::random_seed(),
+                    env::predecessor_account_id(), &op_id,
+                )).unwrap());
+                *seed = U64(u64::from_le_bytes(entropy[..8].try_into().unwrap()));
+            }
+        }
+        // All validation is transactional, including validation rejections retained as receipts.
+        let mut staged = self.clone();
+        let outcome = if !staged.credits.contains_key(&command.actor) {
+            Err("UnknownProfile".into())
+        } else {
+            staged.apply(command, &op_id)
+        };
+        let (status, result) = match outcome {
+            Ok(result) => {
+                assert!(
+                    staged.receipts.len() + 1 + staged.reserved_capacity() <= 256,
+                    "ReceiptCapacityReserved"
+                );
+                *self = staged;
+                ("Applied", result)
+            }
+            Err(code) => {
+                assert!(
+                    self.receipts.len() + 1 + self.reserved_capacity() <= 256,
+                    "ReceiptCapacityReserved"
+                );
+                ("Rejected", code)
+            }
+        };
+        let run = if status == "Applied" {
+            self.runs.get(&result).cloned()
+        } else {
+            None
+        };
+        let receipt = Receipt {
+            op_id: op_id.clone(),
+            payload_hash,
+            status: status.into(),
+            result,
+            run,
+        };
+        self.receipts.insert(op_id, receipt.clone());
+        receipt
+    }
     fn reserved_capacity(&self) -> usize {
         self.runs.values().filter(|r| r.status == "active").count()
             + self.editions.values().filter(|e| !e.closed).count()
@@ -317,6 +421,9 @@ impl Economy {
     }
     fn apply(&mut self, c: Command, op_id: &str) -> Result<String, String> {
         match c.action {
+            Action::CreateShop {title,district,x,y,interior,open} => self.save_shop(c.actor,None,U64(0),title,district,x,y,interior,open),
+            Action::UpdateShop {shop_id,expected_version,title,district,x,y,interior,open} => self.save_shop(c.actor,Some(shop_id),expected_version,title,district,x,y,interior,open),
+            Action::StockShop {shop_id,item_ids,unit_price} => self.stock_shop(c.actor,shop_id,item_ids,unit_price),
             Action::BeginCraft {
                 batch_id,
                 input_ids,

@@ -1,0 +1,19 @@
+Large authored HTTP publication bytes: 37789
+✔ HTTP publishes a large sixteen-floor command end to end while preserving bounded legacy requests (2337.524958ms)
+✔ save command and signed bytes before broadcast, preserve ID on uncertain retry and restart (5.688625ms)
+✔ missing receipt keeps uncertainty and blocks later signing (3.232375ms)
+✔ exclusive writer and bounded request storage (2.127541ms)
+✔ confirmed failed transaction can be replaced under the SAME operation and command (2.99225ms)
+✔ capacity preserves terminal headroom for admitted run (119.237375ms)
+✔ malformed string fields reject before persisting and cannot jam later settlements (1.9925ms)
+✔ only v9 publication receives the larger command envelope and oversized commands never reserve capacity (2.702125ms)
+✔ oversized legacy signed transactions never broadcast on retry or restart (3.712167ms)
+✔ oversized v9 publication signed transactions never broadcast on retry or restart (5.018708ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2607.255916

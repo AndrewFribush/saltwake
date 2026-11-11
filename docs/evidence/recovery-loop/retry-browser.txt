@@ -1,0 +1,7 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+ACTIVE_FIT={"width":1366,"height":768,"scroll":false,"offscreen":[]}
+ACTIVE_FIT={"width":390,"height":844,"scroll":false,"offscreen":[]}
+RETRY_RESULT={"before":{"credits":"0","jobs":0},"after":{"credits":"2","jobs":1,"craft":{"status":"finished","tier":"normal","outputs":["crafted-c-71c0da4050dc427f7c3896a90792a35f5c4b77cba18fb340-0","crafted-c-71c0da4050dc427f7c3896a90792a35f5c4b77cba18fb340-1"]},"outputsAtBank":true}}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

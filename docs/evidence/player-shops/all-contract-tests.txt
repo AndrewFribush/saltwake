@@ -1,0 +1,54 @@
+
+> dungeon-economy@0.1.0 test:contract
+> tsx --test --test-concurrency=2 tests/contract/*.test.ts
+
+✔ one complete bundle: racing admissions yield one charged run, exact loadout and deadline (4051.627083ms)
+✔ three funded copies support three runs; stale quotes, reused loadouts, self-entry and repeat profile reject (7321.764541ms)
+✔ zero-reward edition still caps at four and honors opening window (6199.317708ms)
+✔ bank trades exact finite inventory at reference/half-reference prices, never unlimited cash (9764.318542ms)
+✔ forfeited gear is finite resellable bank stock; racing buyers cannot share an instance (4319.349167ms)
+✔ receipt exhaustion cannot strand paid runs or prevent later closure (150881.74725ms)
+✔ cutoff refuses new entry; active run blocks banking; late void returns stock then close banks it once (7832.461333ms)
+✔ seeded mixed outcomes conserve all credits and funded items through closure (25239.44975ms)
+✔ recipe locks exactly two herbs/two flasks, excludes listed inputs, and issues two outputs once (20315.417792ms)
+✔ deadline is stored; late completion forces normal tier and timeout cannot mint twice (22341.976833ms)
+✔ receipt exhaustion preserves terminal capacity for a locked crafting batch (166221.281166ms)
+✔ WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock (11445.227375ms)
+✔ funded publication locks exact stock, charges pinned cost once; bad funding has no effects (4385.35975ms)
+✔ explicit no-reward editions publish; invalid terms and incomplete bundles reject (6627.291ms)
+✔ v2 accepts bounded seeded rules with unchanged module IDs and exact funding; unknown versions reject (5252.936542ms)
+✔ SetFee invalidates quotes without changing escrow; retries, ownership, limits and cutoff enforced (19723.931541ms)
+✔ Rust protocol exposes exact catalog, costs and canonical command hash (3425.871041ms)
+✔ unseeded order has no spendable budget (3448.306917ms)
+✔ seeded NPC demand pays at most 20 credits for four fine tonics, with atomic validation and replay (15165.08775ms)
+✔ player-owned shop placement, interiors, stock, purchase, closure and version checks on contract (9901.906917ms)
+✔ legacy local world migration retains every balance, item, listing and receipt (4783.288625ms)
+✔ random pools reserve without replacement, replay deterministically, return on death and exclude extracted/consumed goods (7386.843042ms)
+✔ random table validation and fixed/random funding isolation reject atomically (6261.196708ms)
+✔ recovery reserves finite bank materials and wages, pays once, and keeps output at bank; epoch cap and budget never reset (13057.824125ms)
+✔ competing jobs cannot reserve the same bank materials; timeout still pays the reserved wage once (13929.719542ms)
+✔ holdings include listed assets, town loadouts, crafting inputs, and pending maker fees (12540.723375ms)
+✔ refresh deposits exact owned stock without reallocating runs or charging again; partial pools cannot admit (22378.600958ms)
+✔ extraction partitions exact items; fees settle once; malformed claims cannot mutate economics (8054.966542ms)
+✔ death forfeits town equipment and returns surviving finds; void refunds fee but never restores consumed rewards (9158.68025ms)
+Sandbox cleanup: forced exit after five-second grace.
+✖ extracted finds brought into a later run become town risk; expiry forfeits that loadout (66814.204458ms)
+✔ listing locks exact IDs, validates quotes atomically, and cancellation returns only unsold stock (11465.543542ms)
+✔ last-item concurrent buys yield one charged sale; listed gear cannot enter a loadout (6939.96325ms)
+✔ WASM initializes once and preserves rejected receipts for retired debit command (3459.263583ms)
+✔ starter town spends existing maker stock and funds two playable openings and finite shops (6119.759708ms)
+✔ edition reference values reconcile stock, reservations, extract, consume, refresh, void and closure exactly once (27201.101625ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 34
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 372623.429375
+
+✖ failing tests:
+
+test at tests/contract/settlement.test.ts:1:4022
+✖ extracted finds brought into a later run become town risk; expiry forfeits that loadout (66814.204458ms)
+  [TimeoutError: The operation was aborted due to timeout]

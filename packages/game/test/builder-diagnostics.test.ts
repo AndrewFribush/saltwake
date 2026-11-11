@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {floorDiagnostics} from '../src/builder-diagnostics';
+import type {CustomFloor} from '../../shared/src/custom-layout';
+function floor():CustomFloor{return {tiles:Array.from({length:9},(_,y)=>y===0||y===8?'#############':'#...........#'),spawn:{x:1,y:1},exit:{x:11,y:7},sockets:[{x:3,y:2},{x:8,y:2},{x:3,y:5},{x:8,y:5}]};}
+test('blocked marker identifies its tile and how to fix it without modifying draft',()=>{const f=floor();f.tiles[1]='#' + '#' + '.'.repeat(10)+'#';const before=JSON.stringify(f);const issues=floorDiagnostics(f);assert.ok(issues.some(i=>i.at?.x===1&&i.at.y===1&&/arrival/i.test(i.message)));assert.equal(JSON.stringify(f),before);});
+test('disconnected tiles identify a repair location instead of only a generic error',()=>{const f=floor();f.tiles=f.tiles.map((r,y)=>y>0&&y<8?r.slice(0,6)+'#'+r.slice(7):r);const issues=floorDiagnostics(f);assert.ok(issues.some(i=>i.at&&i.at.x>6&&/connect/i.test(i.message)));});
+test('duplicate markers and boundary openings are located; valid floors have no errors',()=>{const f=floor();assert.deepEqual(floorDiagnostics(f),[]);f.exit={...f.spawn};assert.ok(floorDiagnostics(f).some(i=>i.at?.x===1&&/overlap/i.test(i.message)));f.tiles[0]='#.###########';assert.ok(floorDiagnostics(f).some(i=>i.at?.x===1&&i.at.y===0));});
+test('malformed unknown data returns errors without throwing',()=>{for(const value of [null,[],{}, {tiles:[5]}, {tiles:floor().tiles,sockets:null}]){assert.doesNotThrow(()=>floorDiagnostics(value));assert.ok(floorDiagnostics(value).length);}});

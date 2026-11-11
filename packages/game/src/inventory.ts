@@ -1,3 +1,4 @@
+import {healing} from '../../shared/src/equipment';
 import {catalog} from '../../shared/src/catalog';
 import type {RunState} from './state';
 export type ItemLocation={kind:'floor';room:number;x:number;y:number}|{kind:'bag'|'weapon'|'armor'|'consumed'};
@@ -23,7 +24,7 @@ export function inventoryAction(s:RunState,a:InventoryAction):boolean{
  const bagCount=()=>Object.values(s.items).filter(i=>i.location.kind==='bag').length;
  if(a.type==='use'){
   if(!isConsumable(item.type)||s.player.hp>=12)return false;
-  s.player.hp=Math.min(12,s.player.hp+(item.type==='tonic'?4:6));item.location={kind:'consumed'};s.log.push(`Used ${catalog[item.type].name}.`);return true;
+  s.player.hp=Math.min(12,s.player.hp+healing[item.type as keyof typeof healing]);item.location={kind:'consumed'};s.log.push(`Used ${catalog[item.type].name}.`);return true;
  }
  if(a.type==='pickup'){
   if(item.location.kind!=='floor'||bagCount()>=6)return false;item.location={kind:'bag'};

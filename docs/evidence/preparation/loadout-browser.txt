@@ -1,0 +1,7 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+LOADOUT_FIT={"width":1366,"height":768,"scroll":false,"offscreen":[]}
+LOADOUT_FIT={"width":390,"height":844,"scroll":false,"offscreen":[]}
+LOADOUT_PREVIEW=Death forfeits packed gear. Start: sword (3 damage) · armor none · bag 1/6.
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

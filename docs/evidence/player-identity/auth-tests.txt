@@ -1,0 +1,14 @@
+✔ wallet sign-in verifies standard signatures at finality, binds account and creates no demo claim (33.2555ms)
+✔ changed signed fields, another account, missing binding and cross-origin proofs reject (11.883875ms)
+✔ concurrent replay consumes the challenge before asynchronous key verification (2.245792ms)
+✔ restricted, absent and revoked keys cannot authenticate (2.568916ms)
+✔ expiry is checked after asynchronous verification and sessions expire independently (6.770125ms)
+✔ challenge replacement, capacities, configuration and restart fail closed (5.924208ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 268.157083

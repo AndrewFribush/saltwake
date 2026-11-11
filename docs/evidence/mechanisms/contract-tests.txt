@@ -1,0 +1,16 @@
+✔ WASM v10 requires exact typed devices and bounded ASCII channels and UTF8 IDs (22574.780084ms)
+✔ WASM v10 enforces geometry, marker collisions, device totals and operating bounds (15045.25675ms)
+✔ WASM v10 wires channels across directed floors and reserves exact funded goods (6955.621916ms)
+✔ WASM v3-v9 preserve ignored device metadata and reject the custom10 prefix (9709.571917ms)
+publish: 42516 bytes, 16 floors at 31x31, 64 devices, 64 tuned traps, 300 Tgas
+✔ WASM v10 publish accepts large geometry with devices within the 128 KiB input cap (3194.967375ms)
+publish_random: 42555 bytes, 16 floors at 31x31, 64 devices, 64 tuned traps, 300 Tgas
+✔ WASM v10 publish_random accepts large geometry with devices within the 128 KiB input cap (3332.40775ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 61040.23725

@@ -1,0 +1,16 @@
+✔ WASM v11 requires exact exit rules with paired non-null channel and value (22363.491375ms)
+✔ WASM v11 requires an extraction floor and globally wired exit channels while preserving bounds (13022.003375ms)
+✔ WASM v11 validates graph exit policies and reserves exact funded last-floor goods (6524.688417ms)
+✔ WASM v1-v10 stay pinned and old custom modules ignore exit_rule metadata (12317.755834ms)
+publish: 44227 bytes, 16 floors at 31x31, 64 devices, 64 tuned traps, authored exit policies, 300 Tgas
+✔ WASM v11 publish retains the bounded large publication allowance (3180.348417ms)
+publish_random: 44266 bytes, 16 floors at 31x31, 64 devices, 64 tuned traps, authored exit policies, 300 Tgas
+✔ WASM v11 publish_random retains the bounded large publication allowance (3981.453292ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 61675.149

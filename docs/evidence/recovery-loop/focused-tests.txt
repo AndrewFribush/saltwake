@@ -1,0 +1,12 @@
+✔ death → finite recovery work → buy lost gear → re-enter at quoted terms (10114.685208ms)
+✔ recipe selection checks exact types, ownership and duplicate IDs (0.513708ms)
+✔ recovery explains finite funds, missing materials and exhausted allowance (0.238375ms)
+✔ listed assets, loadout, craft inputs and pending fees remain holdings (0.17125ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10368.974958

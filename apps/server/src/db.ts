@@ -3,7 +3,7 @@ import {closeSync,openSync,readFileSync,unlinkSync,writeFileSync,mkdirSync} from
 import {dirname} from 'node:path';
 import type {Command,OperationStatus} from '../../../packages/shared/src/types';
 export type Signed={hash:string;bytes:string;nonce?:string};
-export type StoredOperation={id:string;command:Command;hash:string;status:'Pending'|'Unknown'|'Applied'|'Rejected';signed?:Signed;signedAt?:number;retired?:Signed[];receipt?:OperationStatus;reason?:string};
+export type StoredOperation={authority?:'player';id:string;command:Command;hash:string;status:'Pending'|'Unknown'|'Applied'|'Rejected';signed?:Signed;signedAt?:number;retired?:Signed[];receipt?:OperationStatus;reason?:string};
 export class Store {
  readonly sql:DatabaseSync;private closed=false;private lock:string;
  constructor(path:string){

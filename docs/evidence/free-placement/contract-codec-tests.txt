@@ -1,0 +1,12 @@
+✔ custom codec validates geometry, connectivity and unique traversable markers (1.703041ms)
+✔ v4 codec supports zero through sixteen arbitrary encounter positions without weakening v3 (4.273875ms)
+✔ WASM v3 publication rejects invalid geometry atomically and reserves exact funded stock (12309.837959ms)
+✔ WASM v4 publishes variable encounter positions, reserves a fifth-slot reward and rejects legacy reinterpretation (4228.047334ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16949.718625

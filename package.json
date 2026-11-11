@@ -8,16 +8,20 @@
     "build": "vite build apps/web",
     "typecheck": "tsc --noEmit",
     "test:game": "tsx --test packages/game/test/*.test.ts",
+    "test:web": "tsx --test apps/web/test/*.test.ts",
     "test": "npm run test:game",
     "test:contract": "tsx --test --test-concurrency=2 tests/contract/*.test.ts",
     "test:server": "tsx --test --test-concurrency=2 apps/server/test/*.test.ts",
     "test:e2e": "tsx --test apps/server/test/http-loop.test.ts apps/server/test/economy-loop.test.ts",
     "build:contract": "cargo build --manifest-path contracts/economy/Cargo.toml --target wasm32-unknown-unknown --release --locked",
-    "verify": "npm run typecheck && npm run build:contract && npm test && npm run test:contract && npm run test:server && npm run build",
+    "verify": "npm run typecheck && npm run build:contract && npm test && npm run test:web && npm run test:contract && npm run test:server && npm run build",
     "server": "tsx apps/server/src/main.ts",
     "sandbox": "tsx scripts/demo-sandbox.ts"
   },
   "dependencies": {
+    "@near-wallet-selector/core": "10.1.4",
+    "@near-wallet-selector/nightly": "10.1.4",
+    "buffer": "6.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },

@@ -1,0 +1,27 @@
+✖ terminal discovery interrupted between durable writes cannot leave playable stale progress after restart (8051.803ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8283.512708
+
+✖ failing tests:
+
+test at apps/server/test/player-discovery.test.ts:1:14318
+✖ terminal discovery interrupted between durable writes cannot leave playable stale progress after restart (8051.803ms)
+  AssertionError [ERR_ASSERTION]: known chain-terminal run must not become playable
+      at assertNotPlayable (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/player-discovery.test.ts:54:17)
+      at TestContext.<anonymous> (/Users/andrewfribush/Technology/contests/near-2026/dungeon-economy/apps/server/test/player-discovery.test.ts:155:50)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1313:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

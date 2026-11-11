@@ -1,0 +1,17 @@
+✔ identity helper account/request boundaries and explicit action gates (1.075166ms)
+✔ WASM wallet registration binds accounts, preserves zero issuance and enforces request identities (7250.404667ms)
+✔ WASM direct free admission pins submitted hash and derived seed; only bound oracle may terminate (9428.330125ms)
+✔ WASM wallet shops enforce ownership, replay and explicit operator/player action allowlists (19946.909417ms)
+✔ WASM repeated registration preserves earned credits without grants (5843.462833ms)
+✔ WASM registration caps only wallet profiles at 128 and existing registration remains replayable (68315.605625ms)
+Upgrade proof: active run + paid escrow + craft/recovery reservations + listing + shop + six receipts preserved without migration; legacy terminals still settle.
+✔ WASM pre-identity populated upgrade preserves snapshots, hashes and receipts without migration (11818.418917ms)
+✔ WASM wallet recovery starts bind batch identity and chain deadline; replay never resets the window (8142.366ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 130994.747375

@@ -1,0 +1,14 @@
+▶ NEP-413 ownership uses actual final access keys on a disposable chain
+  ✔ account full-access key authenticates, cookie owns only that account, and replay rejects (6.623667ms)
+  ✔ valid signature from another account key cannot claim Alice (3.988333ms)
+  ✔ an existing function-call-only key cannot authenticate (6.411417ms)
+  ✔ a full-access key revoked after signing is rejected at final verification (631.513042ms)
+✔ NEP-413 ownership uses actual final access keys on a disposable chain (1814.231417ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2041.172833

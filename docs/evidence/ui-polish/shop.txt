@@ -1,0 +1,17 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+SHOP Supplies 1366=[]
+SHOP Supplies 390=[]
+SHOP Traders 1366=[]
+SHOP Traders 390=[]
+SHOP Sell / list 1366=[]
+SHOP Sell / list 390=[]
+SHOP NPC order 1366=[]
+SHOP NPC order 390=[]
+SELECTION=1 selected · 2 coins total
+CHECKOUT_ENABLED=true
+FOCUS_CONTAINED=true
+SELECTION_PRESERVED=true
+ERRORS=[]
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

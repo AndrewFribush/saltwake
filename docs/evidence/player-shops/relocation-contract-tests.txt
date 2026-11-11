@@ -1,0 +1,10 @@
+✔ player-owned shop placement, interiors, stock, purchase, closure and version checks on contract (11406.061125ms)
+✔ legacy local world migration retains every balance, item, listing and receipt (4257.35525ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15863.754917

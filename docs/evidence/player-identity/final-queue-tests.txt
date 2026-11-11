@@ -1,0 +1,42 @@
+✔ purchases establish exact basis and resale transfers basis once (1.667459ms)
+✔ craft preserves integer total and propagates any unknown input (0.309667ms)
+✔ funding expenses goods once and an ownership gap invalidates basis (0.183291ms)
+✔ town losses remove basis; extracted goods do not acquire an invented zero basis (0.146625ms)
+✔ journal survives restart after broadcast and duplicate confirmation without repeating costs (6.879625ms)
+✔ old applied receipts without a captured baseline stay unknown (3.315625ms)
+✔ outbox recovers a confirmed operation whose accounting write was interrupted (6.2685ms)
+✔ unobserved historic funding is unknown and never silently counted as free (3.342458ms)
+✔ edition contribution excludes pending and void fees and refuses unknown committed costs (2.765708ms)
+✔ failed sale/repurchase observations cannot revive basis (capture=false, later=false) (9.746459ms)
+✔ failed sale/repurchase observations cannot revive basis (capture=false, later=true) (8.436125ms)
+✔ failed sale/repurchase observations cannot revive basis (capture=true, later=false) (7.092875ms)
+✔ failed sale/repurchase observations cannot revive basis (capture=true, later=true) (8.453708ms)
+✔ timed-out cost observations cannot commit after their snapshot eventually returns (3.438417ms)
+✔ save command and signed bytes before broadcast, preserve ID on uncertain retry and restart (8.275875ms)
+✔ missing receipt keeps uncertainty and blocks later signing (6.448292ms)
+✔ exclusive writer and bounded request storage (3.212042ms)
+✔ confirmed failed transaction can be replaced under the SAME operation and command (4.293042ms)
+✔ capacity preserves terminal headroom for admitted run (165.746833ms)
+✔ malformed string fields reject before persisting and cannot jam later settlements (3.031416ms)
+✔ only v9 publication receives the larger command envelope and oversized commands never reserve capacity (3.250417ms)
+✔ oversized legacy signed transactions never broadcast on retry or restart (4.649875ms)
+✔ oversized v9 publication signed transactions never broadcast on retry or restart (5.965542ms)
+✔ player requests remain unsigned across retries/restart and accept only exact final receipts (10.895625ms)
+✔ an unresolved player request never blocks the independent operator signer stream (4.356917ms)
+✔ receipt identity conflicts and stored signed bytes cannot make a player request broadcast (4.029167ms)
+✔ account identities isolate operation IDs and wallet result/start actions are not user-submittable (3.284625ms)
+✔ confirmed player admission retains terminal capacity and cost observers never claim missing before evidence (169.879708ms)
+✔ an unsigned foreign closure cannot discharge another creator’s reserved terminal capacity (122.51525ms)
+✔ a stalled player receipt cannot stall operator signing or create duplicate polling requests (64.481208ms)
+✔ two owner-bound queued oracle terminals occupy both reserved slots without double-counting (112.377583ms)
+✔ stalled observations are bounded, retain their live slot and signal cancellation before late writes (23.047958ms)
+✔ player-signed admission prepared before wallet handoff recovers and settles through limited oracle (4509.045208ms)
+✔ player-signed admission discovered after chain confirmation recovers and settles through limited oracle (4536.605125ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9310.873791

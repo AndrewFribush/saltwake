@@ -1,0 +1,174 @@
+{
+  "fixture": "smugglers-choice-v1",
+  "kit": "sword",
+  "hp": 9,
+  "actions": [
+    {
+      "type": "move",
+      "x": 1,
+      "y": 4
+    },
+    {
+      "type": "move",
+      "x": 2,
+      "y": 4
+    },
+    {
+      "type": "move",
+      "x": 3,
+      "y": 4
+    },
+    {
+      "type": "move",
+      "x": 3,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 4,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 4,
+      "y": 4
+    },
+    {
+      "type": "move",
+      "x": 4,
+      "y": 5
+    },
+    {
+      "type": "move",
+      "x": 5,
+      "y": 5
+    },
+    {
+      "type": "move",
+      "x": 5,
+      "y": 4
+    },
+    {
+      "type": "move",
+      "x": 5,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 6,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 4
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 5
+    },
+    {
+      "type": "move",
+      "x": 8,
+      "y": 5
+    },
+    {
+      "type": "move",
+      "x": 9,
+      "y": 5
+    },
+    {
+      "type": "move",
+      "x": 10,
+      "y": 5
+    },
+    {
+      "type": "move",
+      "x": 11,
+      "y": 5
+    },
+    {
+      "type": "pickup",
+      "itemId": "practice-cache"
+    },
+    {
+      "type": "move",
+      "x": 11,
+      "y": 4
+    },
+    {
+      "type": "move",
+      "x": 11,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 10,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 9,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 8,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 7,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 6,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 5,
+      "y": 3
+    },
+    {
+      "type": "move",
+      "x": 5,
+      "y": 2
+    },
+    {
+      "type": "move",
+      "x": 5,
+      "y": 1
+    },
+    {
+      "type": "move",
+      "x": 4,
+      "y": 1
+    },
+    {
+      "type": "move",
+      "x": 3,
+      "y": 1
+    },
+    {
+      "type": "move",
+      "x": 2,
+      "y": 1
+    },
+    {
+      "type": "move",
+      "x": 1,
+      "y": 1
+    },
+    {
+      "type": "extract"
+    }
+  ]
+}

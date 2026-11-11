@@ -1,0 +1,12 @@
+Actual disposable-chain HTTP: two independent NEP-413 accounts; direct registration grants zero credits; unsigned intent remains Unknown; wallet-signed execute_player confirms Applied; forged actor ignored; ownership isolated; logout/expiry reject; operator sign/broadcast calls = 0.
+✔ wallet HTTP uses two real accounts and confirmed direct transactions, never operator spending (7563.494375ms)
+Actual wallet HTTP gameplay: two independent authenticated registered accounts; direct v11 free/no-stock admission; GET world discovery; foreign GET/action denied; owner move/extract; final chain settlement Applied; exactly one operator signature/broadcast, bound to owner terminal settlement.
+✔ wallet HTTP discovers a direct v11 admission, isolates gameplay and confirms oracle-only extraction (6853.131917ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14681.905792

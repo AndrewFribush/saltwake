@@ -10,6 +10,9 @@ export type EditionTerms={readonly title:string;readonly rules_version:number;re
 export type RandomTable={readonly table_id:string;readonly socket_ids:readonly string[];readonly item_ids:readonly string[]};
 export type RandomFunding={readonly table_id:string;readonly item_ids:readonly string[]};
 export type Command={readonly actor:string;readonly action:
+ |{readonly type:'create_shop';readonly title:string;readonly district:string;readonly x:number;readonly y:number;readonly interior:string;readonly open:boolean}
+ |{readonly type:'update_shop';readonly shop_id:string;readonly expected_version:string;readonly title:string;readonly district:string;readonly x:number;readonly y:number;readonly interior:string;readonly open:boolean}
+ |{readonly type:'stock_shop';readonly shop_id:string;readonly item_ids:readonly string[];readonly unit_price:string}
  |{readonly type:'debit';readonly amount:string}
  |{readonly type:'publish';readonly terms:EditionTerms;readonly fee:string;readonly funding:readonly string[]}
  |{readonly type:'admit';readonly edition_id:string;readonly expected_version:string;readonly expected_fee:string;readonly loadout_ids:readonly string[];readonly seed:string}
@@ -38,7 +41,8 @@ export type EconomicEdition={id:string;maker:string;terms:EditionTerms;terms_has
 export type Listing={id:string;seller:string;item_ids:string[];remaining_ids:string[];unit_price:string;status:'active'|'sold'|'cancelled'};
 export type NpcOrder={id:string;item_type:ItemType;unit_price:string;remaining:number;budget:string;seeded_demo_demand:boolean};
 export type BankPrice={item_type:ItemType;sale_price:string;buyback_price:string};
-export type EconomySnapshot={credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState};
+export type Shopfront={id:string;owner:string;title:string;district:string;x:number;y:number;interior:string;version:string;open:boolean;listing_ids:string[]};
+export type EconomySnapshot={shops?:Shopfront[];credits:Record<string,string>;bank:string;items:Item[];editions:EconomicEdition[];runs:EconomicRun[];listings:Listing[];npc_order:NpcOrder;bank_prices:BankPrice[];batches:CraftBatch[];recovery:RecoveryState};
 
 export type CraftTier='normal'|'fine';
 export type FinishReason='completed'|'expired';

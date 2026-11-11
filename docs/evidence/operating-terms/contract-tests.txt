@@ -1,0 +1,12 @@
+✔ WASM v8 operating boundaries and custom7 validation preserve legacy restrictions (24858.446584ms)
+✔ WASM v8 concurrency one blocks a second run until settlement and exact deadlines use admission time (5053.764917ms)
+✔ WASM v8 closes admissions at cutoff but active runs finish after close before their own deadline (6785.421ms)
+✔ WASM v8 rejects premature expiry and frees configured capacity after the exact deadline (8889.950208ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45791.833792

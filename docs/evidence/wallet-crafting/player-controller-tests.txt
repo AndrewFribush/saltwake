@@ -1,0 +1,12 @@
+✔ prepared player batch persists exact challenge, adopts chain deadline and finishes with bounded operation IDs (8.967166ms)
+✔ unknown direct batch recovers only through normal expiry and survives restart without fabricated challenge or admission (4.310375ms)
+✔ discovery validates ownership and terminal observations prevent stale resurrection (5.593458ms)
+✔ discovered crafting reserves terminal capacity and interrupted terminal import rolls back atomically (128.172167ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 300.084042

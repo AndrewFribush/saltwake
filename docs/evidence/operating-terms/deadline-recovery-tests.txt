@@ -1,0 +1,20 @@
+✔ only applied admissions materialize; hidden seed/rewards absent from run view (5.529375ms)
+✔ actions commit once, survive restart, reject stale sequence and expire once (7.779416ms)
+✔ terminal view redacts receipt seed/assignments and expiry retries replay consistently (3.886875ms)
+✔ consumed potion and exact retry response survive process restart (3.545334ms)
+✔ v2 materializes exact funded goods; hides geometry, encounters, IDs and survives restart (4.65475ms)
+✔ v2 visible items and lanes redact correctly; shrine/continuation never invent goods; settlement hides unseen returns (4.390375ms)
+✔ v2 no-reward admission with empty loadout stays empty across shrine and three-floor descent (3.245542ms)
+✔ v3 authored geometry, funded positions, fog and settlement survive restart (5.794083ms)
+✔ run timing persists once and expiry excludes delayed worker/settlement time (2.703541ms)
+✔ run projection shows incoming charge warning inside sight while hiding offscreen source (3.099292ms)
+✔ v8 60000ms receipt deadline survives restart and expires exactly once (3.651917ms)
+✔ v8 3600000ms receipt deadline survives restart and expires exactly once (3.969792ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 271.961667

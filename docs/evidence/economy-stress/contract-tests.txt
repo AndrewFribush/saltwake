@@ -1,0 +1,31 @@
+✖ S17 absent demand: finite NPC materials become unsold stock; time and closure do not refund the maker (64590.403917ms)
+Finite support: 6 wage credits + 20 seeded-order credits transferred, not minted; bank buybacks stop at 1 remaining credit.
+✔ S17 support exhaustion: recovery, seeded NPC orders and bank buybacks have separate finite budgets (64494.726ms)
+Low extraction: five paid losses transfer 10 credits; two operator voids refund 4 escrow credits but consume both tonic copies; closure banks the residual sword.
+✔ S17 low extraction: repeated losses drain a fixed customer; void refunds never restore consumed treasure (51463.373708ms)
+Closed group: 6 admissions + 6-credit loot buyback recycle the same six goods; maker remains down 4 placement credits; no new population, coins or instances.
+✔ S17 concentrated extraction and coordinated buyback/refunding transfer wealth but create no goods or coins (38881.249708ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 219706.25475
+
+✖ failing tests:
+
+test at tests/contract/economy-stress.test.ts:1:4419
+✖ S17 absent demand: finite NPC materials become unsold stock; time and closure do not refund the maker (64590.403917ms)
+  [TimeoutError: The operation was aborted due to timeout]
+Absent demand: 32 procurement + 3 placement paid; 6 unsold outputs; 2 residual outputs banked; zero admissions.
+✔ S17 absent demand: finite NPC materials become unsold stock; time and closure do not refund the maker (43730.335166ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44013.931958

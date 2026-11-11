@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: trace captures accepted action once, excludes invalid no-op and hidden world data
+ok 1 - trace captures accepted action once, excludes invalid no-op and hidden world data
+  ---
+  duration_ms: 0.827292
+  type: 'test'
+  ...
+# Subtest: bounded trace retains sequence and reports discarded events
+ok 2 - bounded trace retains sequence and reports discarded events
+  ---
+  duration_ms: 39.66775
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 169.39125

@@ -198,6 +198,9 @@ pub enum Action {
         tier: CraftTier,
         reason: FinishReason,
     },
+    CreateShop {title:String,district:String,x:u8,y:u8,interior:String,open:bool},
+    UpdateShop {shop_id:String,expected_version:U64,title:String,district:String,x:u8,y:u8,interior:String,open:bool},
+    StockShop {shop_id:String,item_ids:Vec<String>,unit_price:U64},
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]
@@ -319,6 +322,7 @@ pub struct BankPrice {
 }
 #[near(serializers=[json])]
 pub struct Snapshot {
+    pub shops: Vec<Shopfront>,
     pub credits: std::collections::BTreeMap<String, U64>,
     pub bank: U64,
     pub items: Vec<Item>,
@@ -389,3 +393,7 @@ pub struct RecoveryState {
     pub max_jobs_per_profile: u8,
     pub jobs: std::collections::BTreeMap<String, u8>,
 }
+
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct Shopfront {pub id:String,pub owner:String,pub title:String,pub district:String,pub x:u8,pub y:u8,pub interior:String,pub version:U64,pub open:bool,pub listing_ids:Vec<String>}

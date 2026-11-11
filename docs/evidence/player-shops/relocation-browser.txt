@@ -1,0 +1,6 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+SHOP_RELOCATION={"district":"e","version":"2","listings":["listing-2"],"credits":"92"}
+SHOP_RELOCATION={"district":"center","version":"3","listings":["listing-2"],"credits":"92"}
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK

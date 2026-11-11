@@ -1,0 +1,191 @@
+✔︎ Opened a new tab and set it active: tabs[0], page → Saltwake · Dungeon town (http://127.0.0.1:18930/)
+- title: "Saltwake · Dungeon town" [url=http://127.0.0.1:18930/]
+- main:
+  - region:
+    - button "Open character and journal" [ref=e1]: "The delver Saltwake resident"
+    - button "Open purse and receipts" [ref=e2]: "5  test coins · account"
+    - text: "4  goods in storage  1  settled expeditions"
+    - button "Session" [ref=e3]
+    - status: "Saltwake  Click a counter to approach it · Esc to return"
+    - complementary "Idle inspector":
+      - heading "Saltwake" [level=2]
+      - text: "Walk to a counter, open your belongings, or check your purse. Details appear here."
+    - region:
+      - navigation "Rehearsal sections" [ref=e15]:
+        - button "Map" [ref=e16]
+        - button "Bag" [ref=e17]
+        - button "Journal" [ref=e18]
+      - text: "The Smuggler’s Choice · 1/1 Health  12/12 · Turn  0"
+      - application "Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait. Select Shove mode to push" [ref=e19]:
+        - button "0,0 unexplored" [ref=e20] [disabled]
+        - button "1,0 wall" [ref=e21] [disabled]
+        - button "2,0 wall" [ref=e22] [disabled]
+        - button "3,0 unexplored" [ref=e23] [disabled]
+        - button "4,0 unexplored" [ref=e24] [disabled]
+        - button "5,0 unexplored" [ref=e25] [disabled]
+        - button "6,0 unexplored" [ref=e26] [disabled]
+        - button "7,0 unexplored" [ref=e27] [disabled]
+        - button "8,0 unexplored" [ref=e28] [disabled]
+        - button "9,0 unexplored" [ref=e29] [disabled]
+        - button "10,0 unexplored" [ref=e30] [disabled]
+        - button "11,0 unexplored" [ref=e31] [disabled]
+        - button "12,0 unexplored" [ref=e32] [disabled]
+        - button "0,1 wall" [ref=e33] [disabled]
+        - button "1,1 exit" [ref=e34]
+        - button "2,1 floor" [ref=e35]
+        - button "3,1 floor" [ref=e36]
+        - button "4,1 unexplored" [ref=e37] [disabled]
+        - button "5,1 unexplored" [ref=e38] [disabled]
+        - button "6,1 unexplored" [ref=e39] [disabled]
+        - button "7,1 unexplored" [ref=e40] [disabled]
+        - button "8,1 unexplored" [ref=e41] [disabled]
+        - button "9,1 unexplored" [ref=e42] [disabled]
+        - button "10,1 unexplored" [ref=e43] [disabled]
+        - button "11,1 unexplored" [ref=e44] [disabled]
+        - button "12,1 unexplored" [ref=e45] [disabled]
+        - button "0,2 wall" [ref=e46] [disabled]
+        - button "1,2 floor" [ref=e47]
+        - button "2,2 floor" [ref=e48]
+        - button "3,2 floor" [ref=e49]
+        - button "4,2 floor" [ref=e50]
+        - button "5,2 unexplored" [ref=e51] [disabled]
+        - button "6,2 unexplored" [ref=e52] [disabled]
+        - button "7,2 unexplored" [ref=e53] [disabled]
+        - button "8,2 unexplored" [ref=e54] [disabled]
+        - button "9,2 unexplored" [ref=e55] [disabled]
+        - button "10,2 unexplored" [ref=e56] [disabled]
+        - button "11,2 unexplored" [ref=e57] [disabled]
+        - button "12,2 unexplored" [ref=e58] [disabled]
+        - button "0,3 wall" [ref=e59] [disabled]
+        - button "1,3 you" [ref=e60]
+        - button "2,3 floor" [ref=e61]
+        - button "3,3 floor danger next turn" [ref=e62]
+        - button "4,3 Dock rat" [ref=e63]: "4  HP"
+        - button "5,3 spikes danger next turn" [ref=e64]
+        - button "6,3 unexplored" [ref=e65] [disabled]
+        - button "7,3 unexplored" [ref=e66] [disabled]
+        - button "8,3 unexplored" [ref=e67] [disabled]
+        - button "9,3 unexplored" [ref=e68] [disabled]
+        - button "10,3 unexplored" [ref=e69] [disabled]
+        - button "11,3 unexplored" [ref=e70] [disabled]
+        - button "12,3 unexplored" [ref=e71] [disabled]
+        - button "0,4 wall" [ref=e72] [disabled]
+        - button "1,4 floor" [ref=e73]
+        - button "2,4 floor" [ref=e74]
+        - button "3,4 floor" [ref=e75]
+        - button "4,4 floor" [ref=e76]
+        - button "5,4 unexplored" [ref=e77] [disabled]
+        - button "6,4 unexplored" [ref=e78] [disabled]
+        - button "7,4 unexplored" [ref=e79] [disabled]
+        - button "8,4 unexplored" [ref=e80] [disabled]
+        - button "9,4 unexplored" [ref=e81] [disabled]
+        - button "10,4 unexplored" [ref=e82] [disabled]
+        - button "11,4 unexplored" [ref=e83] [disabled]
+        - button "12,4 unexplored" [ref=e84] [disabled]
+        - button "0,5 wall" [ref=e85] [disabled]
+        - button "1,5 floor" [ref=e86]
+        - button "2,5 floor" [ref=e87]
+        - button "3,5 floor" [ref=e88]
+        - button "4,5 unexplored" [ref=e89] [disabled]
+        - button "5,5 unexplored" [ref=e90] [disabled]
+        - button "6,5 unexplored" [ref=e91] [disabled]
+        - button "7,5 unexplored" [ref=e92] [disabled]
+        - button "8,5 unexplored" [ref=e93] [disabled]
+        - button "9,5 unexplored" [ref=e94] [disabled]
+        - button "10,5 unexplored" [ref=e95] [disabled]
+        - button "11,5 unexplored" [ref=e96] [disabled]
+        - button "12,5 unexplored" [ref=e97] [disabled]
+        - button "0,6 wall" [ref=e98] [disabled]
+        - button "1,6 floor" [ref=e99]
+        - button "2,6 floor" [ref=e100]
+        - button "3,6 unexplored" [ref=e101] [disabled]
+        - button "4,6 unexplored" [ref=e102] [disabled]
+        - button "5,6 unexplored" [ref=e103] [disabled]
+        - button "6,6 unexplored" [ref=e104] [disabled]
+        - button "7,6 unexplored" [ref=e105] [disabled]
+        - button "8,6 unexplored" [ref=e106] [disabled]
+        - button "9,6 unexplored" [ref=e107] [disabled]
+        - button "10,6 unexplored" [ref=e108] [disabled]
+        - button "11,6 unexplored" [ref=e109] [disabled]
+        - button "12,6 unexplored" [ref=e110] [disabled]
+        - button "0,7 unexplored" [ref=e111] [disabled]
+        - button "1,7 floor" [ref=e112]
+        - button "2,7 unexplored" [ref=e113] [disabled]
+        - button "3,7 unexplored" [ref=e114] [disabled]
+        - button "4,7 unexplored" [ref=e115] [disabled]
+        - button "5,7 unexplored" [ref=e116] [disabled]
+        - button "6,7 unexplored" [ref=e117] [disabled]
+        - button "7,7 unexplored" [ref=e118] [disabled]
+        - button "8,7 unexplored" [ref=e119] [disabled]
+        - button "9,7 unexplored" [ref=e120] [disabled]
+        - button "10,7 unexplored" [ref=e121] [disabled]
+        - button "11,7 unexplored" [ref=e122] [disabled]
+        - button "12,7 unexplored" [ref=e123] [disabled]
+        - button "0,8 unexplored" [ref=e124] [disabled]
+        - button "1,8 unexplored" [ref=e125] [disabled]
+        - button "2,8 unexplored" [ref=e126] [disabled]
+        - button "3,8 unexplored" [ref=e127] [disabled]
+        - button "4,8 unexplored" [ref=e128] [disabled]
+        - button "5,8 unexplored" [ref=e129] [disabled]
+        - button "6,8 unexplored" [ref=e130] [disabled]
+        - button "7,8 unexplored" [ref=e131] [disabled]
+        - button "8,8 unexplored" [ref=e132] [disabled]
+        - button "9,8 unexplored" [ref=e133] [disabled]
+        - button "10,8 unexplored" [ref=e134] [disabled]
+        - button "11,8 unexplored" [ref=e135] [disabled]
+        - button "12,8 unexplored" [ref=e136] [disabled]
+      - button "Shove mode off" [ref=e137]
+      - button "Guard [G]" [ref=e138]
+      - button "Wait [Space]" [ref=e139]
+      - button "Escape · enemies act" [ref=e140] [disabled]
+      - complementary:
+        - heading "Read the threat" [level=2]
+        - text: "Moving into an enemy attacks it. Your  club  deals  2  damage. Each valid action spends a turn, including using or equipping loot."
+        - status: "Health 12. Position 1, 3. Turn 0.  Club: shove creatures away. Sword: strike harder. Escaping spends a turn. Dock rat targets 3, 3."
+        - text: "Dock rat: 4  health · Pursuing"
+        - button "Practice · club & tonic" [ref=e141]
+        - button "Practice · sword & tonic" [ref=e142]
+        - button "Seeded practice (legacy)" [ref=e143]
+        - button "Save practice record" [ref=e144]
+    - button "← Return to the inn" [ref=e145]
+  - contentinfo: "Saltwake · Local playable prototype. Synthetic coins and operator-controlled characters."
+- iframe:
+  - generic [ref=f1e1] [scrollable]:
+    - image [ref=f1e2]
+    - text: "v 4.0.37 Domain: 127.0.0.1:18930"
+    - switch [ref=f1e5] [checked]
+    - image [ref=f1e6]
+    - image [ref=f1e7]
+    - image [ref=f1e8]
+    - image [ref=f1e9]
+    - generic "Domain Overview" [ref=f1e10]
+    - generic "Keywords by Traffic" [ref=f1e11]
+    - generic "Backlinks" [ref=f1e12]
+    - generic "Site Audit" [ref=f1e13]
+    - image "loading"
+TEXT=Map
+Bag
+Journal
+The Smuggler’s Choice · 1/1
+Health 12/12 · Turn 0
+≡
+4 HP
+Shove mode off
+Guard [G]
+Wait [Space]
+Escape · enemies act
+Read the threat
+
+Moving into an enemy attacks it. Your club deals 2 damage. Each valid action spends a turn, including using or equipping loot.
+
+Health 12. Position 1, 3. Turn 0. Club: shove creatures away. Sword: strike harder. Escaping spends a turn. Dock rat targets 3, 3.
+
+Dock rat: 4 health · Pursuing
+
+Practice · club & tonic
+Practice · sword & tonic
+Seeded practice (legacy)
+Save practice record
+[system] last tab closed. `page` is now null. call openTab(url) to open a new one.
+[system] no current open tabs in this session.
+GSTACK_STEP_OK
