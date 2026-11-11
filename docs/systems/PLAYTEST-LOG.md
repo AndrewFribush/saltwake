@@ -186,3 +186,23 @@ Verified on a fresh generated preset: Check now reports the shortfall, one click
 - **Unreachable floor.** Selecting a 19×13 area needed panning, so I added Whole floor. Then closed stamps left sealed rooms, and the only clue was one "Show tile" at a time in Check. Cut-off floor is now hatched red in the Draw step, with a one-click "wall them off". Twin rooms now has doorways, and Arena ring is new.
 - Fill left a heavy blue selection over everything; it clears after a fill now, and the selection style is lighter.
 - On big floors the grid's last rows were squashed; rows are now even and the grid keeps the floor's aspect ratio.
+
+## Round 11: route check in the flow, and three unfamiliar-creator sessions
+
+**Route check in Check:** every floor is now checked automatically (moves, waits and shoves, with the chosen test kit) whenever you open 4 Check or 5 Open, and again after any edit. Each floor shows ✓ "reachable in N turns", ✗ "the stairs cannot be reached…" or ? "too big to prove, rehearse it", and you can click a floor to go there. Map issues or an impossible floor put ⚠ on the 4 Check button, and a proven-impossible floor blocks Pay in 5 Open with its explanation.
+
+**Session 1: puzzle vault (keys, lock, plate).** Where I hesitated:
+1. I drew a wall, then clicked a wall tile to put the locked door in it and got "Place this feature on a free floor tile." **Fixed:** a locked door clicked onto an interior wall now cuts a doorway with the lock in it.
+2. A pressure plate's "Channel" field said nothing about whether anything listens. Mine controlled nothing, and no check said so. **Fixed:** Check → Wiring lists every channel's inputs (plates, switches) and outputs (doors, stairs conditions), and flags "controls nothing yet. Add a door with this channel in Devices…".
+3. Plates and keys live in Features, but doors and switches are under Devices, where "Add device" is a dropdown. That's two places for one puzzle. (Not fixed; the reference cards now point to both.)
+
+With the key, door and plate wired, the route check said "reachable in 19 turns". A chasm in front of the only door made Open refuse to publish, with the reason.
+
+**Session 2: speed-run gauntlet with the tide.**
+4. I couldn't find the tide. It's only a checkbox at the bottom of More tools → Features. **Fixed in the reference:** the Rising tide card now says where it lives and what it controls.
+5. **Pressing Esc to stop stamping closed the whole builder.** **Fixed:** while selecting or stamping, Esc stops the tool ("Stopped. Esc again closes the builder.").
+
+Two long-corridor stamps, a charger and a sentry, with the tide set to 30 turns: rehearsal showed "Tide in 29" and a charger lane down the corridor.
+
+**Session 3: no-treasure haunted house.**
+6. The Treasure step still offered goods to assign and said "0 goods · No reward complete copies". **Fixed:** with no treasure spots it says there's nothing to fund, that delvers come for the challenge, and that you still keep the fee.
