@@ -78,7 +78,8 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
   if(!pressOn)return safe?{type:'move',...safe}:{type:'guard'};
  }
  const avoid=policy==='reckless'||danger.has(here)?new Set<string>():danger;
- const step=stepToward(s,goals,avoid,policy==='reckless')??stepToward(s,goals,new Set(),true)??stepToward(s,frontier(s),new Set(),true);
+ const levers=new Set((s.devices??[]).filter(d=>d.kind==='switch'&&d.mode!=='set'&&!(d.x===s.player.x&&d.y===s.player.y)).map(key));
+ const step=stepToward(s,goals,avoid,policy==='reckless')??stepToward(s,goals,new Set(),true)??stepToward(s,frontier(s),new Set(),true)??stepToward(s,levers,new Set(),true);
  if(step){const e=s.enemies.find(e=>e.x===step.x&&e.y===step.y);return e?{type:'attack',enemyId:e.id}:{type:'move',...step};}
  // Blocked: step toward the nearest visible enemy to fight through.
  const foe=s.enemies.filter(e=>vis.has(key(e))).sort((a,b)=>Math.abs(a.x-s.player.x)+Math.abs(a.y-s.player.y)-Math.abs(b.x-s.player.x)-Math.abs(b.y-s.player.y))[0];

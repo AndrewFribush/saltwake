@@ -57,6 +57,10 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
  const report=ended&&!remote?disposition(s,s.status==='died'?'died':'extracted'):null;
  const nameOf=(e:Enemy)=>who(e);
  const targets=visibleEnemies.map(e=>`${nameOf(e)}: ${enemyTelegraph(s,e)}`).join(' ');
+ // Way-out cue: once no threat is in sight, point at the stairs (or say they are still unfound).
+ const exitTile=remote?.exit??roomExit(s);const exitSeen=!!exitTile&&(!s.roguelike||!!s.explored?.includes(`${s.roomIndex}:${exitTile.x},${exitTile.y}`));
+ const calm=!ended&&visibleEnemies.length===0;
+ const wayOut=!calm||!exitTile?'':exitSeen?(s.player.x===exitTile.x&&s.player.y===exitTile.y?(canLeave||canGoDeeper?'You are on the stairs: escape or continue below.':'You are on the stairs, but this exit is not ready yet. Check the exit conditions.'):`The way out: stairs ${Math.abs(exitTile.y-s.player.y)?`${Math.abs(exitTile.y-s.player.y)} ${exitTile.y<s.player.y?'north':'south'}`:''}${Math.abs(exitTile.y-s.player.y)&&Math.abs(exitTile.x-s.player.x)?', ':''}${Math.abs(exitTile.x-s.player.x)?`${Math.abs(exitTile.x-s.player.x)} ${exitTile.x<s.player.x?'west':'east'}`:''} (glowing steps).`):'Stairs not found yet: explore the dark edges of the map.';
  const viewport=floorViewport(s.room[0].length,s.room.length,s.player.x-6,s.player.y-4);
  const fx=useRunFx(s);
  return <section className={`expedition ${compact?`compact-run run-tab-${compactTab.toLowerCase()}`:''}`}>
@@ -79,7 +83,7 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
      const connection=s.connections?.find(l=>l.x===x&&l.y===y);
      const exit=remote?.exit??roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
      const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?nameOf(enemy):trap?'spikes':loot?'loot':connection?`passage to floor ${connection.to+1}${connection.require_clear&&s.enemies.length?' · clear room first':''}`:isExit?'exit':'floor'}${feature?` · ${featureLabel(feature)}`:''}${hatch?' · rat hatching here':''}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
-     return <button key={`${x},${y}`} className={`tile ${(x*7+y*13)%5<2?'alt':''} ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${threat} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
+     return <button key={`${x},${y}`} className={`tile ${(x*7+y*13)%5<2?'alt':''} ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${threat} ${calm&&exitSeen&&isExit?'exit-cue':''} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
       {seen&&<TileArt wall={tile==='#'}/>}
       {seen&&(lit||isExit||!!connection)&&(connection||isExit?<Sprite name="stairs" className={`tile-thing stairs-art ${connection?'passage':''}`}/>:trap?<Sprite name={trap.armed?'spikesArmed':'spikesSafe'} className={`tile-thing spikes-art ${trap.armed?'armed':''}`}/>:null)}
       {feature&&<FeatureArt feature={feature} lit={lit} on={feature.kind==='plate'&&signalValue(s.signals,feature.channel)}/>}
@@ -121,7 +125,7 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
   <aside>
    {!ended&&<h2>{remote?'Watch the shadows':s.enemies.length?'Read the threat':'Room cleared.'}</h2>}
    {!ended&&<p>Moving into an enemy attacks it. Attacks deal {attackDamage(s)} damage ({s.player.weapon}). Each valid action spends a turn, including using or equipping loot.</p>}
-   <div className="turn-feedback" role="status" aria-live="polite"><Reading text={`Health ${s.player.hp}. Position ${s.player.x}, ${s.player.y}. Turn ${s.turn}. ${s.exitRule!==undefined?exitHint(s)+' ':''}${notice} ${danger.has(`${s.player.x},${s.player.y}`)?'Your tile is marked for danger. Consider moving or guarding. ':''}${s.log.at(-1)??''} ${targets}`}/></div>
+   <div className="turn-feedback" role="status" aria-live="polite">{wayOut&&<p className="way-out">{wayOut}</p>}<Reading text={`Health ${s.player.hp}. Position ${s.player.x}, ${s.player.y}. Turn ${s.turn}. ${s.exitRule!==undefined?exitHint(s)+' ':''}${notice} ${danger.has(`${s.player.x},${s.player.y}`)?'Your tile is marked for danger. Consider moving or guarding. ':''}${s.log.at(-1)??''} ${targets}`}/></div>
    {!ended&&<Pages items={visibleEnemies} label="Visible enemies" render={e=><p key={e.id}><strong>{s.depth?who(e):`${enemyCatalog[e.kind??'pursuer'].name} ${e.id}`}</strong>: {e.hp} health · {Math.ceil(e.hp/attackDamage(s))} hits with {s.player.weapon}. {enemyTelegraph(s,e)}</p>}/>}
    {s.depth&&(()=>{const fs=(s.features??[]).filter(f=>!f.spent&&visible.has(`${f.x},${f.y}`));return fs.length?<Pages items={fs} label="Visible features" render={f=><p>{featureLabel(f)} · {f.x},{f.y}. {featureCatalog[f.kind].summary}</p>}/>:null;})()}
    {!!visibleDevices.length&&<Pages items={visibleDevices} label="Visible devices" render={d=><p>{deviceLabel(d)} · {d.x},{d.y}{d.kind==='switch'?' · Walk onto it to activate.':''}</p>}/>}

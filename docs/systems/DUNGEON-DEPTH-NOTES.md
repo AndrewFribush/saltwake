@@ -101,6 +101,28 @@ large  greedy   died  52% out  42% stalled   7% · loot out 0.40 + drunk 2.22 of
 large  reckless died  98% out   2% stalled   0% · loot out 0.00 + drunk 0.23 of 8.3 funded · turns 36 · floor 1.8 · tide 1 · causes pursuer 15, sentry 15, charger 9, Keg (blast) 8
 ```
 
+## v13 hand-build and themes
+
+- Browser: built a floor by hand in the builder (wall line with a doorway, brass key, brass lock in the doorway, pressure plate wired to a gate on channel `gate`) and rehearsed it: the key is picked up (status shows "Keys: brass"), bumping the lock without a key does nothing, with the key it unlocks and the next step walks through; the gate panel reads closed until the plate is occupied. Awkward part found: the look-feel feature layer had no art for keys, locks and plates (they were invisible); they now fall back to simple CSS shapes until look-feel skins them.
+- Generator: deeper Medium/Large floors now pick between a locked vault (key elsewhere) and an **ambush stash**: the hidden room has an open gate; the first step inside trips a switch that slams it shut, a pursuer (brute on floor 3) guards the treasure, and a lever at the back reopens the gate. Built from existing switches/doors, so it publishes at whatever version the rest needs. Large: 42/60 drafts have a vault, 18/60 an ambush. Harness bots use levers when trapped.
+- Way-out cue (QA: a delver wandered 300 turns on a cleared floor): whenever no enemy is in sight, the run panel says where the stairs are ("The way out: stairs 3 south, 5 east"), that you are on them, or that they are not found yet; once seen, the stairs tile pulses green.
+- Not yet: a plate-held puzzle gate in the generator (luring reliably is hard to guarantee solvable), and a publish-and-play-as-another-profile pass for v13.
+
+Harness, 60 seeds:
+```
+Saltwake depth simulation · 60 seeds per preset × policy · kit club
+small  cautious died   2% out  97% stalled   2% · loot out 0.75 + drunk 0.07 of 1.0 funded · turns 33 · floor 1.0 · tide 0 · causes pursuer 1
+small  greedy   died   2% out  95% stalled   3% · loot out 0.85 + drunk 0.10 of 1.0 funded · turns 46 · floor 1.0 · tide 0 · causes pursuer 1
+small  reckless died   5% out  93% stalled   2% · loot out 0.20 + drunk 0.02 of 1.0 funded · turns 26 · floor 1.0 · tide 0 · causes powder crab (blast) 2, Keg (blast) 1
+medium cautious died   5% out  92% stalled   3% · loot out 0.63 + drunk 0.17 of 2.0 funded · turns 53 · floor 1.1 · tide 0 · causes Spikes 1, rat 1, pursuer 1
+medium greedy   died  33% out  65% stalled   2% · loot out 0.30 + drunk 1.03 of 2.0 funded · turns 86 · floor 1.8 · tide 8 · causes the rising tide 8, rat 3, pursuer 3, charger 2
+medium reckless died  75% out  25% stalled   0% · loot out 0.03 + drunk 0.13 of 2.0 funded · turns 35 · floor 1.8 · tide 1 · causes powder crab (blast) 10, pursuer 9, charger 8, sentry 8
+large  cautious died  15% out  78% stalled   7% · loot out 0.67 + drunk 0.12 of 8.4 funded · turns 75 · floor 1.0 · tide 0 · causes Spikes 4, pursuer 3, sentry 2
+large  greedy   died  62% out  32% stalled   7% · loot out 0.18 + drunk 2.23 of 8.4 funded · turns 131 · floor 2.0 · tide 6 · causes pursuer 6, the rising tide 6, sentry 5, charger 5
+large  reckless died 100% out   0% stalled   0% · loot out 0.00 + drunk 0.23 of 8.4 funded · turns 35 · floor 1.8 · tide 0 · causes pursuer 18, sentry 11, charger 11, powder crab (blast) 9
+```
+Greedy deaths rose a little (Medium 27→33%, Large 52→62%), mostly from tide while trapped in ambushes; still in the intended range.
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
@@ -108,4 +130,4 @@ large  reckless died  98% out   2% stalled   0% · loot out 0.00 + drunk 0.23 of
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** a puzzle-vault generator theme (plate-held gate guarding treasure), and a browser pass placing keys/locks/plates by hand.
+**Next step:** publish a hand-built v13 dungeon and play it as another profile in the browser; then a plate-puzzle generator theme with a guaranteed fallback lever.
