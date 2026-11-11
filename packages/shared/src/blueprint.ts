@@ -9,7 +9,14 @@ import {catalog} from './catalog';
 import {validateFloorGraph,validateCustomFloor,floorFormat,type CustomFloor,type FloorFormat} from './custom-layout';
 import {enemyKinds,usesDepth,validateDepthNetwork} from './depth-components';
 import type {Socket,ItemType} from './types';
-export type Blueprint={title:string;fee:string;floors:CustomFloor[];placements:CreatorPlacement[][];operating?:OperatingSettings};
+/** Where a copied design came from. Attribution only: unverified, and it never carries funded goods. */
+export type BlueprintSource={title:string;maker:string;edition?:string};
+export type Blueprint={title:string;fee:string;floors:CustomFloor[];placements:CreatorPlacement[][];operating?:OperatingSettings;source?:BlueprintSource};
+function normalizeSource(v:unknown):BlueprintSource|undefined{
+ if(v===undefined)return undefined;const s=v as BlueprintSource;const ok=(t:unknown,max:number)=>typeof t==='string'&&t.trim().length>0&&new TextEncoder().encode(t).length<=max;
+ if(!s||typeof s!=='object'||!ok(s.title,80)||!ok(s.maker,80)||(s.edition!==undefined&&!ok(s.edition,64)))throw Error('Source attribution must name a title and maker (up to 80 bytes each)');
+ return {title:s.title,maker:s.maker,...(s.edition!==undefined?{edition:s.edition}:{})};
+}
 function normalize(value:unknown,allowRandom=true,flexible:FloorFormat='depth',independentPools=true,allowOperating=true,extendedFloors=true):Blueprint{
  if(!value||typeof value!=='object')throw Error('Expected a blueprint');
  const d=value as Blueprint;
@@ -29,7 +36,8 @@ function normalize(value:unknown,allowRandom=true,flexible:FloorFormat='depth',i
  for(const [i,f] of floors.entries())for(const t of f.tuning??[]){const p=placements[i][t.slot];const errors=tuningCompatibility(t,p.enemy,p.trap);if(errors.length)throw Error(errors.join('; '));}
  const poolErrors=poolConfigurationErrors(placements);if(poolErrors.length)throw Error(poolErrors.join('; '));
  if(allowOperating&&d.operating!==undefined){const errors=operatingErrors(d.operating);if(errors.length)throw Error(errors.join('; '));}
- return {title:d.title,fee:d.fee,floors,placements,...(allowOperating&&d.operating!==undefined?{operating:structuredClone(d.operating)}:{})};
+ const source=normalizeSource((d as Blueprint).source);
+ return {title:d.title,fee:d.fee,floors,placements,...(allowOperating&&d.operating!==undefined?{operating:structuredClone(d.operating)}:{}),...(source?{source}:{})};
 }
 export function encodeBlueprint(value:unknown):string{const b=normalize(value);const text=JSON.stringify({format:'saltwake-blueprint',version:usesDepth(b.floors,b.placements.flat().map(p=>p.enemy))||b.floors.some(f=>f.features!==undefined)?12:11,...b},null,2);if(new TextEncoder().encode(text).length>100000)throw Error('Blueprint limit is 100 KB');return text;}
 export function decodeBlueprint(text:string):Blueprint{
