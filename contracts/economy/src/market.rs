@@ -18,7 +18,7 @@ impl Economy {
         price: U64,
     ) -> Result<String, String> {
         unique_items(&ids)?;
-        if self.listings.len() >= 64 {
+        if self.listings.len() >= crate::cap(64) {
             return Err("ListingCapacity".into());
         }
         if price.0 == 0 || price.0 > 1_000_000 {

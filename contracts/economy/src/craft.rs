@@ -54,7 +54,7 @@ impl Economy {
         if self.batches.contains_key(&id) {
             return Err("BatchExists".into());
         }
-        if self.batches.len() >= 64 {
+        if self.batches.len() >= crate::cap(64) {
             return Err("BatchCapacity".into());
         }
         if commitment.len() != 64 || !commitment.bytes().all(|b| b.is_ascii_hexdigit()) {

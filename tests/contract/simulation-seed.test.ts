@@ -8,7 +8,7 @@ test('normal worlds keep the 256-receipt cap; the simulation seed adds labelled 
   await a.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));
   await a.callFunction({contractId:g.accountId,methodName:'init_simulation',args:{makers:2,artisans:1,delvers:3,delver_coins:'0'},gas:300_000_000_000_000n,waitUntil:'FINAL'});
   const view=(method:string)=>provider.callFunction<any>({contractId:g.accountId,method,args:{}});const s=await view('snapshot');
-  assert.equal(await view('receipt_capacity'),4096);
+  assert.equal(await view('receipt_capacity'),8192);
   assert.deepEqual(['m-0','m-1','a-0','d-0','d-1','d-2'].map(p=>s.credits[p]),['60','60','10','0','0','0']);
   assert.equal(s.items.filter((i:any)=>i.location.kind==='owned'&&i.location.profile==='m-0').length,6);
   assert.equal(s.items.filter((i:any)=>i.id.startsWith('sim-bank-')).length,12);
