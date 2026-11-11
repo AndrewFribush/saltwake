@@ -24,7 +24,10 @@ export function businessLedger(world:EconomySnapshot,db:Store,profile:string):Bu
  const editions=world.editions.filter(e=>e.maker===profile).map(e=>{const c=editionCostReport(db,world,e.id);const runs=world.runs.filter(r=>r.edition===e.id);
   return {id:e.id,title:e.terms.title,open:!e.closed,placement:c.placementCost,settledFees:c.settledFees,pendingFees:c.pendingFees,knownTreasureCost:c.knownTreasureCost,unknownTreasureItems:c.unknownTreasureItems,contribution:c.contribution,
    settledRuns:runs.filter(r=>r.status!=='active'&&r.status!=='void').length,activeRuns:runs.filter(r=>r.status==='active').length,
-   fundedGoodsRemaining:world.items.filter(i=>(i.location.kind==='edition_fixed'||i.location.kind==='edition_random')&&i.location.edition===e.id).length};});
+   fundedGoodsRemaining:world.items.filter(i=>(i.location.kind==='edition_fixed'||i.location.kind==='edition_random')&&i.location.edition===e.id).length,
+   missingForCopy:(()=>{if(e.closed)return {};const need:Record<string,number>={};for(const s of e.terms.sockets)if(s.reward)need[s.reward]=(need[s.reward]??0)+1;
+    for(const i of world.items)if(i.location.kind==='edition_fixed'&&i.location.edition===e.id&&need[i.item_type])need[i.item_type]--;
+    return Object.fromEntries(Object.entries(need).filter(([,n])=>n>0));})()};});
  const open=editions.filter(e=>e.open);
  const shops=(world.shops??[]).filter(s=>s.owner===profile).map(s=>{const r=shopRecord(world,db.operations(),s.id);const listed=new Set(world.listings.filter(l=>s.listing_ids.includes(l.id)).flatMap(l=>l.item_ids));
   const sold=new Set(r.sales.flatMap(x=>x.itemIds));const sales=disposals.filter(d=>d.reason==='sale'&&listed.has(d.itemId)&&sold.has(d.itemId));
