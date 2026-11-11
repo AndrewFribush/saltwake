@@ -110,4 +110,9 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - v13 fallback shapes from depth.css are hidden wherever my key/lock/plate sprites draw.
 - Checks: typecheck, game 181, web 31, server 163, build pass.
 
-Next step: maker results / steward and notice-board records as ledgers with outcome icons; day/evening tint and room lamplight.
+### 15. Ledgers and ambient light
+- Maker results headline and the edition track record read as ruled parchment ledgers with inked numbers; notice-board "Latest" outcomes are icon chips (escaped ↑ green, died ✕ red, abandoned ↩ grey, expired ⌛ amber). One small edit in TownBoard.tsx (chips instead of a joined string).
+- Ambient light follows the local clock (`html[data-daypart]`, preview with `?daypart=evening|night`): morning haze, warm evening tint with glowing windows, a cool night tint; rooms get lamplight from above and a soft vignette, stronger after dark. The dungeon is untouched so telegraphs stay exact.
+- Checks: typecheck, game 181, web 31, server 163, build pass.
+
+Next step: check ledgers against a demo town with settled runs; polish as lanes land UI.

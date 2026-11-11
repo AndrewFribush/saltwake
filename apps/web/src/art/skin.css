@@ -446,3 +446,31 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 .fx-door.open i{background:#ffe9a0}
 @keyframes sw-dust{0%{opacity:.95;transform:none}100%{opacity:0;transform:translate(var(--px),var(--py)) scale(.5)}}
 @keyframes sw-slam{0%{opacity:1;transform:scale(1.15)}100%{opacity:0;transform:scale(1)}}
+
+/* ---------- Ledgers: maker results, track records, notice-board outcomes ---------- */
+.saltwake .maker-headline,.saltwake section[aria-label="Dungeon track record"]{background:repeating-linear-gradient(transparent 0 23px,#b89a5e55 23px 24px),var(--tx-parchment) 0 0/32px 32px;color:#3a2a18;border-radius:2px;box-shadow:inset 3px 0 0 #b8281c88,inset 0 0 0 1px #b89a5e,0 3px 8px #0008;padding:6px 10px 6px 16px;line-height:24px}
+.saltwake .maker-headline p,.saltwake section[aria-label="Dungeon track record"] p{color:#3a2a18;margin:0;line-height:24px}
+.saltwake .maker-headline b{color:#7a2e10;font-variant-numeric:tabular-nums;font-size:1.1em}
+.saltwake section[aria-label="Dungeon track record"] .page-controls button{color:var(--sw-paper)}
+.saltwake .maker-meta{font-variant-numeric:tabular-nums;color:#c9bc98}
+.saltwake .board-recent{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.outcome{display:inline-flex;align-items:center;gap:3px;padding:0 6px 0 3px;border-radius:9px;font:700 10px/16px system-ui;letter-spacing:.02em;text-transform:uppercase;box-shadow:inset 0 0 0 1px #0004}
+.outcome::before{display:inline-grid;place-items:center;width:13px;height:13px;border-radius:50%;font-size:9px;color:#fff}
+.outcome.o-extracted{background:#cfe8c0;color:#1f4a16}.outcome.o-extracted::before{content:'↑';background:#3f8a2e}
+.outcome.o-died{background:#f0c8bc;color:#6e1a10}.outcome.o-died::before{content:'✕';background:#b8281c}
+.outcome.o-abandoned{background:#e0dccc;color:#4a4636}.outcome.o-abandoned::before{content:'↩';background:#7a7462}
+.outcome.o-expired{background:#e8dcb8;color:#5a4416}.outcome.o-expired::before{content:'⌛';background:#a8802a}
+
+/* ---------- Ambient light (local clock; ?daypart=evening|night to preview) ---------- */
+.saltwake .town-field{position:relative}
+.saltwake .town-field::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;border-radius:inherit;transition:background 2s}
+html[data-daypart=morning] .saltwake .town-field::after{background:linear-gradient(160deg,#fff3c822,transparent 60%)}
+html[data-daypart=evening] .saltwake .town-field::after{background:linear-gradient(180deg,#ff8a3c2e,#7a3a6a3a);mix-blend-mode:multiply}
+html[data-daypart=night] .saltwake .town-field::after{background:radial-gradient(ellipse at 50% 40%,#22345a44,#0a1630aa);mix-blend-mode:multiply}
+html[data-daypart=evening] .harbor-map rect[fill="#e1b55a"],html[data-daypart=night] .harbor-map rect[fill="#e1b55a"]{fill:#ffd27a;filter:drop-shadow(0 0 6px #ffb84a)}
+html[data-daypart=night] .town-avatar,html[data-daypart=night] .presence-avatar{filter:drop-shadow(0 0 8px #ffcf7a66)}
+/* Rooms: warm lamplight from above, stronger after dark. */
+.saltwake .room-board::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse 70% 60% at 50% 30%,#ffd88a1c,transparent 70%),radial-gradient(ellipse at 50% 50%,transparent 55%,#0006 100%)}
+html[data-daypart=evening] .saltwake .room-board::after,html[data-daypart=night] .saltwake .room-board::after{background:radial-gradient(ellipse 60% 50% at 50% 30%,#ffc8602e,transparent 70%),radial-gradient(ellipse at 50% 50%,transparent 45%,#000a 100%)}
+
+.saltwake .town-field .district-compass{z-index:2}.saltwake .town-field .town-chat{z-index:3}
