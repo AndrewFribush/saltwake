@@ -122,3 +122,33 @@ Playing Saltwake as a stranger on a local sandbox (web 18970, API 18971), fixing
 - **Overflow:** the inspector overflowed the window, and now scrolls.
 
 **Real run of the vault (the delver, paid 3):** I bumped the cracked wall open ("The cracked wall gives way"), and the sentry repositioned and fired. I took the sword, walked back around the chasms, and escaped on turn 29 with 10 health without killing the sentry. Settlement was applied: "Carried out: Sword". The stealth design plays as intended once the stairs no longer require a cleared floor.
+
+## Round 8: creator feedback leads to an editable improvement
+
+**Built:**
+- **Run marks.** The server now records where each finished run of an edition ended (floor, tile, outcome, turn, killer from `killedBy` or the last hit) and shows them to the edition's maker only.
+- **Revise in the builder.** This button on each edition in the steward's Manage view opens the published design as a new draft "Name v2" (cloned with attribution and no goods) and switches to the Draw step.
+- **What the revision draft shows:**
+  - A banner: "3 finished runs: 3 died, 0 escaped. Most deaths: charger (3)", with deaths by floor when there's more than one.
+  - Map badges: ☠N where delvers died, ↑N where they escaped. Hovering a tile lists each run's turn and killer.
+  - The badges can be hidden.
+- **Retiring an edition.** This is a new contract action, `retire`. It works like this:
+  - Only the maker can retire an edition. Its terms stay unchanged.
+  - New admissions fail with `EditionRetired`, and active runs finish normally.
+  - `finalize_close` is allowed before the cutoff once the edition is retired.
+  - The retired list is stored outside contract state, so old state still loads, and it's reported in `snapshot.retired_editions`.
+  - On screen, a retired edition shows as "retiring" while runs are still inside, then "retired". Retired editions disappear from the gate.
+  - The maker can retire from the steward ("Retire (stop new delvers)") or right after publishing the revision ("The earlier edition … is still taking delvers. Retire it").
+
+**Played:**
+- The proprietor opened "Charger hall" (two chargers and a brute), and three delvers died in it.
+- The steward showed "3 delvers have entered: 0 escaped, 3 died". I pressed Revise.
+- The draft showed ☠3 on the tile where a charger caught everyone. I removed that charger, added a wall, rehearsed and survived, then opened "Charger hall v2" for 9 coins.
+- I retired v1, and it vanished from the gate. I closed it from the steward straight away, since no runs were active.
+
+**QA fix (QA-PASS-2026-11-11):** a generated preset's treasure spot draws from the random pool `creator-loot`, but the Treasure step opened on Fixed rewards, so picking goods there errored. Step 4 Check also said "Ready" while Open was blocked. Now:
+- The Treasure step opens on a pool the design actually uses.
+- Each random pool says "draws N per attempt; it holds M", with **Put N of your goods in it**.
+- Check lists funding problems ("Funding: Random pool creator-loot needs at least 1 goods…").
+
+Verified on a fresh generated preset: Check now reports the shortfall, one click fills the pool, and Check and Open then show ready.

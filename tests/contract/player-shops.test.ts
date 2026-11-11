@@ -32,7 +32,7 @@ test('player-owned shop placement, interiors, stock, purchase, closure and versi
 test('legacy local world migration retains every balance, item, listing and receipt',{timeout:120000},async()=>{
  const f=await fixture('tests/fixtures/economy-v1.wasm');try{
  const receipt=await f.apply('legacy-list',{actor:'maker',action:{type:'list',item_ids:['maker-tonic-0'],unit_price:'3'}});const before=await f.view('snapshot');
- await f.account.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));await f.call('migrate_shops');const after=await f.view('snapshot');assert.deepEqual(after.shops,[]);delete after.shops;assert.deepEqual(after.coin_issuance,{coins_issued:'0',near_received:'0',purchases:'0'});delete after.coin_issuance;assert.deepEqual(after,before);assert.deepEqual(await f.view('operation',{op_id:'legacy-list'}),receipt);
+ await f.account.deployContract(readFileSync('contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm'));await f.call('migrate_shops');const after=await f.view('snapshot');assert.deepEqual(after.shops,[]);delete after.shops;assert.deepEqual(after.coin_issuance,{coins_issued:'0',near_received:'0',purchases:'0'});delete after.coin_issuance;assert.deepEqual(after.retired_editions,[]);delete after.retired_editions;assert.deepEqual(after,before);assert.deepEqual(await f.view('operation',{op_id:'legacy-list'}),receipt);
  assert.equal((await f.apply('new-shop',{actor:'maker',action:{type:'create_shop',...definition}})).status,'Applied');
  }finally{await f.sandbox.tearDown();}
 });

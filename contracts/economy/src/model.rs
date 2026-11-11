@@ -209,6 +209,8 @@ pub enum Action {
     RemoveShop {shop_id:String,expected_version:U64},
     /// A listing only `buyer` may purchase (a private trade offer). Reservation lives in its own storage key.
     ListFor {item_ids:Vec<String>,unit_price:U64,buyer:String},
+    /// Stop new admissions to an edition (its terms stay immutable). Active runs finish; closure may then follow early.
+    Retire {edition_id:String},
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]
@@ -348,6 +350,7 @@ pub struct Snapshot {
     pub batches: Vec<CraftBatch>,
     pub recovery: RecoveryState,
     pub coin_issuance: crate::buyin::CoinIssuance,
+    pub retired_editions: Vec<String>,
 }
 
 #[near(serializers=[borsh,json])]

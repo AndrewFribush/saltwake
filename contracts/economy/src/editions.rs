@@ -244,7 +244,7 @@ impl Economy {
         if edition.closed {
             return Err("AlreadyClosed".into());
         }
-        if now_ms() < edition.terms.closes_at_ms.0 {
+        if now_ms() < edition.terms.closes_at_ms.0 && !is_retired(&edition_id) {
             return Err("BeforeCutoff".into());
         }
         if !edition.active_runs.is_empty() {
@@ -832,4 +832,32 @@ fn valid_lock_keys(modules: &[String]) -> bool {
         }
     }
     locks.is_subset(&keys)
+}
+// Retired editions live in their own storage key so older contract state still loads unchanged.
+const RETIRED_KEY: &[u8] = b"retired_editions.v1";
+pub(crate) fn read_retired() -> Vec<String> {
+    env::storage_read(RETIRED_KEY).map(|b| borsh::from_slice(&b).expect("Corrupt retired list")).unwrap_or_default()
+}
+pub(crate) fn is_retired(edition_id: &str) -> bool {
+    read_retired().iter().any(|id| id == edition_id)
+}
+impl Economy {
+    /// The maker stops new admissions. Terms, funding and records are untouched; active runs settle normally,
+    /// and closure (unused treasure to the bank) becomes available as soon as no runs are active.
+    pub(crate) fn retire(&mut self, actor: String, edition_id: String) -> Result<String, String> {
+        let edition = self.editions.get(&edition_id).ok_or("MissingEdition")?;
+        if edition.maker != actor {
+            return Err("WrongMaker".into());
+        }
+        if edition.closed {
+            return Err("AlreadyClosed".into());
+        }
+        let mut retired = read_retired();
+        if retired.iter().any(|id| id == &edition_id) {
+            return Err("AlreadyRetired".into());
+        }
+        retired.push(edition_id.clone());
+        env::storage_write(RETIRED_KEY, &borsh::to_vec(&retired).unwrap());
+        Ok(edition_id)
+    }
 }

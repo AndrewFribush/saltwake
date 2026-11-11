@@ -287,6 +287,7 @@ impl Economy {
             batches: self.batches.values().cloned().collect(),
             recovery: self.recovery.clone(),
             coin_issuance: buyin::read_issuance(),
+            retired_editions: editions::read_retired(),
             bank_prices: [
                 ItemType::Club,
                 ItemType::Sword,
@@ -360,7 +361,7 @@ fn player_action_allowed(action: &Action) -> bool {
         | Action::FinalizeClose { .. } | Action::Refresh { .. } | Action::SetFee { .. }
         | Action::List { .. } | Action::CancelListing { .. } | Action::Buy { .. }
         | Action::BankBuy { .. } | Action::BankSell { .. } | Action::FillNpcOrder { .. }
-        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. } | Action::ListFor { .. }
+        | Action::CreateShop { .. } | Action::UpdateShop { .. } | Action::StockShop { .. } | Action::RemoveShop { .. } | Action::ListFor { .. } | Action::Retire { .. }
         | Action::BeginCraft { .. } | Action::BeginRecovery { .. })
 }
 impl Economy {
@@ -464,6 +465,7 @@ impl Economy {
             Action::StockShop {shop_id,item_ids,unit_price} => self.stock_shop(c.actor,shop_id,item_ids,unit_price),
             Action::RemoveShop {shop_id,expected_version} => self.remove_shop(c.actor,shop_id,expected_version),
             Action::ListFor {item_ids,unit_price,buyer} => self.list_for(c.actor,item_ids,unit_price,buyer),
+            Action::Retire {edition_id} => self.retire(c.actor,edition_id),
             Action::BeginCraft {
                 batch_id,
                 input_ids,

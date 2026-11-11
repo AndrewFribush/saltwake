@@ -22,6 +22,9 @@ impl Economy {
         if now < edition.terms.opens_at_ms.0 || now >= edition.terms.closes_at_ms.0 {
             return Err("EditionNotOpen".into());
         }
+        if crate::editions::is_retired(&edition_id) {
+            return Err("EditionRetired".into());
+        }
         if expected_version.0 != edition.version.0 || expected_fee.0 != edition.fee.0 {
             return Err("StaleOffer".into());
         }
