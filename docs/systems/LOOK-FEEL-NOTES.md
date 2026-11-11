@@ -138,4 +138,11 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Fixed: the gatehouse walls were flat dark (an `!important` rule in tiles.css); they show the brick texture again.
 - Checks: typecheck, game 183, web 31, server 168, build pass.
 
-Next step: builder power tools (region select/copy/paste/rotate, stamps, multi-floor overview) when they land.
+### 19. Optional procedural sound; builder power tools
+- `art/Sound.ts`: every sound is synthesised with the Web Audio API (oscillators, filtered noise, envelopes). No audio files, assets or services. Off by default; a speaker toggle and volume slider sit in the top bar (inserted next to Help by a DOM observer, remembered in `localStorage['saltwake.sound']`). The audio context only starts after the player turns sound on (browser gesture rules).
+- Sounds: soft footsteps (town avatar, room hero, dungeon hero moving), coin clink on spend and a reversed clink on earn, a pick-up blip when the satchel grows, kettle bubbles while a brewing scene or practice track is on screen, door creak on entering a room or a gate opening, a slam for gates shutting, hit and hurt thumps, enemy death, blast boom, tide rumble three turns before flooding and while flooding, a rising chord when dungeon doors open, and a quiet harbour bed (slowly breathing filtered noise for waves, synthesised gull chirps every 6-15 s) that ducks outside the town. Under reduced motion the ambient bed stays off and only event sounds play.
+- Hooks: art components emit `saltwake:sfx` events (RunFx, EntryCeremony, RoomHero, Juice); footsteps and the kettle come from DOM observation. No component edits.
+- Builder power tools (playtest lane): Area & stamps panel framed with a serif legend, chosen stamp pressed brass, stamp and floor previews in the wall/floor palette; floor overview cards with hover lift, gold current, green drop target; selection tint, blinking keyboard cursor, red hatch for cut-off floor.
+- Checks: typecheck, game 187, web 31, server 168, build pass. Sound verified to start without errors; audio itself needs a listener with speakers.
+
+Next step: tune sound levels with a human listener; polish as lanes land UI.
