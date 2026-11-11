@@ -307,3 +307,16 @@ body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%
 /* Builder inspector content scrolls inside its window instead of spilling under the action bar. */
 .saltwake .game-stage .builder-inspector{overflow-y:auto;overscroll-behavior:contain}
 .saltwake .game-stage .studio-actions{background:linear-gradient(#16262a,#0f1c1f);z-index:2}
+
+/* ---------- Two-frame walk ---------- */
+.hero-actor .actor-body>.px-sprite{position:absolute;inset:0}
+.character-sprite .frame-b,.hero-actor .frame-b{visibility:hidden}
+.character-sprite.walking .frame-a,.hero-actor.walking .frame-a{animation:sw-walk-a .28s steps(1) infinite}
+.character-sprite.walking .frame-b,.hero-actor.walking .frame-b{animation:sw-walk-b .28s steps(1) infinite}
+@keyframes sw-walk-a{0%{visibility:hidden}50%{visibility:visible}}
+@keyframes sw-walk-b{0%{visibility:visible}50%{visibility:hidden}}
+.character-sprite.walking .hero-body{animation:none}
+/* Creatures hop as they step. */
+.actor-body.hop{animation:sw-hop .2s ease-out}
+@keyframes sw-hop{40%{transform:translateY(-10%) scale(1.04,.96)}}
+@media(prefers-reduced-motion:reduce){.character-sprite.walking .frame-a,.character-sprite.walking .frame-b,.hero-actor.walking .frame-a,.hero-actor.walking .frame-b,.actor-body.hop{animation:none}}

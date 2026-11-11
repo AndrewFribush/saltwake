@@ -79,4 +79,9 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Phone builder: inspector content scrolls inside its window instead of spilling under the Undo/Redo/Play bar (`after-builder-mobile.jpg`).
 - Checks: typecheck, game 178, web 30, server 162, build pass.
 
-Next step: polish pass on town-spaces player buildings (owner banner art, plot outline), crafting scene and shop counters; consider a short hero walk cycle (2 frames).
+### 10. Two-frame walk
+- Hero walk frames (front, back, side) alternate while the character is moving (`useMoving` in art/Sprite.tsx, 280 ms after each step): town avatar, other players, room hero and dungeon hero. Creatures hop when they step. Off under reduced motion.
+- Component edits: `at={position}` / `at={player}` on the existing avatar lines in Town.tsx and TownPresence.tsx.
+- Checks: typecheck, game 178, web 30, server 162, build pass.
+
+Next step: town-spaces player buildings (shops, dungeon entrances, banners, notice board art, plot outlines); creator-kit and private-offer UI; progression-component sprites when their ids land.

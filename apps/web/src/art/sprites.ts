@@ -12,6 +12,11 @@ export const heroSide=[
  '................','......kkkkk.....','.....khhhhhk....','....khhhhhhhk...','....khhhhsssk...','....khhhssksk...','....kHhhssssk...','.....kyyssk.....',
  '....kyyyyyyk....','...kyyyyyyyyk...','...kyYbbbbsskg..','...kyYyyyyyk.g..','...kYYyyyyYk.g..','....kYYkYYk.....','....kBBkkBBk....','....kkkk.kkk....'];
 
+const stride=(rows:readonly string[],legs:string[])=>[...rows.slice(0,13),...legs];
+export const heroDownWalk=stride(heroDown,['....kYYk.kYYk...','....kBBk..kkk...','....kkkk........']);
+export const heroUpWalk=stride(heroUp,['....kYYk.kYYk...','....kBBk..kkk...','....kkkk........']);
+export const heroSideWalk=stride(heroSide,['...kYYk..kYYk...','..kBBk....kBBk..','..kkk......kkk..']);
+
 const rat=[
  '................','................','................','................','................','................','................','..........kk....',
  '.........kpfk...','...kkkkkkkffkk..','..kffffffffkfek.','.kfffFffffffffpk','kfkFFFfffffffkk.','k..kFFFFFFFFFk..','.k..kpk...kpk...','................'];
@@ -109,7 +114,7 @@ const notice=[
 const display=[
  '..kkkkkkkkkkkk..','..kuuuuuuuuuuk..','..kucccucccuuk..','..kuyyuurruuuk..','..kkkkkkkkkkkk..','..kuuuuuuuuuuk..','..kuggukmmkuuk..','..kuggukmmkuuk..',
  '..kkkkkkkkkkkk..','..kbbbbbbbbbbk..','..kbddddddddbk..','..kbbbbbbbbbbk..','..kBBBBBBBBBBk..','..kbk......kbk..','..kkk......kkk..','................'];
-export const spriteMaps={coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
+export const spriteMaps={heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
 /** Shopkeeper: the hero drawing with a blue coat and grey hair. */
