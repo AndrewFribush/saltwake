@@ -59,4 +59,9 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - New sprites: drafting table, notice board, display shelf (interior fixtures map by name).
 - Checks: typecheck, game 177, web 30, server 158, build pass.
 
-Next step: wallet onboarding title screen (pixel harbor scene, step indicator), mobile pass, then pickup sparkle / low-health vignette.
+### 6. Title card for arrival and wallet onboarding (CSS only)
+- `--tx-title`: an original pixel harbor at dusk (houses with lit windows, catacomb gate, quay, water with moon reflection, the hero, a shopkeeper, a rat, a powder crab and a keg) drawn from the shared palette and sprites. Shown above every `.arrival` screen (connecting, wallet onboarding, wallet errors) via `::before`; no component change.
+- Gold serif title, framed wallet picker with full-width buttons. Dev preview: `/gallery.html?arrival`.
+- Checks: typecheck, game 177, web 30, server 157/158 with `wallet-craft-http` timing out under load (passes alone), build pass.
+
+Next step: mobile pass (town map larger when idle; dungeon board centring), then pickup sparkle / low-health vignette.

@@ -9,6 +9,7 @@ import '../navigation.css';
 import '../style.css';
 import '../art/skin.css';
 import {Run} from '../Run';
+import {WalletOnboarding} from '../WalletOnboarding';
 import {Sprite} from '../art/Sprite';
 import {spriteMaps,type SpriteName} from '../art/sprites';
 import {depthPractice} from '../../../../packages/game/src/draft-generator';
@@ -57,5 +58,7 @@ function Gallery(){
   <div className="game-shell" style={{height:760,flex:'none'}}><div className="game-stage"><Run compact remote={{state:s,send,busy:false,title:'Gallery',roomCount:1,terminal:null,settlement:null,canExtract:true}}/></div></div>
  </main>;
 }
-document.body.style.overflow='auto';document.documentElement.style.height='auto';
-createRoot(document.getElementById('root')!).render(<Gallery/>);
+if(!location.search.includes('arrival')){document.body.style.overflow='auto';document.documentElement.style.height='auto';}
+const picker=<div className="wallet-picker"><p>Connect a NEAR <strong>testnet</strong> wallet. No real money: testnet accounts are free.</p><button>MyNearWallet <small>(web)</small></button><button>Meteor Wallet <small>(extension)</small></button><button>Nightly <small>(extension)</small></button><p><small>No testnet account? MyNearWallet creates one for free at testnet.mynearwallet.com.</small></p></div>;
+const onboarding=<main className="saltwake"><WalletOnboarding network="testnet" contractId="saltwake-example.testnet" connected={false} authenticated={false} busy={false} connectControls={picker}/></main>;
+createRoot(document.getElementById('root')!).render(location.search.includes('arrival')?onboarding:<Gallery/>);
