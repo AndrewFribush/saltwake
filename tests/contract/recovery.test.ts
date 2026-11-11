@@ -47,7 +47,7 @@ test('holdings include listed assets, town loadouts, crafting inputs, and pendin
  const makerHoldings=await f.view('holdings',{profile:'maker'});await f.apply('craft',{actor:'maker',action:{type:'begin_craft',batch_id:'craft',input_ids:inputs('maker'),challenge_commitment:commitment,deadline_ms:deadline}});assert.equal(await f.view('holdings',{profile:'maker'}),makerHoldings);
  // A second zero-asset worker spends a wage on publication, then has pending maker fees.
  await f.apply('job2',begin('wage2',deadline,2,'worker2'));await f.apply('wage2',finish('wage2','worker2'));
- await f.apply('worker-publish',{actor:'worker2',action:{type:'publish',terms:t,fee:'6',funding:[]}});assert.equal(await f.view('holdings',{profile:'worker2'}),'0');
- await f.apply('paid-entry',{actor:'buyer',action:{type:'admit',edition_id:'edition-1',expected_version:'1',expected_fee:'6',loadout_ids:[],seed:'0'}});assert.equal(await f.view('holdings',{profile:'worker2'}),'6');s=await f.view();assert.equal((await f.apply('pending-income',begin('pending',deadline,4,'worker2'))).result,'RecoveryHoldings');assert.deepEqual(await f.view(),s);
+ await f.apply('worker-publish',{actor:'worker2',action:{type:'publish',terms:t,fee:'8',funding:[]}});assert.equal(await f.view('holdings',{profile:'worker2'}),'0');
+ await f.apply('paid-entry',{actor:'buyer',action:{type:'admit',edition_id:'edition-1',expected_version:'1',expected_fee:'8',loadout_ids:[],seed:'0'}});assert.equal(await f.view('holdings',{profile:'worker2'}),'8');s=await f.view();assert.equal((await f.apply('pending-income',begin('pending',deadline,4,'worker2'))).result,'RecoveryHoldings');assert.deepEqual(await f.view(),s);
  }finally{await f.close();}
 });

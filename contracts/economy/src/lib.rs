@@ -185,13 +185,16 @@ impl Economy {
     // Public testnet seed: the extended demo plus a larger newcomer labor pool.
     // Wallet players register with zero assets and earn their first coins
     // through bank recovery jobs, so the pool must outlast many players:
-    // 120 reserved wage credits (60 jobs) and 120 herbs + 120 flasks in the bank.
-    // Total: 290 credits, 275 items. Fixed at init; no runtime faucet.
+    // 160 reserved wage credits (80 jobs, four per newcomer) and 120 herbs + 120 flasks in the bank.
+    // Total: 330 credits, 275 items. Fixed at init; no runtime faucet.
     #[init]
     #[private]
     pub fn init_public_testnet() -> Self {
         let mut s = Self::init_demo_extended();
-        s.recovery.budget = U64(120);
+        // Four 2-coin jobs reach exactly one batch of ingredients (8 coins): earn -> craft -> sell -> build.
+        // 160 reserved wage credits fund 40 newcomers' full earn path.
+        s.recovery.budget = U64(160);
+        s.recovery.max_jobs_per_profile = 4;
         for (ty, prefix) in [(ItemType::Herb, "herb"), (ItemType::Flask, "flask")] {
             for n in 8..120 {
                 let id = format!("bank-{prefix}-{n}");
