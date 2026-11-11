@@ -42,7 +42,7 @@ function scene():RunState{
   {id:'k1',kind:'barrel',damage:4,x:8,y:1},{id:'k2',kind:'barrel',damage:4,x:1,y:5,fuse:1},
   {id:'c1',kind:'crack',hp:2,x:12,y:4},{id:'o1',kind:'oil',x:3,y:4},{id:'o2',kind:'oil',x:3,y:5,burning:2},
   {id:'p1',kind:'pit',x:8,y:7},{id:'f1',kind:'fountain',heal:4,charges:2,x:11,y:4},
-  {id:'a1',kind:'altar',boon:'might',cost:3,x:1,y:1},{id:'s1',kind:'cache',supply:'bomb',count:2,x:9,y:5},{id:'kk',kind:'key',color:'red',x:5,y:1},{id:'lk',kind:'lock',color:'red',x:11,y:5},{id:'lb',kind:'lock',color:'blue',x:4,y:7},{id:'pl',kind:'plate',channel:'a',x:2,y:3},
+  {id:'a1',kind:'altar',boon:'might',cost:3,x:1,y:1},{id:'s1',kind:'cache',supply:'bomb',count:2,x:9,y:5},{id:'kk',kind:'key',color:'red',x:5,y:1},{id:'lk',kind:'lock',color:'red',x:11,y:5},{id:'lb',kind:'lock',color:'blue',x:4,y:7},{id:'pl',kind:'plate',channel:'a',x:2,y:3},{id:'ck',kind:'clock',channel:'t',period:6,on:3,offset:0,x:10,y:1},
  ] as any;
  s.devices=[{id:'d1',kind:'switch',mode:'toggle',channel:'a',x:9,y:3},{id:'d2',kind:'door',open_when:true,channel:'a',x:10,y:7},{id:'d3',kind:'door',open_when:false,channel:'a',x:7,y:6}] as any;s.signals={};
  s.traps=[{id:'t1',x:7,y:3,armed:true},{id:'t2',x:5,y:3,armed:false}] as any;

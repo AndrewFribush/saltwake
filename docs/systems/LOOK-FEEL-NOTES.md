@@ -202,4 +202,15 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Checks: typecheck, game 193, web 31, server 171, build pass.
 - Town history charts draw in left to right on first show; notice-board notes and history cards drop in when they appear (new entries on live updates animate; existing ones do not). Off under reduced motion.
 
-Next step: polish as lanes land UI.
+### 30. Hidden-information audit, turn clocks, v14 tide clocks, chat safety
+- Audit of my render layer against what the server reveals (runs.ts redacts unseen enemies, traps, unexplored tiles and features for real runs):
+  - Fixed: death puffs/sounds fired when an enemy merely walked out of view (the server drops unseen enemies from state). Deaths now need evidence: a blast on its tile, your attack, or no way it could have stepped out of sight.
+  - Fixed: blast bursts, screen shake and the boom played for blasts in the dark; now only for visible tiles.
+  - Fixed: the sealed-arena frame counted enemies (in real runs only visible ones arrive, so it showed "cleared" falsely; in rehearsal it would leak unseen foes). It now never counts enemies: "cleared" shows only when the game says you may leave.
+  - Fixed: wires and pressure-plate "pressed" state showed a channel turning on while neither end was visible (revealing an unseen creature on a plate); burning oil and lit fuses showed on remembered (not visible) tiles. Now only when visible.
+  - For the owning lanes (not changed): the server sends current state for remembered features (a keg that exploded out of sight disappears from memory); store a remembered snapshot if that matters. No private data of other players is rendered by art/; trade, ledgers and presence only show the viewer's own or public data.
+- Turn clock: a depleting ring (blue, amber when a quarter remains, red pulse at 3, flooded state) for the rising tide in the board corner; reused for v14 tide clocks (timed gates): hourglass sprite, glowing while its channel is on, small ring with turns until it flips (visible clocks only). Builder palette and Puzzle panel show the hourglass (`gallery-tide-clock.jpg`).
+- Chat mute/block/report (town lane): menu framed, Report in red, manage list as rows, muted-hidden note italic, chat errors with a red rule; presence dot pulses amber while reconnecting.
+- Checks: typecheck, game 194, web 32, server 177, build pass.
+
+Next step (wrap-up 2026-11-11): stopped at Andrew's request. Open items: (1) check the v14 clock visual in a real generated draft with timed gates and watch a sealed arena clear at its exit in a live run; (2) remembered-feature snapshot (owning lane); (3) keep skinning new UI from other lanes; (4) tune sound levels with a listener.

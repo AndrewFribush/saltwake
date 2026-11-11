@@ -776,3 +776,19 @@ main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
 .saltwake .town-chat-log li.empty{font-style:italic;color:#9aa496}
 .saltwake .town-chat-error{color:#ffc4b4;border-left:3px solid #e2563c;padding-left:6px}
 .saltwake .presence-dot:not(.on){background:#e8a23c!important;animation:sw-threat 1.2s ease-in-out infinite}
+
+/* ---------- v14 tide clocks (timed gates) ---------- */
+.feature-art.f-clock .feature-sprite{inset:10% 18%}
+.feature-art.f-clock.on .feature-sprite{filter:drop-shadow(0 0 4px #ffe08a)}
+.feature-art.f-clock.off .feature-sprite{filter:saturate(.5) brightness(.85)}
+.turn-clock.gate-clock{right:-4%;top:-4%;width:46%;height:46%}
+.turn-clock.gate-clock b{font-size:clamp(8px,1vw,11px)}
+.feature-art.f-clock.on .gate-clock .ring{stroke:#ffd75e}
+.feature-art.f-clock.off .gate-clock .ring{stroke:#8a949a}
+.depth-feature.f-clock{background:var(--sp-hourglass) center/contain no-repeat!important;border:0!important;image-rendering:pixelated}
+.depth-feature.f-clock::before,.depth-feature.f-clock::after{display:none!important}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(4)::before{background:var(--sp-hourglass) center/80% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(5)::before{background:var(--sp-key) center/80% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(6)::before{background:var(--sp-lockedDoor) center/100% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(7)::before{background:var(--sp-hatch) center/90% no-repeat,var(--tx-floor-a) center/100% 100%}
+.saltwake [role=group][aria-label="Puzzle piece"]{grid-template-columns:repeat(4,minmax(0,1fr))}
