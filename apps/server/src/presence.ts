@@ -57,6 +57,7 @@ export class TownPresence{
   entry.streams.add(stream);entry.seenAt=this.#now();
   stream.send('hello',{you:id});
   const space=spaceOf(entry.player);if(space)stream.send('snapshot',this.#snapshot(space,id));
+  stream.send('rooms',this.rooms());
   return()=>{const current=this.#players.get(id);if(current!==entry||!entry.streams.delete(stream))return;if(!entry.streams.size)this.#remove(id);};
  }
 
@@ -74,6 +75,7 @@ export class TownPresence{
   entry.movedAt=now;entry.seenAt=now;
   const before=spaceOf(entry.player);const player:PresencePlayer={id,district,x:x as number,y:y as number,facing:facing as Facing,...(room?{room}:{})};entry.player=player;const after=spaceOf(player);
   if(before&&before!==after)this.#broadcast(before,'leave',{id},id);
+  if(before!==after&&(roomPattern.test(before??'')||roomPattern.test(after??'')))this.#broadcastRooms();
   if(after){
    this.#broadcast(after,before===after?'move':'join',{player},id);
    if(before!==after)for(const s of entry.streams)s.send('snapshot',this.#snapshot(after,id));
@@ -137,7 +139,10 @@ export class TownPresence{
  }
 
  #require(id:string){const entry=this.#players.get(id);if(!entry)throw new PresenceError('Open the town stream first',409);return entry;}
- #remove(id:string){const entry=this.#players.get(id);if(!entry)return;this.#players.delete(id);const space=spaceOf(entry.player);if(space)this.#broadcast(space,'leave',{id},id);}
+ #remove(id:string){const entry=this.#players.get(id);if(!entry)return;this.#players.delete(id);const space=spaceOf(entry.player);if(space)this.#broadcast(space,'leave',{id},id);if(roomPattern.test(space??''))this.#broadcastRooms();}
+ /** Who is inside each player building (at most five names per room). Social only: for "X is browsing" hints. */
+ rooms():Record<string,string[]>{const out:Record<string,string[]>={};for(const e of this.#players.values()){const r=e.player.district?e.player.room:undefined;if(r){const list=out[r]??=[];if(list.length<5)list.push(e.player.id);}}return out;}
+ #broadcastRooms(){const rooms=this.rooms();for(const e of this.#players.values())for(const s of e.streams)s.send('rooms',rooms);}
  #snapshot(space:string,self:string){
   const room=roomPattern.test(space)?space:undefined;const district=room?[...this.#players.values()].find(e=>e.player.id===self)?.player.district??null:space;
   return {district,...(room?{room}:{}),players:[...this.#players.values()].filter(e=>spaceOf(e.player)===space&&e.player.id!==self).map(e=>({...e.player})),chat:this.#history.get(space)??[]};

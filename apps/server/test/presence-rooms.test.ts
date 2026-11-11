@@ -22,3 +22,12 @@ test('player-building rooms are shared spaces separate from the street',()=>{
  now+=100;assert.throws(()=>town.move('buyer',{district:'e',room:'../etc',x:1,y:1,facing:'down'}),(e:unknown)=>e instanceof PresenceError&&e.status===400);
  now+=100;assert.throws(()=>town.move('buyer',{district:null,room:'shop-1',x:1,y:1,facing:'down'}),(e:unknown)=>e instanceof PresenceError&&e.status===400);
 });
+test('room occupancy is announced to everyone for notice-board hints, names only',()=>{
+ let now=1_000;const town=new TownPresence({now:()=>now});const a=fakeStream(),b=fakeStream();
+ town.connect('buyer',a.stream);town.connect('maker',b.stream);
+ assert.deepEqual(b.events('rooms').at(-1),{});
+ now+=100;town.move('buyer',{district:'s',room:'shop-4',x:5,y:7,facing:'down'});
+ assert.deepEqual(b.events('rooms').at(-1),{'shop-4':['buyer']},'the street hears who is browsing');
+ const count=b.events('rooms').length;now+=100;town.move('buyer',{district:'s',room:'shop-4',x:5,y:6,facing:'up'});assert.equal(b.events('rooms').length,count,'moving inside a room does not rebroadcast');
+ now+=100;town.move('buyer',{district:'s',x:5,y:12,facing:'down'});assert.deepEqual(b.events('rooms').at(-1),{});
+});

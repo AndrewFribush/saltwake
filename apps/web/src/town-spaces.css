@@ -18,3 +18,5 @@
 .plot-tour-hint{position:absolute;right:6px;top:6px;max-width:min(320px,70%);background:#10211bf0;border:1px solid #e3cb8e;border-radius:3px;color:#e6d9b8;font-size:12px;padding:6px 8px;z-index:5;box-shadow:0 2px 10px #0008}
 .plot-tour-hint button{margin-left:4px}
 @media(max-width:580px){.plot-tour-hint{left:6px;max-width:none}}
+.shelf-looker{position:absolute;left:50%;top:-4px;transform:translateX(-50%);font-size:.55rem;white-space:nowrap;background:#e3cb8e;color:#1d1a14;padding:0 3px;border-radius:3px;pointer-events:none;z-index:2}
+.board-browsing{color:#e3cb8e;font-style:italic}

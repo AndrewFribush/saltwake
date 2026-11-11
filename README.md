@@ -88,3 +88,15 @@ After rebuilding the contract, stop only the API process (keep the sandbox runni
    The web client reads the contract id from the server, so it follows the new account automatically. Existing testnet players start fresh on the new contract (new state).
 
 Rehearsal against a local sandbox (loopback only; the sandbox root emulates the faucet and accounts are named `<name>.<root>`): `npx tsx scripts/testnet-redeploy.ts --rpc http://127.0.0.1:<port> --account r1.sandbox --funder f1.sandbox` then `--execute` with an approval whose `approvedBy` is `local-rehearsal`.
+
+## Two local wallet players at once
+
+Wallet sign-in is bound to one origin, and one browser keeps one cookie jar per host. For a second simultaneous local wallet player, give the API a loopback alias and let Vite keep the Host header (local wallet mode only; testnet ignores both):
+
+```sh
+npx tsx scripts/wallet-sandbox.ts 2
+npx tsx apps/server/src/main.ts --wallet-local --wallet-local-alias http://localhost:18972 --config .state/wallet-sandbox.json --port 18973 --web-origin http://127.0.0.1:18972
+SALTWAKE_KEEP_HOST=1 SALTWAKE_API_PORT=18973 npx vite apps/web --host 127.0.0.1 --port 18972 --strictPort
+```
+
+Open `http://127.0.0.1:18972/?devSigner=player1.<contract>` and `http://localhost:18972/?devSigner=player2.<contract>`. Each signs in with its own message bound to the origin it used.

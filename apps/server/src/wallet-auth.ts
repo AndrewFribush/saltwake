@@ -26,30 +26,35 @@ export class WalletSessions{
  private sessionOrigins=new Map<string,string>();
  private attempts=new Map<string,{cancelled:boolean}>();
  private now:()=>number;private secure:boolean;private challengeMs:number;private sessionMs:number;private capacity:number;private verificationMs:number;
- constructor(private config:{origin:string;network:string;contractId:string;provider:AccessProvider;secureCookies?:boolean;now?:()=>number;challengeMs?:number;sessionMs?:number;capacity?:number;verificationMs?:number}){
+ constructor(private config:{origin:string;network:string;contractId:string;provider:AccessProvider;secureCookies?:boolean;now?:()=>number;challengeMs?:number;sessionMs?:number;capacity?:number;verificationMs?:number;aliases?:readonly string[]}){
   const origin=new URL(config.origin);
   if(origin.origin!==config.origin||origin.username||origin.password||!['https:','http:'].includes(origin.protocol)||!validAccount(config.contractId)||!config.network||config.network.length>64||!/^[a-zA-Z0-9_-]+$/.test(config.network))throw Error('Invalid wallet authentication configuration');
   this.secure=config.secureCookies??true;
   if(origin.protocol==='http:'&&(this.secure||!['127.0.0.1','localhost','[::1]'].includes(origin.hostname)))throw Error('Insecure wallet cookies are local-only');
   if(!this.secure&&!['127.0.0.1','localhost','[::1]'].includes(origin.hostname))throw Error('Insecure wallet cookies are local-only');
+  // Local multi-player testing only: extra loopback origins (e.g. http://localhost:<port>) give a second browser cookie jar.
+  for(const a of config.aliases??[]){const u=new URL(a);if(this.secure||u.origin!==a||u.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(u.hostname))throw Error('Wallet origin aliases are local HTTP only');}
   this.now=config.now??Date.now;this.challengeMs=config.challengeMs??120000;this.sessionMs=config.sessionMs??900000;this.capacity=config.capacity??256;this.verificationMs=config.verificationMs??10000;
   if(!Number.isSafeInteger(this.verificationMs)||this.verificationMs<10||this.verificationMs>30000||!Number.isSafeInteger(this.challengeMs)||this.challengeMs<1000||this.challengeMs>300000||!Number.isSafeInteger(this.sessionMs)||this.sessionMs<1000||this.sessionMs>3600000||!Number.isSafeInteger(this.capacity)||this.capacity<1||this.capacity>10000)throw Error('Invalid wallet authentication limits');
  }
+ /** The configured origin or a local alias; sign-in messages name the origin the player actually used. */
+ allows(origin:string){return origin===this.config.origin||(this.config.aliases??[]).includes(origin);}
  matchesConfiguration(origin:string,network:string,contractId:string){return this.config.origin===origin&&this.config.network===network&&this.config.contractId===contractId;}
  private prune(){const now=this.now();for(const [key,c] of this.challenges)if(c.expiresAtMs<=now)this.challenges.delete(key);for(const [key,s] of this.sessions)if(s.expiresAtMs<=now){this.sessions.delete(key);this.sessionOrigins.delete(key);}}
  private cookie(name:string,value:string,maxAge:number){return `${name}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${this.secure?'; Secure':''}`;}
  begin(accountId:string,origin:string,cookieHeader?:string):{challenge:Challenge;setCookie:string}{
-  if(origin!==this.config.origin)throw new WalletAuthError('WRONG_ORIGIN');walletProfile(accountId);this.prune();
+  if(!this.allows(origin))throw new WalletAuthError('WRONG_ORIGIN');walletProfile(accountId);this.prune();
   const prior=tokenFrom(cookieHeader,WALLET_CHALLENGE_COOKIE);if(prior){this.challenges.delete(prior);const attempt=this.attempts.get(prior);if(attempt)attempt.cancelled=true;}
   if(this.challenges.size+this.verifying>=this.capacity)throw new WalletAuthError('CHALLENGE_CAPACITY');
   const issuedAtMs=this.now(),expiresAtMs=issuedAtMs+this.challengeMs,nonce=randomBytes(32).toString('base64'),token=randomBytes(32).toString('base64url');
-  const challenge={accountId,recipient:this.config.contractId,nonce,expiresAtMs,message:JSON.stringify({purpose:'Saltwake sign-in only; does not authorize transactions',origin:this.config.origin,network:this.config.network,contractId:this.config.contractId,accountId,issuedAtMs,expiresAtMs})};
+  const challenge={accountId,recipient:this.config.contractId,nonce,expiresAtMs,message:JSON.stringify({purpose:'Saltwake sign-in only; does not authorize transactions',origin,network:this.config.network,contractId:this.config.contractId,accountId,issuedAtMs,expiresAtMs})};
   this.challenges.set(token,challenge);return {challenge:{...challenge},setCookie:this.cookie(WALLET_CHALLENGE_COOKIE,token,Math.floor(this.challengeMs/1000))};
  }
  async finish(cookieHeader:string|undefined,origin:string,proof:WalletProof):Promise<{session:WalletSession;setCookies:string[]}>{
-  if(origin!==this.config.origin)throw new WalletAuthError('WRONG_ORIGIN');this.prune();
+  if(!this.allows(origin))throw new WalletAuthError('WRONG_ORIGIN');this.prune();
   const token=tokenFrom(cookieHeader,WALLET_CHALLENGE_COOKIE),challenge=token?this.challenges.get(token):undefined;
   if(!token||!challenge)throw new WalletAuthError('INVALID_CHALLENGE');
+  if(JSON.parse(challenge.message).origin!==origin)throw new WalletAuthError('WRONG_ORIGIN');
   // Consume before any await: concurrent retries cannot mint two sessions.
   this.challenges.delete(token);
   if(!proof||proof.accountId!==challenge.accountId||typeof proof.publicKey!=='string'||proof.publicKey.length>100||!proof.publicKey.startsWith('ed25519:')||typeof proof.signature!=='string'||!/^[A-Za-z0-9+/]{86}==$/.test(proof.signature)||Buffer.from(proof.signature,'base64').length!==64)throw new WalletAuthError('INVALID_PROOF');

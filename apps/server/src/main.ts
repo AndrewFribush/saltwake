@@ -11,7 +11,7 @@ import {cachedRead} from './rpc-cache';
 import {Store} from './db';import {Outbox} from './outbox';import {NearChain} from './chain';import {Runs} from './runs';import {httpServer} from './http';
 import type {EconomySnapshot} from '../../../packages/shared/src/types';
 // Local sandbox: operator-controlled demo profiles. Testnet: wallet sign-in only, no demo profiles.
-const {values:args}=parseArgs({options:{testnet:{type:'boolean',default:false},'wallet-local':{type:'boolean',default:false},config:{type:'string'},approval:{type:'string',default:'.state/testnet-runtime-approval.json'},port:{type:'string',default:process.env.SALTWAKE_API_PORT??'18931'},'web-origin':{type:'string',default:'http://127.0.0.1:18930'},'rpc-cache-ms':{type:'string',default:'5000'}}});
+const {values:args}=parseArgs({options:{testnet:{type:'boolean',default:false},'wallet-local':{type:'boolean',default:false},'wallet-local-alias':{type:'string',multiple:true,default:[]},config:{type:'string'},approval:{type:'string',default:'.state/testnet-runtime-approval.json'},port:{type:'string',default:process.env.SALTWAKE_API_PORT??'18931'},'web-origin':{type:'string',default:'http://127.0.0.1:18930'},'rpc-cache-ms':{type:'string',default:'5000'}}});
 const testnet=args.testnet!;
 // --wallet-local: wallet sign-in against the local sandbox (scripts/wallet-sandbox.ts). Dev only; never testnet.
 const walletLocal=args['wallet-local']!;if(walletLocal&&testnet)throw Error('--wallet-local and --testnet are exclusive');const port=Number(args.port);if(!Number.isSafeInteger(port)||port<1024||port>65535)throw Error('Invalid --port');
@@ -51,7 +51,9 @@ if(testnet){
 const box=new Outbox(db,bounded??chain,new CostJournal(db,readSnapshot));const runs=new Runs(db,box);
 const demo=new DemoSessions({profiles:config.profiles??['buyer','maker','p2','p3','p4','p5'],secureCookies:false});
 const walletNetwork=testnet?'testnet':'localnet';
-const wallet=testnet||walletLocal?{origin:webOrigin,network:walletNetwork,contractId:config.accountId,walletSessions:new WalletSessions({origin:webOrigin,network:walletNetwork,contractId:config.accountId,provider,secureCookies:false,sessionMs:3600000})}:undefined;
+// --wallet-local-alias http://localhost:<port>: a second loopback origin (separate cookie jar) for two local wallet players. Local wallet mode only.
+const aliases=args['wallet-local-alias'] as string[];if(aliases.length&&!walletLocal)throw Error('--wallet-local-alias requires --wallet-local');for(const a of aliases){const u=new URL(a);if(u.origin!==a||u.protocol!=='http:'||!['localhost','127.0.0.1'].includes(u.hostname)||a===webOrigin)throw Error('--wallet-local-alias must be another http://localhost:<port> origin');}
+const wallet=testnet||walletLocal?{origin:webOrigin,network:walletNetwork,contractId:config.accountId,aliases,walletSessions:new WalletSessions({origin:webOrigin,network:walletNetwork,contractId:config.accountId,provider,secureCookies:false,sessionMs:3600000,aliases})}:undefined;
 const {server}=httpServer(box,runs,snapshot,demo,wallet,{webOrigin,pollMs:testnet?5000:2000});
 server.listen(port,'127.0.0.1',()=>console.log(walletLocal?`Saltwake LOCAL wallet API http://127.0.0.1:${port} for ${webOrigin} · sandbox contract ${config.accountId}`:testnet?`Saltwake testnet API (wallet sign-in) http://127.0.0.1:${port} for ${webOrigin} · contract ${config.accountId} · operator budget ${JSON.stringify(bounded!.status())}`:`Local custodial demo API: http://127.0.0.1:${port}`));
 for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>server.close(()=>{db.close();process.exit();}));
