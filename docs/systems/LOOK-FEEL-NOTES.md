@@ -189,4 +189,9 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - In play, a room whose every way out needs it cleared shows an iron frame and a "⛓ SEALED" tag while foes remain; on arrival a banner reads "Sealed arena · defeat every foe to leave"; when the last foe falls the frame turns green and "Arena cleared · the way out opens" plays with the door chord (`ArenaLayer` in art/RunFx.tsx). Gallery `?vault=arena` rehearses the generator's arena (seed 2, floor 4) (`sealed-arena.jpg`). The cleared moment is implemented from state transitions but not yet watched live.
 - Checks: typecheck, web 31, build pass.
 
-Next step: player-shop interior decor seen by a visitor; Puzzle & passages panel when it lands.
+### 28. Player-shop decor, end to end
+- The proprietor (127.0.0.1) furnished Proprietor's pantry with all six decor pieces and saved through "Save shop changes" (the interior is stored on the local sandbox contract). The delver (localhost, separate session) then walked in and saw the same room: crates, table, plant, lamp, banner and anchor, with "1 other visitor here: The proprietor" (`shop-decor-edit.jpg`, `shop-decor-visitor.jpg`). The builder correctly refused a layout where a decor piece blocked a display shelf ("Display shelf cannot be reached") until it was moved.
+- Shop placement map ("Place a building") now uses the town textures: grass, cobbles, water, walls, timber for existing buildings, gold outline on your own plot, green or red footprint (`shop-site-map.jpg`).
+- Checks: typecheck, game 193, web 31, server 171, build pass.
+
+Next step: Puzzle & passages panel when it lands on main.
