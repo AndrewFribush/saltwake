@@ -43,6 +43,13 @@ Two live browsers (127.0.0.1 and localhost cookie jars, `SALTWAKE_PROXY_ORIGIN=h
 
 More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server run inside a worktree never sees file edits; restart it after changes. Load average hit 70 with 11 sandboxes from parallel agents; `capacity` and two `economy-stress` contract tests time out under that load (also on a solo rerun) and touch no shop code. They need a rerun on a quiet machine. The detached-sandbox trick (spawn with `detached:true`) kept a sandbox alive where `npm run sandbox` in a background shell kept getting stopped.
 
+## After merging main (88a1009) and discovery work
+
+- Merged build/dungeon-loop (drafting table, stacked trade rows, pack panel, buy_coins). Entrances use the new pack panel.
+- Discoverability while walking: crossing into a district announces the player buildings standing there ("Built here: The smugglers' hollow entrance (The proprietor, dungeon entrance)") or invites you to claim a plot; standing at a player building's door adds a doorstep line; every player building flies a banner in its owner's colour; your own signs are outlined. Logic in `packages/game/src/town-discovery.ts` (tested).
+- Relocation: Manage → "Move, refurnish or relink" opens placement directly. Browser-checked: moved the entrance from Harbor Square to Market Ward (5,10); contract record became district e, version 2, plot count unchanged.
+- The worktree sandbox keeps receiving a clean shutdown signal even when spawned detached; something outside this lane stops `demo-sandbox` processes. Restart it plus the API before browser checks.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.

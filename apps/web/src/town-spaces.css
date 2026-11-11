@@ -6,3 +6,5 @@
 .room-visitor small{position:absolute;top:-2px;left:50%;transform:translateX(-50%);font-size:.6rem;white-space:nowrap;background:#0008;color:#fff;padding:0 3px;border-radius:3px;filter:none}
 .room-chat ol{max-height:9rem;overflow:auto;margin:.25rem 0;padding-left:1rem}
 .room-chat form{display:flex;gap:.25rem}.room-chat input{flex:1;min-width:0}
+.place-sign.mine{outline:2px solid #e3cb8e;outline-offset:1px}
+.town-prompt .doorstep{margin:.15rem 0 0;font-size:.85em;opacity:.9}
