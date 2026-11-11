@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {authoredRehearsal} from '../src/authored-layout';
 import {act} from '../src/actions';
-import {validateCustomFloor,encodeCustomModule,decodeCustomModule} from '../../shared/src/custom-layout';
+import {validateCustomFloor,encodeCustomModule,decodeCustomModule,floorFormat} from '../../shared/src/custom-layout';
 import {encodeBlueprint,decodeBlueprint} from '../../shared/src/blueprint';
 import {editionRulePages} from '../src/edition-rules';
 import {generateDraft,depthPractice} from '../src/draft-generator';
@@ -97,7 +97,7 @@ test('blueprints and rule pages carry depth designs; plain designs stay v11',()=
 });
 
 test('generated drafts are valid for many seeds and practice runs start',()=>{
- for(let seed=1;seed<=40;seed++){const d=generateDraft(seed,{vaults:true});for(const f of d.floors)assert.deepEqual(validateCustomFloor(f,f.features?.some(x=>x.kind==='lock')?'keys':'depth'),[]);}
+ for(let seed=1;seed<=40;seed++){const d=generateDraft(seed,{vaults:true});for(const f of d.floors)assert.deepEqual(validateCustomFloor(f,floorFormat(f)),[]);}
  assert.equal(depthPractice(3).status,'active');
 });
 
@@ -141,4 +141,26 @@ test('solver: a plate-held gate is opened by shoving an enemy onto the plate; wi
  assert.ok(solved.solved,`explored ${solved.explored}`);assert.ok(solved.actions.some(a=>a.type==='shove'),'needs a shove to pin the enemy');
  const blocked=solveReach(authoredRehearsal([lure(false)],[sock('pursuer')],'club'),{x:6,y:2});
  assert.equal(blocked.solved,false);assert.equal(blocked.truncated,false);
+});
+
+test('generator lure vaults: plate in line with the gate approach, a lever hatch out, proven solvable by the route solver',async()=>{
+ const {lureRooms,lureSolvable,generatorPresets}=await import('../src/draft-generator');
+ const {solveReach}=await import('../src/solver');
+ let found=0,shoves=0;
+ for(let seed=1;seed<=30;seed++)for(const preset of ['medium','large'] as const){
+  const d=generateDraft(seed,generatorPresets[preset].options);
+  d.floors.forEach((f,i)=>{for(const lure of lureRooms(f,d.placements[i])){found++;
+   const plate=f.features!.find(x=>x.kind==='plate')!;
+   assert.equal(Math.abs(plate.x-lure.gate.x)+Math.abs(plate.y-lure.gate.y),3,'plate sits three tiles out along the approach');
+   assert.ok(f.devices!.some(x=>x.kind==='switch'&&x.mode==='toggle')&&f.devices!.filter(x=>x.kind==='door').length>=2,'a lever hatch leads out');
+   assert.ok(!f.devices!.some(x=>x.kind==='switch'&&x.channel===plate.channel),'the plate alone drives the gate');
+   const proof=lureSolvable(f,lure,lure.guard);assert.ok(proof,`seed ${seed} ${preset} floor ${i}`);if(proof!.entry.actions.some(a=>a.type==='shove'))shoves++;
+   // Without the guard the player cannot hold the plate and pass the gate at once.
+   if(found>3)continue;
+   const inner={x:2*lure.gate.x-lure.approach.x,y:2*lure.gate.y-lure.approach.y};
+   const alone=authoredRehearsal([{...f,sockets:[],tuning:[],exit_rule:{extract:true,require_clear:false},tide:undefined} as any],[],'club');
+   const r=solveReach(alone,inner,20000,120);assert.equal(r.solved,false);assert.equal(r.truncated,false);
+  }});
+ }
+ console.log(`lure vaults ${found}, ${shoves} need a shove`);assert.ok(found>=5,`found ${found} lure vaults`);assert.ok(shoves>=1,'some lure vaults need a shove');
 });
