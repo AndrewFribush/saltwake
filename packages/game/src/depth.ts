@@ -18,7 +18,7 @@ export const chebyshev=(a:Point,b:Point)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.
 export const square=(c:Point)=>{const out:Point[]=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)out.push({x:c.x+dx,y:c.y+dy});return out;};
 const neighbors4=(p:Point)=>[{x:p.x,y:p.y-1},{x:p.x+1,y:p.y},{x:p.x,y:p.y+1},{x:p.x-1,y:p.y}];
 /** Readable log name for depth runs, e.g. "powder crab #1" or "rat #2.3". */
-export const who=(e:Enemy)=>`${enemyName(e)} #${e.id.replace(/^floor-\d+-slot-/,'').replace(/-rat/,'.')}`;
+export const who=(e:Enemy)=>/^floor-\d+-slot-/.test(e.id)?`${enemyName(e)} #${e.id.replace(/^floor-\d+-slot-/,'').replace(/-rat/,'.')}`:`${enemyName(e)} (${e.id})`;
 export const enemyName=(e:Enemy)=>e.minion?'rat':e.kind==='archer'?'sentry':e.kind==='bomber'?'powder crab':e.kind==='brute'?'brute':e.kind==='nest'?'nest':e.kind==='charger'?'charger':'pursuer';
 /** Light a keg. Every lit keg bursts during the next enemy phase: lights before the keg step wait one extra decrement. */
 export function light(ctx:Ctx|undefined,f:FeatureState){if(f.kind!=='barrel'||f.spent||f.fuse)return;f.fuse=ctx?.late?1:2;(ctx?.s??null)?.log.push('A powder keg fizzes.');}

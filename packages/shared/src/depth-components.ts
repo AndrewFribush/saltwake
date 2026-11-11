@@ -10,7 +10,7 @@ export const enemyKinds=['pursuer','charger',...depthEnemyKinds] as const;
 export const enemyCatalog:Record<EnemyKind,{name:string;hp:number;damage:number;alert:number;cost:number;summary:string}>={
  pursuer:{name:'Pursuer',hp:4,damage:3,alert:5,cost:2,summary:'Follows walkable routes and commits its next step or bite.'},
  charger:{name:'Charger',hp:6,damage:4,alert:5,cost:3,summary:'When aligned, commits to a straight lane, hits the first creature in it, then recovers a turn.'},
- archer:{name:'Crossbow sentry',hp:3,damage:2,alert:6,cost:3,summary:'Keeps its distance. When you share a row or column within 6 tiles it aims, shows the bolt line, and fires next turn at the first creature in it. Reloads one turn.'},
+ archer:{name:'Crossbow sentry',hp:3,damage:2,alert:5,cost:3,summary:'Keeps its distance. When you share a row or column within 6 tiles it aims, shows the bolt line, and fires next turn at the first creature in it. Reloads one turn.'},
  bomber:{name:'Powder crab',hp:2,damage:4,alert:5,cost:2,summary:'Scuttles toward you. Once adjacent it lights its fuse and bursts next turn, hitting every creature in the 3×3 around it. Kill it before it lights, or step clear.'},
  brute:{name:'Drowned brute',hp:10,damage:5,alert:4,cost:4,summary:'Slow: acts every other turn. Winds up a sweeping smash over the tile in front of it and both flanking tiles. Too heavy to shove.'},
  nest:{name:'Rat nest',hp:6,damage:1,alert:5,cost:4,summary:'Stationary. Once awake, hatches a rat every 4 turns on a marked tile (at most 3 alive, 6 total). Rats have 2 health.'},

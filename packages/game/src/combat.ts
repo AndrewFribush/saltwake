@@ -18,22 +18,22 @@ export function resolveEnemies(s:RunState,guard:boolean){
    for(const tile of e.lane){
     if(!walkable(s,tile))break;
     struck=true;
-    if(same(tile,s.player)){hitPlayer(e.damage??encounterRules.charger.damage,s.depth?who(e):e.id);break;}
+    if(same(tile,s.player)){hitPlayer(e.damage??encounterRules.charger.damage,who(e));break;}
     const other=s.enemies.find(other=>other.id!==e.id&&other.hp>0&&same(other,tile));
-    if(other){const damage=e.damage??4;if(s.depth)hurt(ctx,other,damage,who(e));else{other.hp-=damage;s.log.push(`${e.id} strikes ${other.id} for ${damage}.`);}break;}
+    if(other){const damage=e.damage??4;if(s.depth)hurt(ctx,other,damage,who(e));else{other.hp-=damage;s.log.push(`${who(e)} strikes ${who(other)} for ${damage}.`);}break;}
     struck=false;e.x=tile.x;e.y=tile.y;
    }
    if(s.depth&&!struck){const keg=featureAt(s,{x:e.x+dir.x,y:e.y+dir.y},'barrel');if(keg){s.log.push(`${who(e)} rams a powder keg.`);light(ctx,keg);}}
    e.recovering=true;
   }else if(distance(e,e.intent)===1&&same(e.intent,s.player)){
-   hitPlayer(e.damage??encounterRules.pursuer.damage,s.depth?who(e):e.id);
+   hitPlayer(e.damage??encounterRules.pursuer.damage,who(e));
   }else if(walkable(s,e.intent)&&!same(e.intent,s.player)&&!s.enemies.some(other=>other.id!==e.id&&other.hp>0&&same(other,e.intent))){e.x=e.intent.x;e.y=e.intent.y;}
  }
  const traps=()=>{
  for(const trap of s.traps){
   if(trap.armed){
    if(same(trap,s.player)&&s.player.hp>0)hitPlayer(trap.damage??encounterRules.spikes.damage,'Spikes');
-   for(const e of s.enemies)if(e.hp>0&&same(trap,e)){const damage=trap.damage??3;if(s.depth)hurt(ctx,e,damage,'Spikes');else{e.hp-=damage;s.log.push(`Spikes hit ${e.id} for ${damage}.`);}}
+   for(const e of s.enemies)if(e.hp>0&&same(trap,e)){const damage=trap.damage??3;if(s.depth)hurt(ctx,e,damage,'Spikes');else{e.hp-=damage;s.log.push(`Spikes hit ${who(e)} for ${damage}.`);}}
   }
   if(trap.period!==undefined){trap.phase=((trap.phase??0)+1)%trap.period;trap.armed=trap.phase<(trap.activeTurns??1);}else trap.armed=!trap.armed;
  }
