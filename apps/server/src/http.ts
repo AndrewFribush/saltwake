@@ -9,6 +9,7 @@ import {shopRecord} from './shop-record';
 import {editionRecord} from './edition-record';
 import {publicShopRecord} from './shop-record';
 import {businessLedger} from './business-ledger';
+import {townSquare} from './town-square';
 import {createServer,type IncomingMessage} from 'node:http';
 import {randomBytes} from 'node:crypto';
 import {DemoSessions,DEMO_CUSTODY_LABEL,SessionError} from './auth';
@@ -58,6 +59,7 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
    if(req.method==='POST'&& !(wallet?[wallet.origin,...aliases]:[webOrigin,'http://127.0.0.1:'+req.socket.localPort]).includes(req.headers.origin??''))return reply(403,{error:'Same-origin request required'});
    if(req.method==='POST'&&req.headers['content-type']!=='application/json')return reply(415,{error:'JSON required'});
    // Simulation history written by `npm run simulate` for this storage epoch (read-only, labelled SIMULATION).
+   if(req.method==='GET'&&url.pathname==='/api/town-square'){identity.requireProfile(req.headers.cookie);return reply(200,{highlights:townSquare(await snapshot(),box.db)});}
    if(req.method==='GET'&&url.pathname==='/api/town-history'){let history:unknown={days:[]};try{if(options.historyPath&&existsSync(options.historyPath))history=JSON.parse(readFileSync(options.historyPath,'utf8'));}catch{}return reply(200,history);}
    if(req.method==='GET'&&url.pathname==='/api/config')return reply(200,wallet?{authMode:'wallet',origin:alias??wallet.origin,network:wallet.network,contractId:wallet.contractId}:{authMode:'demo',label:DEMO_CUSTODY_LABEL});
    // Operator moderation: only in the local operator-custody demo (never in wallet or testnet mode). Chat only.
