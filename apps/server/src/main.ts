@@ -10,7 +10,7 @@ import {checkTestnetApproval} from './testnet-approval';
 import {Store} from './db';import {Outbox} from './outbox';import {NearChain} from './chain';import {Runs} from './runs';import {httpServer} from './http';
 import type {EconomySnapshot} from '../../../packages/shared/src/types';
 // Local sandbox: operator-controlled demo profiles. Testnet: wallet sign-in only, no demo profiles.
-const {values:args}=parseArgs({options:{testnet:{type:'boolean',default:false},config:{type:'string'},approval:{type:'string',default:'.state/testnet-runtime-approval.json'},port:{type:'string',default:'18931'},'web-origin':{type:'string',default:'http://127.0.0.1:18930'}}});
+const {values:args}=parseArgs({options:{testnet:{type:'boolean',default:false},config:{type:'string'},approval:{type:'string',default:'.state/testnet-runtime-approval.json'},port:{type:'string',default:process.env.SALTWAKE_API_PORT??'18931'},'web-origin':{type:'string',default:'http://127.0.0.1:18930'}}});
 const testnet=args.testnet!;const port=Number(args.port);if(!Number.isSafeInteger(port)||port<1024||port>65535)throw Error('Invalid --port');
 const webOrigin=args['web-origin']!;{const u=new URL(webOrigin);if(u.origin!==webOrigin||u.protocol!=='http:'||u.hostname!=='127.0.0.1')throw Error('--web-origin must be http://127.0.0.1:<port>');}
 const config=JSON.parse(readFileSync(args.config??(testnet?'.state/testnet.json':'.state/sandbox.json'),'utf8'));
