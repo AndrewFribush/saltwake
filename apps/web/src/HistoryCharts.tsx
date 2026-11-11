@@ -6,13 +6,13 @@ export function LineChart({title,series,days}:{title:string;series:Series[];days
  const w=300,h=110,pad={l:28,r:6,t:8,b:18};const all=series.flatMap(s=>s.values).filter((v):v is number=>v!==null);const max=Math.max(1,...all),min=Math.min(0,...all);
  const x=(i:number)=>pad.l+(days.length<=1?0:i*(w-pad.l-pad.r)/(days.length-1)),y=(v:number)=>pad.t+(h-pad.t-pad.b)*(1-(v-min)/(max-min||1));
  return <figure className="history-chart"><figcaption>{title}</figcaption>
-  <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${title}: ${series.map(s=>`${s.label} ${s.values.at(-1)??'–'}`).join(', ')} on day ${days.at(-1)}`}>
+  <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${title}: ${series.map(s=>`${s.label} ${[...s.values].reverse().find(v=>v!==null)??'–'}`).join(', ')} (latest values, day ${days.at(-1)})`}>
    <line className="axis" x1={pad.l} y1={h-pad.b} x2={w-pad.r} y2={h-pad.b}/><line className="axis" x1={pad.l} y1={pad.t} x2={pad.l} y2={h-pad.b}/>
    <text className="tick" x={pad.l-3} y={pad.t+4} textAnchor="end">{max}</text><text className="tick" x={pad.l-3} y={h-pad.b} textAnchor="end">{min}</text>
    <text className="tick" x={pad.l} y={h-4}>day {days[0]}</text><text className="tick" x={w-pad.r} y={h-4} textAnchor="end">day {days.at(-1)}</text>
    {series.map(s=>{const pts=s.values.map((v,i)=>v===null?null:`${x(i)},${y(v)}`).filter(Boolean).join(' ');return <polyline key={s.label} className={`line ${s.cls}`} points={pts} fill="none"/>;})}
   </svg>
-  <ul className="chart-legend">{series.map(s=><li key={s.label} className={s.cls}>{s.label}: {s.values.at(-1)??'–'}</li>)}</ul>
+  <ul className="chart-legend">{series.map(s=>{const last=[...s.values].reverse().find(v=>v!==null);return <li key={s.label} className={s.cls}>{s.label}: {last??'–'}</li>;})}</ul>
  </figure>;
 }
 export function HistoryCharts({days}:{days:DayReport[]}){
