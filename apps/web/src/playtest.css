@@ -1,0 +1,137 @@
+/* Playtest pass: stacked trade rows, counter tabs, first-steps guide. Loaded last. */
+.stack-rows{list-style:none;margin:4px 0;padding:0;display:flex;flex-direction:column;gap:4px;min-height:0;overflow:auto}
+.stack-rows li{display:grid;grid-template-columns:34px minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:4px 6px;border:1px solid #3d4f45;border-radius:4px;background:#1f342d}
+.stack-rows li.chosen{border-color:#d0b470;background:#2b3a2c}
+.stack-rows .item-icon{width:34px;height:34px}
+.stack-name{display:flex;flex-direction:column;min-width:0}
+.stack-name b{font-size:13px;color:#efe3c2}
+.stack-name small,.stack-meta small{font-size:11px;color:#a9b4a2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stack-meta{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.stack-meta b{font-size:12px;color:#e2c783;white-space:nowrap}
+.stack-qty{display:flex;align-items:center;gap:2px}
+.stack-qty button{width:26px;height:26px;padding:0!important;font-size:16px;line-height:1}
+.stack-qty output{min-width:22px;text-align:center;font-weight:bold;color:#efe3c2}
+.shop-counter{display:flex;flex-direction:column;gap:4px;min-height:0;height:100%}
+.shop-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.shop-tabs button{flex:1;padding:5px 4px!important;font-size:12px}
+.shop-tabs button[aria-pressed=true],.first-steps .step.now{background:#d0b470!important;color:#142522!important}
+.shop-counter h3{margin:4px 0 0;font:17px Georgia;color:#e2c783}
+.shop-counter h4{margin:4px 0;font-size:13px}
+.shop-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.trade-balance{margin:0;font-size:12px;color:#d6cba5}
+.link-button{background:none!important;border:0!important;color:#d0b470!important;text-decoration:underline;padding:0 4px!important;font-size:12px}
+.trade-done{margin:0;padding:5px 8px;background:#2f4a33;border-left:3px solid #9fc27a;font-size:12px;color:#e8f0d8}
+.trade-guidance,.trade-note{font-size:11px;color:#b9c2ad;margin:2px 0}
+.sell-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.sell-actions .or{font-size:11px;color:#a9b4a2}
+.price-input{display:flex;align-items:center;gap:4px;font-size:12px}
+.price-input input{width:60px}
+.order-card{margin:2px 0;font-size:13px}
+.my-offers p{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;margin:2px 0}
+.service-desk .shop-counter .checkout{margin-top:auto}
+
+/* Town: first steps guide in the idle window. */
+.game-stage>.idle-inspector.first-steps{justify-content:flex-start;text-align:left;z-index:1;overflow:auto}
+.first-steps h2{font:21px Georgia;color:#e2c783;margin:4px 0}
+.first-steps p{padding:0!important;margin:4px 0;font-size:12px}
+.first-steps ol{list-style:none;margin:6px 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.first-steps .step{padding:6px 8px;border:1px solid #3d4f45;border-radius:4px;background:#1f342d;font-size:12px;color:#c9d0bd}
+.first-steps .step b{display:block;font-size:13px;color:#efe3c2;margin-bottom:2px}
+.first-steps .step.done{opacity:.6}
+.first-steps .step.done b::before{content:'✓ ';color:#9fc27a}
+.first-steps .step.now b{color:#142522}
+.first-steps .controls-note{margin-top:auto;font-size:11px;color:#9aa596}
+
+/* Crafting helpers. */
+.craft-fill{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
+.craft-have{font-size:12px;color:#d6cba5;margin:2px 0}
+.first-steps p{text-align:left!important;max-width:none!important}
+/* Chat sits in the bottom-left corner so it never covers building signs along the top row. */
+.town-field .town-chat{top:auto;bottom:6px;width:min(250px,30%)}
+.craft-sub{font:15px Georgia;color:#e2c783;margin:10px 0 2px}
+.craft-result{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid #9fc27a;border-radius:4px;background:#24402f;margin:6px 0}
+.craft-result .item-icon{width:44px;height:44px;flex:none}
+.craft-result b{color:#efe3c2;font-size:14px}.craft-result p{margin:2px 0 0;font-size:12px}
+.shop-status:empty{display:none}
+.pack-panel{border:1px solid #3d4f45;border-radius:4px;padding:6px;margin-bottom:6px;background:#192b25}
+.pack-panel h3{margin:0;font:16px Georgia;color:#e2c783}
+.pack-panel p{margin:2px 0;font-size:12px}
+.pack-panel .pack-warn{color:#f0c98f}
+.pack-panel .stack-rows{max-height:150px}
+.game-stage>.homecoming{display:flex;flex-direction:column;gap:6px;padding:8px!important}
+.run-summary b{font:17px Georgia;color:#e2c783}
+.run-summary ul{margin:4px 0;padding-left:16px;font-size:12px}
+.run-summary li.gain{color:#c8e6a0}.run-summary li.loss{color:#f0a78f}
+.game-stage>.homecoming .run-summary p{display:block;font-size:12px;margin:2px 0}
+.game-stage:has(>.homecoming) section[aria-label="Settlement"]{display:none}
+.town-field .town-chat{bottom:44px}
+.player-trade .stack-rows li{grid-template-columns:28px minmax(0,1fr) auto auto;padding:3px 5px}
+.player-trade .stack-rows .item-icon{width:28px;height:28px}
+.player-trade .stack-rows{max-height:180px}
+.player-trade .primary{width:100%;margin-top:4px}
+.trade-mine{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.player-trade{background:#10211b!important}.trade-offer label{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.saltwake .town-chat .town-chat-log button.chat-name{all:unset;color:#e3cb8e;font-weight:600;cursor:pointer;text-decoration:underline dotted;padding:0!important;border:0!important;background:none!important;min-height:0!important}
+.purse{position:relative}
+.purse-delta{position:absolute;right:-10px;top:-8px;padding:2px 7px;border-radius:10px;font:bold 13px system-ui,sans-serif;animation:purse-pop 4.5s ease-out forwards;pointer-events:none}
+.purse-delta.up{background:#9fc27a;color:#132317}.purse-delta.down{background:#c98a6e;color:#231512}
+@keyframes purse-pop{0%{transform:translateY(6px) scale(.6);opacity:0}8%{transform:none;opacity:1}80%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+.builder-steps{display:flex;gap:3px;margin-bottom:6px}
+.builder-steps button{flex:1;padding:5px 2px!important;font-size:11px!important;white-space:nowrap}
+.builder-steps button[aria-pressed=true]{background:#d0b470!important;color:#142522!important}
+.builder-callout{padding:8px;border-left:3px solid #9fc27a;background:#24402f;color:#e8f0d8;font-size:12px;margin:4px 0}
+.offer-maker{font-size:11px;color:#c9b98a;margin:0 0 4px!important}
+.game-stage>.loot-prompt{position:absolute;right:0;width:var(--window-rail);bottom:48px;z-index:11;box-sizing:border-box;padding:8px;background:#2b3a2c;border:1px solid #d0b470;border-radius:4px;display:flex;flex-direction:column;gap:6px}
+.loot-row{display:flex;align-items:center;gap:6px;font-size:13px}
+.loot-row .item-icon{width:32px;height:32px;flex:none}
+.loot-row span{flex:1}
+.loot-prompt small{font-size:11px;color:#b9c2ad}
+.maker-headline{padding:6px 8px;border:1px solid #d0b470;border-radius:4px;background:#2b3a2c;margin:4px 0}
+.maker-headline p{margin:2px 0;font-size:12px}.maker-headline b{color:#e2c783}
+.maker-meta{font-size:11px;color:#a9b4a2}
+/* District signposts stand beside each crossing instead of in one bar over the bottom road. */
+.town-field .district-compass{position:absolute;inset:0;display:block;pointer-events:none}
+.saltwake .town-field .district-compass button{position:absolute;white-space:nowrap;opacity:.9}
+.town-field .district-compass .edge-n{top:4px;left:calc(14.2/24*100%)}
+.town-field .district-compass .edge-s{bottom:4px;left:calc(14.2/24*100%)}
+.town-field .district-compass .edge-w{left:4px;top:calc(6.3/16*100%)}
+.town-field .district-compass .edge-e{right:4px;top:calc(6.3/16*100%)}
+.brush-row{display:inline-flex;gap:3px;margin-right:6px}
+.brush-row button{padding:4px 8px!important;font-size:12px}
+.brush-row button[aria-pressed=true]{background:#d0b470!important;color:#142522!important}
+/* Interiors: each house gets its own floor so rooms read as different places. */
+.saltwake .room-inn button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit){background:repeating-linear-gradient(0deg,#7b5a3a 0 11px,#6b4d31 11px 12px)}
+.saltwake .room-inn button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(even){background:repeating-linear-gradient(0deg,#835f3d 0 11px,#6b4d31 11px 12px)}
+.saltwake .room-market button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit){background:#8a826a;box-shadow:inset 0 0 0 2px #6f6955}
+.saltwake .room-market button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(even){background:#958c72}
+.saltwake .room-workshop button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit){background:#4f5b55;box-shadow:inset 0 0 0 1px #6d7b72}
+.saltwake .room-workshop button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(even){background:#56635c}
+.saltwake .room-guild button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit){background:#6e3f3a;box-shadow:inset 0 0 0 1px #8a5a4a}
+.saltwake .room-guild button.room-tile:not(.room-wall):not(.room-fixture):not(.room-exit):nth-child(even){background:#76453f}
+.saltwake button.room-tile.room-fixture{background:#3a2e22;box-shadow:inset 0 0 0 2px #c9a35f}
+.saltwake button.room-tile.room-player{box-shadow:inset 0 0 0 2px #f3dfaa}
+/* Shop-site picker draws the real streets, water and buildings. */
+.saltwake .shop-site-map button{position:relative;border:0!important;border-radius:0!important;box-shadow:inset 0 0 0 1px #17302733;padding:0!important;overflow:visible}
+.saltwake .shop-site-map button.ground-grass{background:#3a5039!important}
+.saltwake .shop-site-map button.ground-road{background:#857a62!important}
+.saltwake .shop-site-map button.ground-water{background:#214954!important}
+.saltwake .shop-site-map button.ground-wall{background:#293a35!important}
+.saltwake .shop-site-map button.occupied{background:#b69d71!important}
+.saltwake .shop-site-map button.selected{background:#9fc27a!important;box-shadow:inset 0 0 0 2px #e8f0d8}
+.saltwake .shop-site-map button.selected.blocked{background:#c0614f!important}
+.site-label{position:absolute;left:2px;top:1px;z-index:2;white-space:nowrap;font-size:11px;font-weight:bold;color:#2a2116;pointer-events:none}
+.saltwake .shop-site-map button:not(.selected){box-shadow:inset 0 0 0 1px #10201a40!important}
+.first-steps .all-done{color:#c8e6a0}
+.builder-costs{margin-top:8px;line-height:1.45}
+.more-tools{font-size:11px;opacity:.85}
+.builder-coach{font-size:12px;line-height:1.4;padding:6px 8px;margin-bottom:6px;border-left:3px solid #d0b470;background:#2b3a2c;color:#e8e0c8}
+.builder-coach b{color:#e2c783}
+.coach-dots{display:flex;gap:4px;margin-bottom:3px}
+.coach-dots i{width:18px;height:4px;border-radius:2px;background:#4a5a4e}
+.coach-dots i.done{background:#9fc27a}.coach-dots i.now{background:#d0b470}
+.buy-coins{padding:8px;border:1px solid #d0b470;border-radius:4px;background:#2b3a2c;margin:6px 0;display:flex;flex-direction:column;gap:6px}
+.buy-coins h3{margin:0;font:16px Georgia;color:#e2c783}
+.buy-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.buy-row button[aria-pressed=true]{background:#d0b470!important;color:#142522!important}
+.buy-row input{width:70px}
+.buy-notice{font-size:12px;margin:0;color:#e8f0d8}

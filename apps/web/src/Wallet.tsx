@@ -2,6 +2,7 @@ import {Pages,Reading} from './GamePanels';
 import React, {useRef, useState} from 'react';
 import type {WalletView} from '../../../packages/shared/src/wallet';
 import './wallet.css';
+import {BuyCoins} from './BuyCoins';
 
 export type WalletProps = {
   world: {profile: string; wallet?: WalletView};
@@ -29,7 +30,7 @@ export function Wallet({world, busy = false, refresh}: WalletProps) {
     <div className="desk-nav"><label>Account <select aria-label="Wallet view" value={view} onChange={e=>setView(e.target.value)}>{['Balances','Pending','Run fees','Cash flow','Cash movements','Cash rules','Stock costs','Trading result','Cost rules','Receipts','About'].map(v=><option key={v}>{v}</option>)}</select></label><button disabled={busy||working} onClick={()=>void reload()}>Refresh wallet</button></div>
     <Reading text={notice?.profile===world.profile?notice.text:working?'Refreshing…':''}/>
     {!wallet?<p>Balance unavailable. Refresh this profile.</p>:<>
-    {view==='Balances'&&<><dl className="wallet-balances">{[['Available credits',wallet.purse??'Unavailable'],['Reserved run fees',wallet.reservedRunFees],['Pending maker fees',wallet.pendingMakerFees],['Pending recovery wages',wallet.pendingRecoveryWages]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>{wallet.ownedItemCount} goods · {wallet.ownedItemCatalogValue} catalog value, not cash.</p><p>Reserved fees already left your purse. Pending income is not spendable until settlement.</p></>}
+    {view==='Balances'&&<><BuyCoins/><dl className="wallet-balances">{[['Coins in purse',wallet.purse??'Unavailable'],['Reserved run fees',wallet.reservedRunFees],['Pending maker fees',wallet.pendingMakerFees],['Pending recovery wages',wallet.pendingRecoveryWages]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>{wallet.ownedItemCount} goods · {wallet.ownedItemCatalogValue} catalog value, not cash.</p><p>Reserved fees already left your purse. Pending income is not spendable until settlement.</p></>}
     {view==='Pending'&&(wallet.unresolved.length?<Pages items={wallet.unresolved} label="Pending operations" render={op=><article><h3>{op.action.replaceAll('_',' ')}</h3><p>{op.status}</p><Reading text={op.id}/><p>No final receipt yet. Refresh to reconcile; cash effect is not estimated.</p></article>}/>:<p>No unresolved operations.</p>)}
     {view==='Run fees'&&<><p>Authoritative fees in snapshot order, excluding voided runs. This is not a complete cash ledger.</p>{wallet.runFeeHistory?.length?<Pages items={wallet.runFeeHistory} label="Run fee history" render={e=><article><h3>{e.role==='player'?'Outgoing entry':'Incoming maker'} fee · {e.amount}</h3><p>{e.status==='active'?e.role==='player'?'Reserved':'Pending':'Settled'}</p><Reading text={`${e.runId} · ${e.editionId}`}/></article>}/>:<p>No run fee records.</p>}</>}
     {view==='Cash flow'&&wallet.business&&<><p>Recorded in {wallet.business.recordedIn} · out {wallet.business.recordedOut} · net {wallet.business.recordedNet} coins.</p><p>Pending income: {wallet.business.pendingIncome} coins.</p><p>Partial cash history, not profit. Initial allocations and recovery wages are excluded. Choose Cash movements for entries or Cash rules for coverage.</p></>}

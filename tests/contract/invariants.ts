@@ -4,7 +4,7 @@ export function audit(s:any){
  const items=new Map<string,any>(s.items.map((i:any)=>[i.id,i]));assert.equal(items.size,14,'seeded instances neither lost nor duplicated');
  const credits=Object.values(s.credits).reduce<bigint>((n,v)=>n+BigInt(v as string),0n);
  const pending=s.runs.filter((r:any)=>r.status==='active').reduce((n:bigint,r:any)=>n+BigInt(r.fee),0n);
- assert.equal(credits+BigInt(s.bank)+pending,150n,'credits plus bank plus escrow conserved');
+ assert.equal(credits+BigInt(s.bank)+pending,150n+BigInt(s.coin_issuance?.coins_issued??0),'credits plus bank plus escrow conserved; NEAR buy-ins are their own issuance line');
  for(const e of s.editions){
   assert.deepEqual([...e.active_runs].sort(),s.runs.filter((r:any)=>r.edition===e.id&&r.status==='active').map((r:any)=>r.id).sort());
   const funded=e.funded_ids.map((id:string)=>items.get(id));assert.equal(new Set(e.funded_ids).size,e.funded_ids.length);
