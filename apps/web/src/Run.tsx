@@ -17,22 +17,32 @@ import {roguelikeRun,visibleTiles} from '../../../packages/game/src/roguelike';
 import {disposition} from '../../../packages/game/src/disposition';
 import {ItemIcon} from './ItemIcon';
 import {catalog} from '../../../packages/shared/src/catalog';
+import {enemyCatalog,featureCatalog,supplyCatalog,altarBoons,type SupplyKind} from '../../../packages/shared/src/depth-components';
+import {featureAt,type FeatureState,type Enemy} from '../../../packages/game/src/state';
+import {supplyTargetError,who} from '../../../packages/game/src/depth';
+import './depth.css';
+import {depthPractice} from '../../../packages/game/src/draft-generator';
+const spriteFor=(e:Enemy)=>e.minion?'rat':e.kind==='charger'?'boar':e.kind==='archer'?'sentry':e.kind==='bomber'?'crab':e.kind==='brute'?'brute':e.kind==='nest'?'nest':'rat';
+const featureGlyph:Record<FeatureState['kind'],string>={barrel:'',crack:'',oil:'',pit:'',fountain:'',altar:'',cache:''};
+const featureLabel=(f:FeatureState)=>f.kind==='barrel'?`Powder keg${f.fuse?' · lit, bursts next turn':' · bump to light'}`:f.kind==='crack'?`Cracked wall · ${f.hp} bump${f.hp>1?'s':''} to break`:f.kind==='oil'?(f.burning?`Burning oil · ${f.burning} turns`:'Oil slick · flammable'):f.kind==='pit'?'Chasm · shove enemies in':f.kind==='fountain'?`Salt spring · +${f.heal} health, ${f.charges} left`:f.kind==='altar'?`Blood altar · pay ${f.cost} health: ${altarBoons[f.boon]}`:`Supply cache · ${f.count} × ${supplyCatalog[f.supply].name}`;
 
 export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;terminal:string|null;settlement:any;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean}}) {
- const [local, set] = useState(()=>roguelikeRun(crypto.getRandomValues(new Uint32Array(1))[0]));const s=remote?.state??local;
+ const [local, set] = useState(()=>depthPractice(crypto.getRandomValues(new Uint32Array(1))[0]));const s=remote?.state??local;
  const board = useRef<HTMLDivElement>(null);
  const [compactTab,setCompactTab]=useState<'Map'|'Bag'|'Journal'>('Map'),[itemPage,setItemPage]=useState(0);
  const [notice, setNotice] = useState('');
- const [shoving,setShoving]=useState(false);const trace=useRef<PlayTrace>({events:[],dropped:0});
+ const [shoving,setShoving]=useState(false),[aiming,setAiming]=useState<SupplyKind|null>(null);const trace=useRef<PlayTrace>({events:[],dropped:0});
  const send = (a:Action) => {
   if(remote){if(!remote.busy&&!remote.terminal)remote.send(a);return;}
   let messages:string[]=[];const next=actWithMessages(s,a,lines=>{messages=lines;});trace.current=appendPlayEvent(trace.current,s,a,next,messages);setNotice(next===s?'Cannot do that here, or no space. No turn spent.':'');set(next);board.current?.focus();
  };
+ const canShove=!!s.depth||s.rulesVersion===4&&s.player.weapon==='club';
  const click=(x:number,y:number)=>{
+  if(aiming){const err=supplyTargetError(s,aiming,{x,y},visibleTiles(s));if(err){setNotice(`${supplyCatalog[aiming].name}: ${err}.`);return;}send({type:'supply',supply:aiming,x,y});setAiming(null);return;}
   const enemy=s.enemies.find(e=>e.x===x&&e.y===y);
-  send(enemy?{type:shoving&&s.rulesVersion===4?'shove':'attack',enemyId:enemy.id}:{type:'move',x,y});
+  send(enemy?{type:shoving&&canShove?'shove':'attack',enemyId:enemy.id}:{type:'move',x,y});
  };
- const restart=(armor=false,replay=false)=>{set(roguelikeRun(replay?s.expeditionSeed??0:crypto.getRandomValues(new Uint32Array(1))[0],armor));trace.current={events:[],dropped:0};setShoving(false);setItemPage(0);setNotice('');board.current?.focus();};
+ const restart=(armor=false,replay=false)=>{set(depthPractice(replay?s.expeditionSeed??0:crypto.getRandomValues(new Uint32Array(1))[0],armor?'armored':'club'));trace.current={events:[],dropped:0};setShoving(false);setItemPage(0);setNotice('');board.current?.focus();};
  const canGoDeeper=remote?(remote.canContinue??(s.exitRule===undefined&&(remote.canExtract??false)&&(remote.hasNextRoom??false))):canContinue(s);
  const canLeave=remote?(remote.canExtract??false):canExtract(s);
  const visible=visibleTiles(s);const visibleEnemies=s.enemies.filter(e=>visible.has(`${e.x},${e.y}`));
@@ -43,14 +53,15 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
  const visibleItems=Object.values(s.items).filter(i=>accessible(s,i));
  const ended=s.status!=='active'||!!remote?.terminal;
  const report=ended&&!remote?disposition(s,s.status==='died'?'died':'extracted'):null;
- const targets=visibleEnemies.map(e=>`${e.id}: ${enemyTelegraph(s,e)}`).join(' ');
+ const nameOf=(e:Enemy)=>s.depth?who(e):e.id;
+ const targets=visibleEnemies.map(e=>`${nameOf(e)}: ${enemyTelegraph(s,e)}`).join(' ');
  const viewport=floorViewport(s.room[0].length,s.room.length,s.player.x-6,s.player.y-4);
  return <section className={`expedition ${compact?`compact-run run-tab-${compactTab.toLowerCase()}`:''}`}>
  {compact&&<nav className="studio-tabs" aria-label="Rehearsal sections">{(['Map','Bag','Journal'] as const).map(t=><button type="button" key={t} aria-pressed={compactTab===t} onClick={()=>setCompactTab(t)}>{t}</button>)}</nav>}
   <div>
-   <div className="status"><strong>{remote?.title??roomTitle(s)} · {s.roomIndex+1}/{remote?.roomCount??s.layout?.length??2}</strong><span>Health {s.player.hp}/12 · Turn {s.turn}</span></div>
+   <div className="status"><strong>{remote?.title??roomTitle(s)} · {s.roomIndex+1}/{remote?.roomCount??s.layout?.length??2}</strong><span>Health {s.player.hp}/12 · Turn {s.turn}{s.tide?` · ${(s.tideTurns??0)>=s.tide.turns?`Flooding −${s.tide.damage}/turn`:`Tide in ${s.tide.turns-(s.tideTurns??0)}`}`:''}{s.buffs?.might?` · Might +${s.buffs.might}`:''}{s.buffs?.ward?` · Ward +${s.buffs.ward}`:''}</span></div>
    <div className="board" style={{gridTemplateColumns:`repeat(${viewport.columns},1fr)`,gridTemplateRows:`repeat(${viewport.rows},minmax(0,1fr))`,aspectRatio:`${viewport.columns}/${viewport.rows}`}} ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait. Select Shove mode to push instead of attack." onKeyDown={e=>{
-    const a=keyAction(s,e);if(a){e.preventDefault();send(a.type==='attack'&&shoving&&s.rulesVersion===4?{type:'shove',enemyId:a.enemyId}:a);}else if(e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)e.preventDefault();
+    const a=keyAction(s,e);if(a){e.preventDefault();if(e.key==='Escape'&&aiming){setAiming(null);return;}send(a.type==='attack'&&shoving&&canShove?{type:'shove',enemyId:a.enemyId}:a);}else if(e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)e.preventDefault();
    }}>
     {s.room.slice(viewport.y,viewport.y+viewport.rows).flatMap((row,dy)=>[...row].slice(viewport.x,viewport.x+viewport.columns).map((tile,dx)=>{const x=viewport.x+dx,y=viewport.y+dy;
      const seen=!s.roguelike||s.explored?.includes(`${s.roomIndex}:${x},${y}`);const lit=visible.has(`${x},${y}`);
@@ -58,14 +69,19 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
      const enemy=lit?s.enemies.find(e=>e.x===x&&e.y===y):undefined;
      const device=lit?visibleDevices.find(d=>d.x===x&&d.y===y):undefined;
      const trap=lit?s.traps.find(t=>t.x===x&&t.y===y):undefined;
+     const feature=seen?(s.features??[]).find(f=>!f.spent&&f.x===x&&f.y===y):undefined;const blasted=!!s.blasts?.some(b=>b.x===x&&b.y===y);const hatch=lit&&s.enemies.some(e=>e.hatch?.x===x&&e.hatch?.y===y);
      const warning=lit&&danger.has(`${x},${y}`)||!!trap?.armed;
      const loot=lit&&Object.values(s.items).some(i=>i.location.kind==='floor'&&i.location.room===s.roomIndex&&i.location.x===x&&i.location.y===y);
      const connection=s.connections?.find(l=>l.x===x&&l.y===y);
      const exit=remote?.exit??roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
-     const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?enemy.id:trap?'spikes':loot?'loot':connection?`passage to floor ${connection.to+1}${connection.require_clear&&s.enemies.length?' · clear room first':''}`:isExit?'exit':'floor'}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
-     return <button key={`${x},${y}`} className={`tile ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''}`} tabIndex={-1} disabled={!seen||tile==='#'} aria-label={label} title={label} onClick={()=>click(x,y)}>
+     const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?nameOf(enemy):trap?'spikes':loot?'loot':connection?`passage to floor ${connection.to+1}${connection.require_clear&&s.enemies.length?' · clear room first':''}`:isExit?'exit':'floor'}${feature?` · ${featureLabel(feature)}`:''}${hatch?' · rat hatching here':''}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
+     return <button key={`${x},${y}`} className={`tile ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
       {seen&&<TileArt wall={tile==='#'}/>}
-      {seen&&(lit||isExit||!!connection)&&(player?<CharacterSprite/>:<span aria-hidden="true" className={`game-sprite ${player?'delver':enemy?enemy.kind==='charger'?'boar':'rat':trap?trap.armed?'spikes':'safe-spikes':loot?'loot':connection?'stairs':isExit?'stairs':tile==='#'?'stone':'ground'}`}>{player?'':enemy?'':trap?'':loot?'◆':connection?'↪':isExit?'≡':''}</span>)}
+      {seen&&(lit||isExit||!!connection)&&(player?<CharacterSprite/>:<span aria-hidden="true" className={`game-sprite ${player?'delver':enemy?spriteFor(enemy):trap?trap.armed?'spikes':'safe-spikes':loot?'loot':connection?'stairs':isExit?'stairs':tile==='#'?'stone':'ground'}`}>{player?'':enemy?'':trap?'':loot?'◆':connection?'↪':isExit?'≡':''}</span>)}
+      {feature&&!player&&!enemy&&<span aria-hidden="true" className={`depth-feature f-${feature.kind} ${feature.kind==='barrel'&&feature.fuse?'lit':''} ${feature.kind==='oil'&&feature.burning?'burning':''} ${lit?'':'dim'}`}>{featureGlyph[feature.kind]}</span>}
+      {feature&&(player||enemy)&&feature.kind!=='crack'&&<span aria-hidden="true" className={`depth-under f-${feature.kind} ${feature.kind==='oil'&&feature.burning?'burning':''}`}/>}
+      {hatch&&<span aria-hidden="true" className="depth-hatch"/>}
+      {enemy?.stunned?<span aria-hidden="true" className="depth-stun">✶</span>:null}
       {device&&<span aria-hidden="true" style={{position:'absolute',right:2,bottom:2,color:device.kind==='switch'?'#ffe08a':doorOpen(device,s.signals??{})?'#8df0c5':'#ff9696',background:'#16202b',borderRadius:3,padding:'0 3px',fontWeight:700,zIndex:2}}>{device.kind==='switch'?'⚡':doorOpen(device,s.signals??{})?'▯':'▣'}</span>}
       {player&&warning&&<span className="danger-badge" aria-hidden="true">!</span>}
       {enemy&&<small className="enemy-health">{enemy.hp} HP</small>}
@@ -73,14 +89,16 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
     }))}
    </div>
    <div className="controls">
-    {s.rulesVersion===4&&s.player.weapon==='club'&&<button aria-pressed={shoving} disabled={ended} onClick={()=>{setShoving(!shoving);board.current?.focus();}}>Shove mode {shoving?'on':'off'}</button>}
+    {canShove&&<button aria-pressed={shoving} disabled={ended} onClick={()=>{setShoving(!shoving);board.current?.focus();}}>Shove mode {shoving?'on':'off'}</button>}
     <button title="Spend a turn to halve the first incoming hit, after armor, rounded up." onClick={()=>send({type:'guard'})} disabled={ended}>Guard [G]</button>
     <button onClick={()=>send({type:'wait'})} disabled={ended}>Wait [Space]</button>
-    {s.enemies.filter(e=>distance(e,s.player)===1).map(e=><button key={e.id} disabled={ended} onClick={()=>send({type:shoving&&s.rulesVersion===4?'shove':'attack',enemyId:e.id})}>{shoving&&s.rulesVersion===4?'Shove':'Attack'} {e.id}</button>)}
+    {s.enemies.filter(e=>distance(e,s.player)===1).map(e=><button key={e.id} disabled={ended} onClick={()=>send({type:shoving&&canShove?'shove':'attack',enemyId:e.id})}>{shoving&&canShove?'Shove':'Attack'} {nameOf(e)}</button>)}
+    {s.depth&&(()=>{const f=featureAt(s,s.player);return f?.kind==='fountain'?<button disabled={ended||s.player.hp>=12} onClick={()=>send({type:'interact'})}>Drink spring +{f.heal} [E]</button>:f?.kind==='altar'?<button disabled={ended||s.player.hp<=f.cost} title={altarBoons[f.boon]} onClick={()=>send({type:'interact'})}>Blood pact: −{f.cost} health for {f.boon} [E]</button>:null;})()}
+    {s.depth&&(['bomb','dart','flash'] as SupplyKind[]).filter(k=>(s.supplies?.[k]??0)>0).map(k=><button key={k} aria-pressed={aiming===k} title={supplyCatalog[k].summary} disabled={ended} onClick={()=>{if(k==='flash'){send({type:'supply',supply:'flash'});return;}setAiming(aiming===k?null:k);setNotice(aiming===k?'':`Choose a target tile for the ${supplyCatalog[k].name.toLowerCase()}. Escape cancels.`);board.current?.focus();}}>{k==='flash'?'Use':aiming===k?'Cancel':'Throw'} {supplyCatalog[k].name} ×{s.supplies![k]}</button>)}
     <button onClick={()=>send({type:'extract'})} disabled={ended||!canLeave}>{s.exitRule!==undefined||s.rulesVersion===4?'Escape · enemies act':'Extract'}</button>
     {(remote?(remote.hasNextRoom??false):hasNextRoom(s))&&<button onClick={()=>send({type:'continue'})} disabled={ended||!canGoDeeper}>Continue deeper</button>}
    </div>
-   <p className="legend">{s.roguelike&&<>{remote?'Uncharted descent':s.rulesVersion===4?'Experimental rules rehearsal':`Descent #${s.expeditionSeed}`}  · {s.exitRule===undefined&&<>{s.boon?`Shrine: ${s.boon}`:'No shrine blessing'} · </>}Unexplored ground is hidden.<br/></>}Gold cloak: you · Grey: rat · Tusks: charging boar · Spikes: bright armed, dark safe · ◆ Loot · Steps: exit</p>
+   <p className="legend">{s.roguelike&&<>{remote?'Uncharted descent':s.rulesVersion===4?'Experimental rules rehearsal':`Descent #${s.expeditionSeed}`}  · {s.exitRule===undefined&&<>{s.boon?`Shrine: ${s.boon}`:'No shrine blessing'} · </>}Unexplored ground is hidden.<br/></>}Gold cloak: you · Grey: rat · Tusks: charging boar ·{s.depth&&' Crossbow: sentry · Red shell: powder crab · Hulk: brute · Mound: nest · Keg, oil, chasm, spring, altar, cache are features ·'} Spikes: bright armed, dark safe · ◆ Loot · Steps: exit</p>
    <p className="legend">{s.exitRule!==undefined?'Exit conditions govern departure. Enemies and hazards act before you leave.':s.connections!==undefined?'Walk onto a passage to travel; enemies act before you leave. Cleared rooms stay cleared when revisited. Reach extraction stairs in a cleared room to return home.':s.rulesVersion===4?'Reach the exit to escape; enemies and hazards act before you leave. Club shoves; sword hits harder.':'Kill the enemies, then reach the stairs to extract or continue. Charges hit the first creature; spikes hurt both sides. Recovery lasts one turn.'}</p>
    {s.exitRule===undefined&&s.roguelike&&s.roomIndex===0&&canLeave&&(remote?remote.hasNextRoom:atClearedExit(s)&&hasNextRoom(s))&&!s.boon&&!ended&&<section className="shrine"><h2>The threshold shrine</h2><p>One choice for this descent. Leave safely now, or prepare for the deeper vault.</p><button onClick={()=>send({type:'boon',choice:'rest'})}>Rest: recover 4 health</button><button disabled={s.player.hp<=3} onClick={()=>send({type:'boon',choice:'edge'})}>Blood edge: lose 3 health, gain +1 damage</button></section>}
    <section className="inventory" aria-label="Run inventory">
@@ -101,7 +119,8 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
    <h2>{s.status==='died'?'You fell.':s.status==='extracted'?'You made it out.':remote?'Watch the shadows':s.enemies.length?'Read the threat':'Room cleared.'}</h2>
    {!ended&&<p>Moving into an enemy attacks it. Attacks deal {attackDamage(s)} damage ({s.player.weapon}). Each valid action spends a turn, including using or equipping loot.</p>}
    <div className="turn-feedback" role="status" aria-live="polite"><Reading text={`Health ${s.player.hp}. Position ${s.player.x}, ${s.player.y}. Turn ${s.turn}. ${s.exitRule!==undefined?exitHint(s)+' ':''}${notice} ${danger.has(`${s.player.x},${s.player.y}`)?'Your tile is marked for danger. Consider moving or guarding. ':''}${s.log.at(-1)??''} ${targets}`}/></div>
-   {!ended&&<Pages items={visibleEnemies} label="Visible enemies" render={e=><p key={e.id}>{e.id}: {e.hp} health · {Math.ceil(e.hp/attackDamage(s))} hits with {s.player.weapon}. {enemyTelegraph(s,e)}</p>}/>}
+   {!ended&&<Pages items={visibleEnemies} label="Visible enemies" render={e=><p key={e.id}><strong>{s.depth?who(e):`${enemyCatalog[e.kind??'pursuer'].name} ${e.id}`}</strong>: {e.hp} health · {Math.ceil(e.hp/attackDamage(s))} hits with {s.player.weapon}. {enemyTelegraph(s,e)}</p>}/>}
+   {s.depth&&(()=>{const fs=(s.features??[]).filter(f=>!f.spent&&visible.has(`${f.x},${f.y}`));return fs.length?<Pages items={fs} label="Visible features" render={f=><p>{featureLabel(f)} · {f.x},{f.y}. {featureCatalog[f.kind].summary}</p>}/>:null;})()}
    {!!visibleDevices.length&&<Pages items={visibleDevices} label="Visible devices" render={d=><p>{deviceLabel(d)} · {d.x},{d.y}{d.kind==='switch'?' · Walk onto it to activate.':''}</p>}/>}
    <div className="log" aria-label="Combat history"><Pages items={s.log.slice().reverse()} size={2} label="Combat history" render={line=><p>{line}</p>}/></div>
    {report&&<section aria-label="Practice item outcomes"><h2>Your practice result</h2><Pages items={Object.entries(report)} label="Practice outcome categories" render={([group,ids])=><Reading limit={160} text={`${({townConsumed:'Town supplies spent',townReturned:'Town gear kept',townForfeited:'Town gear to bank',dungeonConsumed:'Found supplies spent',dungeonExtracted:'Loot carried out',dungeonReturned:'Loot returned to dungeon'} as Record<string,string>)[group]}: ${ids.map(id=>catalog[s.items[id].type].name).join(', ')||'None'}. Practice only; no real transfers.`}/>}/></section>}

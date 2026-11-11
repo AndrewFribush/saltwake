@@ -1,0 +1,31 @@
+/* Rules v12 sprites and features. CSS-drawn to match the existing creature art. */
+.game-sprite.sentry:before{content:'';position:absolute;inset:18% 22% 6%;background:#4a5a6b;border:2px solid #9fb3c2;border-radius:45% 45% 20% 20%;box-shadow:inset 0 -6px #2a3440}
+.game-sprite.sentry:after{content:'';position:absolute;left:8%;right:8%;top:42%;height:4px;background:#d9c08a;box-shadow:0 -5px 0 -1px #6b4e2a,0 5px 0 -1px #6b4e2a}
+.game-sprite.crab:before{content:'';position:absolute;inset:34% 10% 14%;background:#c2452f;border:2px solid #ffb07a;border-radius:50% 50% 35% 35%;box-shadow:inset 0 -4px #6e1f14}
+.game-sprite.crab:after{content:'';position:absolute;width:5px;height:9px;left:46%;top:14%;background:#2b1a10;box-shadow:0 -3px 0 1px #ffd75e}
+.game-sprite.brute:before{content:'';position:absolute;inset:4% 6% 2%;background:#3f5d55;border:2px solid #9ec4a8;border-radius:40% 40% 18% 18%;box-shadow:inset 0 -8px #233832,inset 0 6px #5b8073}
+.game-sprite.brute:after{content:'';position:absolute;width:42%;height:10%;left:29%;top:30%;background:#f1e3a6;clip-path:polygon(0 0,100% 0,85% 100%,15% 100%)}
+.game-sprite.nest:before{content:'';position:absolute;inset:38% 4% 6%;background:radial-gradient(circle at 50% 70%,#1c140e 0 28%,#6e5338 30% 60%,#8d7250 62%);border-radius:50% 50% 20% 20%}
+.game-sprite.nest:after{content:'';position:absolute;width:5px;height:5px;left:30%;top:52%;background:#f5c66a;border-radius:50%;box-shadow:12px 2px #f5c66a}
+.depth-feature{position:absolute;inset:0;pointer-events:none;z-index:1}
+.depth-feature.dim{opacity:.55;filter:grayscale(.5)}
+.depth-feature.f-barrel:before{content:'';position:absolute;inset:16% 22% 10%;background:repeating-linear-gradient(90deg,#7b4a24 0 5px,#93602f 5px 9px);border:2px solid #2c1a0e;border-radius:30%;box-shadow:inset 0 5px #3a2412,inset 0 -5px #3a2412}
+.depth-feature.f-barrel:after{content:'';position:absolute;width:6px;height:6px;left:calc(50% - 3px);top:6%;background:#1c120a;border-radius:50%}
+.depth-feature.f-barrel.lit:after{background:#ffd75e;box-shadow:0 0 8px 4px #ff8a2a;animation:depth-fizz .5s infinite alternate}
+.depth-feature.f-crack{background:linear-gradient(135deg,transparent 44%,#0d1512 45% 49%,transparent 50%),linear-gradient(45deg,transparent 30%,#0d1512 31% 34%,transparent 35%),linear-gradient(100deg,transparent 60%,#0d1512 61% 64%,transparent 65%);outline:2px dashed #d7b56d;outline-offset:-4px}
+.depth-feature.f-oil,.depth-under.f-oil{background:radial-gradient(ellipse at 45% 55%,#1b1a24 0 35%,#3a3550 45%,transparent 62%);opacity:.9}
+.depth-feature.f-oil.burning,.depth-under.f-oil.burning{background:radial-gradient(ellipse at 50% 70%,#fff2a8 0 15%,#ff9b2a 30%,#d23a14 50%,transparent 66%);animation:depth-fizz .35s infinite alternate}
+.depth-feature.f-pit{background:radial-gradient(circle,#000 0 45%,#0b0f12 55%,#2b2f2a 70%,transparent 72%)}
+.depth-feature.f-fountain:before,.depth-under.f-fountain:before{content:'';position:absolute;inset:22% 14% 14%;background:radial-gradient(ellipse at 50% 40%,#d8fbff 0 18%,#58b9c9 30%,#2f6c78 60%);border:2px solid #b8a27a;border-radius:50%}
+.depth-feature.f-altar:before,.depth-under.f-altar:before{content:'';position:absolute;inset:40% 14% 10%;background:#4a3a3a;border:2px solid #b49a8a;border-radius:3px}
+.depth-feature.f-altar:after{content:'';position:absolute;width:10px;height:10px;left:calc(50% - 5px);top:22%;background:#c9142e;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 0 6px #ff3355}
+.depth-feature.f-cache:before,.depth-under.f-cache:before{content:'';position:absolute;inset:30% 16% 14%;background:#6b5a3a;border:2px solid #e2c783;border-radius:3px;box-shadow:inset 0 5px #8a7448}
+.depth-feature.f-cache:after{content:'';position:absolute;width:8px;height:8px;left:calc(50% - 4px);top:48%;background:#e2c783;clip-path:polygon(35% 0,65% 0,65% 35%,100% 35%,100% 65%,65% 65%,65% 100%,35% 100%,35% 65%,0 65%,0 35%,35% 35%)}
+.depth-under{position:absolute;inset:0;pointer-events:none;opacity:.5;z-index:0}
+.depth-hatch{position:absolute;inset:18%;border:2px dashed #f5c66a;border-radius:50%;pointer-events:none;z-index:2;animation:depth-fizz .6s infinite alternate}
+.depth-stun{position:absolute;left:3px;top:1px;color:#fff3a0;font-size:13px;text-shadow:0 0 3px #000;z-index:3;pointer-events:none}
+.tile.blasted:after{content:'';position:absolute;inset:0;background:radial-gradient(circle,#fff6c2 0 10%,#ffb347aa 35%,#d2401533 70%,transparent);pointer-events:none;z-index:4;animation:depth-blast .9s ease-out forwards}
+.tile.aimable{cursor:crosshair}
+.tile.aimable:hover{box-shadow:inset 0 0 0 3px #ffd75e}
+@keyframes depth-fizz{from{opacity:.65}to{opacity:1}}
+@keyframes depth-blast{from{opacity:1}to{opacity:0}}
