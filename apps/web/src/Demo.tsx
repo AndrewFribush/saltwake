@@ -142,7 +142,7 @@ function RunSummary({run}:{run:RunView}){
  const list=(ids:string[]=[])=>{const by=new Map<string,number>();for(const id of ids){const t=items?.[id]?.type??'item';by.set(t,(by.get(t)??0)+1);}return [...by].map(([t,n])=>countOf(n,t)).join(', ');};
  const found=d.dungeon_extracted??[],kept=d.town_returned??[],lost=d.town_forfeited??[],used=[...(d.town_consumed??[]),...(d.dungeon_consumed??[])];
  const left=(d.dungeon_returned?.length??0)+(run.settlement.withheldCounts?.dungeon_returned??0);
- return <div className="run-summary"><b>{run.terminal==='extracted'?'You made it out.':'You fell in the dark.'}</b><ul>
+ return <div className="run-summary"><b>{run.terminal==='extracted'?'You made it out.':run.terminal==='abandoned'?'You gave up and were led out.':run.terminal==='expired'?'Time ran out below.':'You fell in the dark.'}</b><ul>
   <li className={found.length?'gain':''}>Treasure found: {found.length?list(found):'none'}</li>
   {kept.length>0&&<li>Your gear came home: {list(kept)}</li>}
   {lost.length>0&&<li className="loss">Lost to the bank: {list(lost)}</li>}

@@ -1,7 +1,7 @@
 import {validateExitRule,type ExitRule} from './exit-rules';
 import {validateDevices,wellFormedId,type Device} from './mechanisms';
 import {validateTuning,type EncounterTuning} from './encounter-tuning';
-import {validateFeatures,validateTide,depthReachable,type Feature,type Tide} from './depth-components';
+import {validateFeatures,validateTide,depthReachable,featureCatalog,type Feature,type Tide} from './depth-components';
 export type FloorLink={id:string;x:number;y:number;to:number;require_clear:boolean};
 export type CustomFloor = {
  exit_rule?:ExitRule;
@@ -15,20 +15,20 @@ export type CustomFloor = {
  exit:{x:number;y:number};
  sockets:{x:number;y:number}[];
 };
-export type FloorFormat=boolean|'sized'|'graph'|'tuned'|'mechanisms'|'missions'|'depth';
+export type FloorFormat=boolean|'sized'|'graph'|'tuned'|'mechanisms'|'missions'|'depth'|'keys';
 const MAX_MODULE_BYTES=2048;
-const rank=(f:FloorFormat)=>f===false?0:f===true?1:({sized:2,graph:3,tuned:4,mechanisms:5,missions:6,depth:7} as const)[f];
-const prefixes:[FloorFormat,string][]=[['depth','custom12:'],['missions','custom11:'],['mechanisms','custom10:'],['tuned','custom7:'],['graph','custom6:'],['sized','custom5:'],[true,'custom4:'],[false,'custom:']];
-export const moduleByteLimit=(f:FloorFormat)=>f==='depth'?6144:rank(f)>=4?4096:MAX_MODULE_BYTES;
+const rank=(f:FloorFormat)=>f===false?0:f===true?1:({sized:2,graph:3,tuned:4,mechanisms:5,missions:6,depth:7,keys:8} as const)[f];
+const prefixes:[FloorFormat,string][]=[['keys','custom13:'],['depth','custom12:'],['missions','custom11:'],['mechanisms','custom10:'],['tuned','custom7:'],['graph','custom6:'],['sized','custom5:'],[true,'custom4:'],[false,'custom:']];
+export const moduleByteLimit=(f:FloorFormat)=>f==='depth'||f==='keys'?6144:rank(f)>=4?4096:MAX_MODULE_BYTES;
 function formatOf(module:string):FloorFormat|undefined{return prefixes.find(([,p])=>module.startsWith(p))?.[0];}
 /** The most specific format whose optional sections a floor declares (used for unversioned shared paths). */
-export function floorFormat(f:CustomFloor):FloorFormat{return f.features!==undefined||f.tide!==undefined?'depth':f.exit_rule!==undefined?'missions':f.devices!==undefined?'mechanisms':f.tuning!==undefined?'tuned':f.links!==undefined?'graph':'sized';}
+export function floorFormat(f:CustomFloor):FloorFormat{return f.features?.some(x=>(featureCatalog[x.kind]?.since??12)>=13)?'keys':f.features!==undefined||f.tide!==undefined?'depth':f.exit_rule!==undefined?'missions':f.devices!==undefined?'mechanisms':f.tuning!==undefined?'tuned':f.links!==undefined?'graph':'sized';}
 
 /** Validate untrusted JSON data without throwing. Coordinates use four-way connectivity. */
 export function validateCustomFloor(value:unknown, flexible:FloorFormat=false):string[]{
  try {
   if(!value||typeof value!=='object'||Array.isArray(value))return ['Floor must be an object'];
-  const f=value as CustomFloor,errors:string[]=[],r=rank(flexible),depth=flexible==='depth';
+  const f=value as CustomFloor,errors:string[]=[],r=rank(flexible),depth=r>=7;
   const height=Array.isArray(f.tiles)?f.tiles.length:0,width=typeof f.tiles?.[0]==='string'?f.tiles[0].length:0;
   const sized=r>=2;
   const validTiles=Array.isArray(f.tiles)&&(sized?height>=5&&height<=31&&width>=5&&width<=31:height===9&&width===13)&&Array.from(f.tiles).every(row=>typeof row==='string'&&row.length===width&&/^[#.]+$/.test(row));
@@ -50,7 +50,7 @@ export function validateCustomFloor(value:unknown, flexible:FloorFormat=false):s
    occupied.add(key);
    if(validTiles&&f.tiles[p.y][p.x]!=='.')errors.push('All positions must be traversable');
   }
-  if(depth)errors.push(...(validTiles?validateFeatures(f.features,f.tiles,occupied):['Features need valid tiles.']));
+  if(depth)errors.push(...(validTiles?validateFeatures(f.features,f.tiles,occupied,r>=8?13:12):['Features need valid tiles.']));
   if(errors.length)return errors;
   if(depth){const {missing}=depthReachable(f.tiles,f.spawn,f.features!);if(missing)errors.push('All floor tiles must be reachable from spawn (cracked walls and kegs can be broken; chasms block)');return errors;}
   const queue=[f.spawn],seen=new Set([`${f.spawn.x},${f.spawn.y}`]);

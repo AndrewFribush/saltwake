@@ -9,7 +9,7 @@ import {TileArt} from './tileset';
 import {Sprite} from './art/Sprite';
 import {ActorLayer,useRunFx} from './art/RunFx';
 import {FeatureArt} from './art/FeatureArt';
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {distance} from '../../../packages/game/src/state';
 import {keyAction} from '../../../packages/game/src/controls';
 import {actWithMessages, type Action} from '../../../packages/game/src/actions';
@@ -24,11 +24,13 @@ import {featureAt,type FeatureState,type Enemy} from '../../../packages/game/src
 import {supplyTargetError,who} from '../../../packages/game/src/depth';
 import './depth.css';
 import {depthPractice} from '../../../packages/game/src/draft-generator';
-const featureLabel=(f:FeatureState)=>f.kind==='barrel'?`Powder keg${f.fuse?' · lit, bursts next turn':' · bump to light'}`:f.kind==='crack'?`Cracked wall · ${f.hp} bump${f.hp>1?'s':''} to break`:f.kind==='oil'?(f.burning?`Burning oil · ${f.burning} turns`:'Oil slick · flammable'):f.kind==='pit'?'Chasm · shove enemies in':f.kind==='fountain'?`Salt spring · +${f.heal} health, ${f.charges} left`:f.kind==='altar'?`Blood altar · pay ${f.cost} health: ${altarBoons[f.boon]}`:`Supply cache · ${f.count} × ${supplyCatalog[f.supply].name}`;
+const featureLabel=(f:FeatureState)=>f.kind==='barrel'?`Powder keg${f.fuse?' · lit, bursts next turn':' · bump to light'}`:f.kind==='crack'?`Cracked wall · ${f.hp} bump${f.hp>1?'s':''} to break`:f.kind==='oil'?(f.burning?`Burning oil · ${f.burning} turns`:'Oil slick · flammable'):f.kind==='pit'?'Chasm · shove enemies in':f.kind==='fountain'?`Salt spring · +${f.heal} health, ${f.charges} left`:f.kind==='altar'?`Blood altar · pay ${f.cost} health: ${altarBoons[f.boon]}`:f.kind==='cache'?`Supply cache · ${f.count} × ${supplyCatalog[f.supply].name}`:f.kind==='key'?`${f.color} key · step on it to pick up`:f.kind==='lock'?`${f.color} locked door · bump with a ${f.color} key`:`Pressure plate · channel ${f.channel} on while occupied`;
 
 export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;terminal:string|null;settlement:any;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean}}) {
  const [local, set] = useState(()=>depthPractice(crypto.getRandomValues(new Uint32Array(1))[0]));const s=remote?.state??local;
  const board = useRef<HTMLDivElement>(null);
+ // Keys go to the board as soon as a run screen appears (including after a reload mid-run).
+ useEffect(()=>{board.current?.focus({preventScroll:true});},[]);
  const [compactTab,setCompactTab]=useState<'Map'|'Bag'|'Journal'>('Map'),[itemPage,setItemPage]=useState(0);
  const [notice, setNotice] = useState('');
  const [shoving,setShoving]=useState(false),[aiming,setAiming]=useState<SupplyKind|null>(null);const trace=useRef<PlayTrace>({events:[],dropped:0});
@@ -53,14 +55,18 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
  const visibleItems=Object.values(s.items).filter(i=>accessible(s,i));
  const ended=s.status!=='active'||!!remote?.terminal;
  const report=ended&&!remote?disposition(s,s.status==='died'?'died':'extracted'):null;
- const nameOf=(e:Enemy)=>s.depth?who(e):e.id;
+ const nameOf=(e:Enemy)=>who(e);
  const targets=visibleEnemies.map(e=>`${nameOf(e)}: ${enemyTelegraph(s,e)}`).join(' ');
+ // Way-out cue: once no threat is in sight, point at the stairs (or say they are still unfound).
+ const exitTile=remote?.exit??roomExit(s);const exitSeen=!!exitTile&&(!s.roguelike||!!s.explored?.includes(`${s.roomIndex}:${exitTile.x},${exitTile.y}`));
+ const calm=!ended&&visibleEnemies.length===0;
+ const wayOut=!calm||!exitTile?'':exitSeen?(s.player.x===exitTile.x&&s.player.y===exitTile.y?(canLeave||canGoDeeper?'You are on the stairs: escape or continue below.':'You are on the stairs, but this exit is not ready yet. Check the exit conditions.'):`The way out: stairs ${Math.abs(exitTile.y-s.player.y)?`${Math.abs(exitTile.y-s.player.y)} ${exitTile.y<s.player.y?'north':'south'}`:''}${Math.abs(exitTile.y-s.player.y)&&Math.abs(exitTile.x-s.player.x)?', ':''}${Math.abs(exitTile.x-s.player.x)?`${Math.abs(exitTile.x-s.player.x)} ${exitTile.x<s.player.x?'west':'east'}`:''} (glowing steps).`):'Stairs not found yet: explore the dark edges of the map.';
  const viewport=floorViewport(s.room[0].length,s.room.length,s.player.x-6,s.player.y-4);
  const fx=useRunFx(s);
  return <section className={`expedition ${compact?`compact-run run-tab-${compactTab.toLowerCase()}`:''}`}>
  {compact&&<nav className="studio-tabs" aria-label="Rehearsal sections">{(['Map','Bag','Journal'] as const).map(t=><button type="button" key={t} aria-pressed={compactTab===t} onClick={()=>setCompactTab(t)}>{t}</button>)}</nav>}
   <div>
-   <div className="status"><strong>{remote?.title??roomTitle(s)} · {s.roomIndex+1}/{remote?.roomCount??s.layout?.length??2}</strong><span>Health {s.player.hp}/12 · Turn {s.turn}{s.tide?` · ${(s.tideTurns??0)>=s.tide.turns?`Flooding −${s.tide.damage}/turn`:`Tide in ${s.tide.turns-(s.tideTurns??0)}`}`:''}{s.buffs?.might?` · Might +${s.buffs.might}`:''}{s.buffs?.ward?` · Ward +${s.buffs.ward}`:''}</span></div>
+   <div className="status"><strong>{remote?.title??roomTitle(s)} · {s.roomIndex+1}/{remote?.roomCount??s.layout?.length??2}</strong><span>Health {s.player.hp}/12 · Turn {s.turn}{s.tide?` · ${(s.tideTurns??0)>=s.tide.turns?`Flooding −${s.tide.damage}/turn`:`Tide in ${s.tide.turns-(s.tideTurns??0)}`}`:''}{s.buffs?.might?` · Might +${s.buffs.might}`:''}{s.keys?.length?` · Keys: ${s.keys.join(', ')}`:''}{s.buffs?.ward?` · Ward +${s.buffs.ward}`:''}</span></div>
    <div className={`board ${fx.shake?(fx.shake%2?'shake-a':'shake-b'):''}`} style={{gridTemplateColumns:`repeat(${viewport.columns},1fr)`,gridTemplateRows:`repeat(${viewport.rows},minmax(0,1fr))`,aspectRatio:`${viewport.columns}/${viewport.rows}`}} ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait. Select Shove mode to push instead of attack." onKeyDown={e=>{
     const a=keyAction(s,e);if(a){e.preventDefault();if(e.key==='Escape'&&aiming){setAiming(null);return;}send(a.type==='attack'&&shoving&&canShove?{type:'shove',enemyId:a.enemyId}:a);}else if(e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)e.preventDefault();
    }}>
@@ -77,13 +83,13 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
      const connection=s.connections?.find(l=>l.x===x&&l.y===y);
      const exit=remote?.exit??roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
      const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?nameOf(enemy):trap?'spikes':loot?'loot':connection?`passage to floor ${connection.to+1}${connection.require_clear&&s.enemies.length?' · clear room first':''}`:isExit?'exit':'floor'}${feature?` · ${featureLabel(feature)}`:''}${hatch?' · rat hatching here':''}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
-     return <button key={`${x},${y}`} className={`tile ${(x*7+y*13)%5<2?'alt':''} ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${threat} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
+     return <button key={`${x},${y}`} className={`tile ${(x*7+y*13)%5<2?'alt':''} ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${threat} ${calm&&exitSeen&&isExit?'exit-cue':''} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
       {seen&&<TileArt wall={tile==='#'}/>}
       {seen&&(lit||isExit||!!connection)&&(connection||isExit?<Sprite name="stairs" className={`tile-thing stairs-art ${connection?'passage':''}`}/>:trap?<Sprite name={trap.armed?'spikesArmed':'spikesSafe'} className={`tile-thing spikes-art ${trap.armed?'armed':''}`}/>:null)}
-      {feature&&<FeatureArt feature={feature} lit={lit}/>}
+      {feature&&<FeatureArt feature={feature} lit={lit} on={feature.kind==='plate'&&signalValue(s.signals,feature.channel)}/>}
       {seen&&lit&&loot&&<Sprite name="loot" className="tile-thing loot-art"/>}
       {hatch&&<span aria-hidden="true" className="depth-hatch"/>}
-      {device&&<span aria-hidden="true" style={{position:'absolute',right:2,bottom:2,color:device.kind==='switch'?'#ffe08a':doorOpen(device,s.signals??{})?'#8df0c5':'#ff9696',background:'#16202b',borderRadius:3,padding:'0 3px',fontWeight:700,zIndex:2}}>{device.kind==='switch'?'⚡':doorOpen(device,s.signals??{})?'▯':'▣'}</span>}
+      {device&&<Sprite name={device.kind==='switch'?(signalValue(s.signals,device.channel)?'leverOn':'leverOff'):doorOpen(device,s.signals??{})?'gateOpen':'gateClosed'} className={`tile-thing device-art ${device.kind}`}/>}
       {(warning||!!threat)&&<span aria-hidden="true" className="threat-mark"/>}
      </button>;
     }))}
@@ -119,7 +125,7 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
   <aside>
    {!ended&&<h2>{remote?'Watch the shadows':s.enemies.length?'Read the threat':'Room cleared.'}</h2>}
    {!ended&&<p>Moving into an enemy attacks it. Attacks deal {attackDamage(s)} damage ({s.player.weapon}). Each valid action spends a turn, including using or equipping loot.</p>}
-   <div className="turn-feedback" role="status" aria-live="polite"><Reading text={`Health ${s.player.hp}. Position ${s.player.x}, ${s.player.y}. Turn ${s.turn}. ${s.exitRule!==undefined?exitHint(s)+' ':''}${notice} ${danger.has(`${s.player.x},${s.player.y}`)?'Your tile is marked for danger. Consider moving or guarding. ':''}${s.log.at(-1)??''} ${targets}`}/></div>
+   <div className="turn-feedback" role="status" aria-live="polite">{wayOut&&<p className="way-out">{wayOut}</p>}<Reading text={`Health ${s.player.hp}. Position ${s.player.x}, ${s.player.y}. Turn ${s.turn}. ${s.exitRule!==undefined?exitHint(s)+' ':''}${notice} ${danger.has(`${s.player.x},${s.player.y}`)?'Your tile is marked for danger. Consider moving or guarding. ':''}${s.log.at(-1)??''} ${targets}`}/></div>
    {!ended&&<Pages items={visibleEnemies} label="Visible enemies" render={e=><p key={e.id}><strong>{s.depth?who(e):`${enemyCatalog[e.kind??'pursuer'].name} ${e.id}`}</strong>: {e.hp} health · {Math.ceil(e.hp/attackDamage(s))} hits with {s.player.weapon}. {enemyTelegraph(s,e)}</p>}/>}
    {s.depth&&(()=>{const fs=(s.features??[]).filter(f=>!f.spent&&visible.has(`${f.x},${f.y}`));return fs.length?<Pages items={fs} label="Visible features" render={f=><p>{featureLabel(f)} · {f.x},{f.y}. {featureCatalog[f.kind].summary}</p>}/>:null;})()}
    {!!visibleDevices.length&&<Pages items={visibleDevices} label="Visible devices" render={d=><p>{deviceLabel(d)} · {d.x},{d.y}{d.kind==='switch'?' · Walk onto it to activate.':''}</p>}/>}

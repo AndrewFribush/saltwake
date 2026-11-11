@@ -96,7 +96,7 @@ export function Shop({world, busy, command, refresh,onBusyChange}: ShopProps) {
 
   return <section className="shop-counter" aria-label="Town shop">
     <nav className="shop-tabs" aria-label="Market counter">{VIEWS.map(v=><button key={v} type="button" aria-pressed={view===v} disabled={working} onClick={()=>switchView(v)}>{v}</button>)}</nav>
-    <p className="trade-balance"><b>{world.credits} coins</b> in your purse <button type="button" className="link-button" disabled={busy || working} onClick={() => void execute()}>Refresh</button></p>
+    <p className="trade-balance"><b>{world.credits} {world.credits==='1'?'coin':'coins'}</b> in your purse <button type="button" className="link-button" disabled={busy || working} onClick={() => void execute()}>Refresh</button></p>
     <div role="status" className="shop-status">{done&&<p className="trade-done">{done}</p>}{(notice||working||unresolved)&&<Reading text={notice || (working ? 'Waiting for confirmation…' : 'An earlier action is unresolved. Use Session → Retry interrupted action before trading again.')}/>}</div>
 
     {view==='Buy supplies'&&<>

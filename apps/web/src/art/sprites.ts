@@ -12,6 +12,11 @@ export const heroSide=[
  '................','......kkkkk.....','.....khhhhhk....','....khhhhhhhk...','....khhhhsssk...','....khhhssksk...','....kHhhssssk...','.....kyyssk.....',
  '....kyyyyyyk....','...kyyyyyyyyk...','...kyYbbbbsskg..','...kyYyyyyyk.g..','...kYYyyyyYk.g..','....kYYkYYk.....','....kBBkkBBk....','....kkkk.kkk....'];
 
+const stride=(rows:readonly string[],legs:string[])=>[...rows.slice(0,13),...legs];
+export const heroDownWalk=stride(heroDown,['....kYYk.kYYk...','....kBBk..kkk...','....kkkk........']);
+export const heroUpWalk=stride(heroUp,['....kYYk.kYYk...','....kBBk..kkk...','....kkkk........']);
+export const heroSideWalk=stride(heroSide,['...kYYk..kYYk...','..kBBk....kBBk..','..kkk......kkk..']);
+
 const rat=[
  '................','................','................','................','................','................','................','..........kk....',
  '.........kpfk...','...kkkkkkkffkk..','..kffffffffkfek.','.kfffFffffffffpk','kfkFFFfffffffkk.','k..kFFFFFFFFFk..','.k..kpk...kpk...','................'];
@@ -109,7 +114,35 @@ const notice=[
 const display=[
  '..kkkkkkkkkkkk..','..kuuuuuuuuuuk..','..kucccucccuuk..','..kuyyuurruuuk..','..kkkkkkkkkkkk..','..kuuuuuuuuuuk..','..kuggukmmkuuk..','..kuggukmmkuuk..',
  '..kkkkkkkkkkkk..','..kbbbbbbbbbbk..','..kbddddddddbk..','..kbbbbbbbbbbk..','..kBBBBBBBBBBk..','..kbk......kbk..','..kkk......kkk..','................'];
-export const spriteMaps={coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
+// Progression devices: lever (switch), gate (door), plus pressure plate, key, locked door and drop hatch for upcoming components.
+const leverOff=[
+ '................','................','................','.......kk.......','......kwwk......','......kwwk......','.......kk.......','......kgk.......',
+ '.....kgk........','....kgk.........','...kgk..........','..kkkkkkkkkk....','..kGGGGGGGGk....','..kGnnnnnnGk....','..kkkkkkkkkk....','................'];
+const leverOn=[
+ '................','................','................','.......kk.......','......kEEk......','......kEEk......','.......kk.......','.......kgk......',
+ '........kgk.....','.........kgk....','..........kgk...','....kkkkkkkkkk..','....kGGGGGGGGk..','....kGeeeeeeGk..','....kkkkkkkkkk..','................'];
+const gateClosed=[
+ 'kkkkkkkkkkkkkkkk','kGGGGGGGGGGGGGGk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kGGGGGGGGGGGGGGk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk',
+ 'kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kGGGGGGGGGGGGGGk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kgkgkgkgkgkgkgkk','kkkkkkkkkkkkkkkk'];
+const gateOpen=[
+ 'kkkkkkkkkkkkkkkk','kGGGGGGGGGGGGGGk','kgkgkgkgkgkgkgkk','k..............k','k..............k','k..............k','k..............k','k..............k',
+ 'k..............k','k..............k','k..............k','k..............k','k..............k','k..............k','k..............k','kk............kk'];
+const plate=[
+ '................','................','................','................','................','................','................','................',
+ '..kkkkkkkkkkkk..','..kGGGGGGGGGGk..','..kGggggggggGk..','..kGggggggggGk..','..kGggggggggGk..','..kGGGGGGGGGGk..','..kkkkkkkkkkkk..','................'];
+const key=[
+ '................','................','................','................','....kkkk........','...kyyyyk.......','..kyykkyyk......','..kyk..kykkkkkk.',
+ '..kyk..kyyyyyyyk','..kyykkyykkykyk.','...kyyyyk..k.k..','....kkkk........','................','................','................','................'];
+const lockedDoor=[
+ '..kkkkkkkkkkkk..','.kbbbbbbbbbbbbk.','.kbBbbbBbbbBbbk.','.kggggggggggggk.','.kbBbbbBbbbBbbk.','.kbBbbbkkkbBbbk.','.kbBbbkyyykBbbk.','.kbBbbkykykBbbk.',
+ '.kbBbbkyyykBbbk.','.kbBbbbkkkbBbbk.','.kggggggggggggk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','kkkkkkkkkkkkkkkk','WWWWWWWWWWWWWWWW'];
+const hatch=[
+ '................','................','..XXXXXXXXXXXX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..','..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..',
+ '..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..','..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XXXXXXXXXXXX..','.......Ek.......','......EEEk......'];
+const crest=[
+ '......kkkk......','.....kyyyyk.....','.....ky..yk.....','.....kyyyyk.....','......kyyk......','..kkkkkyykkkkk..','..kyyyyyyyyyyk..','..kkkkkyykkkkk..',
+ '......kyyk......','......kyyk......','k.....kyyk.....k','kyk...kyyk...kyk','.kyk..kyyk..kyk.','..kyykkyykkyyk..','...kkyyyyyykk...','.....kkkkkk.....'];
+export const spriteMaps={crest,leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
 /** Shopkeeper: the hero drawing with a blue coat and grey hair. */
@@ -177,7 +210,7 @@ export const textureVars:Record<string,string>={
  '--tx-floor-light':flagstones(41,['#8f8a74','#98927b','#8a846d'],'#6d6855','#aaa48c'),
  '--tx-slate':slate(13),
  '--tx-shingle':shingle(),'--tx-timber':timber(21),
- '--tx-flame':flameStrip,'--tx-coin':dataUrl(pixelSvg(coin,P)),
+ '--tx-flame':flameStrip,'--tx-crest':dataUrl(pixelSvg(crest,P)),'--tx-coin':dataUrl(pixelSvg(coin,P)),
 };
 /** Raw data URLs (without url()) for SVG <image href>. */
 export const textureHref=(name:string)=>textureVars[name].slice(5,-2).replace(/^"|"$/g,'');
@@ -211,3 +244,9 @@ function titleScene(){
  return dataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">${s}</svg>`);
 }
 textureVars['--tx-title']=titleScene();
+
+/** Colour-paired keys and locks: the colour name picks a metal tint (unknown names get a stable hue). */
+const named:Record<string,[string,string]>={brass:['#d9b45a','#9e7a34'],gold:['#f0c75e','#a8802a'],iron:['#a9bbbe','#647579'],silver:['#d8e0e2','#8a9698'],copper:['#d98a52','#8e4f28'],bronze:['#c49050','#7e5628'],red:['#e0503a','#8a2418'],crimson:['#d03048','#801828'],blue:['#5a8ae0','#2e4e8e'],green:['#62b060','#2e6a30'],white:['#f4f0e4','#a8a498'],black:['#5a5a66','#2a2a32'],purple:['#a070d0','#5a3a88'],violet:['#a070d0','#5a3a88'],bone:['#e8dcc0','#a89878']};
+export function keyTint(color:string):[string,string]{const n=named[color.toLowerCase()];if(n)return n;let h=0;for(const c of color)h=(h*31+c.charCodeAt(0))%360;return [`hsl(${h} 60% 62%)`,`hsl(${h} 55% 34%)`];}
+const tinted=new Map<string,string>();
+export function tintedSprite(name:'key'|'lockedDoor',color:string){const k=name+':'+color;let u=tinted.get(k);if(!u){const [a,b]=keyTint(color);u=dataUrl(pixelSvg(spriteMaps[name],{...pal,y:a,Y:b,e:a}));tinted.set(k,u);}return u;}

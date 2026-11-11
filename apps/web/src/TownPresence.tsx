@@ -61,7 +61,7 @@ function OtherAvatar({player,cell}:{player:PresencePlayer;cell:number}){
  const prev=useRef(player);const jump=Math.abs(prev.current.x-player.x)+Math.abs(prev.current.y-player.y)>2;useEffect(()=>{prev.current=player;});
  const x=player.x*cell+cell/2,y=player.y*cell+cell/2;
  return <g className={`presence-avatar ${jump?'jump':''}`} style={{transform:`translate(${x}px, ${y}px)`}} data-player={player.id}>
-  <g style={{filter:`hue-rotate(${hue(player.id)}deg) saturate(1.3)`}}><CharacterSprite x={-22} y={-25} width={44} height={46} facing={player.facing}/></g>
+  <g style={{filter:`hue-rotate(${hue(player.id)}deg) saturate(1.3)`}}><CharacterSprite x={-22} y={-25} width={44} height={46} facing={player.facing} at={player}/></g>
   <text className="presence-name" y={-26} textAnchor="middle">{playerLabel(player.id)}</text>
  </g>;
 }

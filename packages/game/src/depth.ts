@@ -18,7 +18,7 @@ export const chebyshev=(a:Point,b:Point)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.
 export const square=(c:Point)=>{const out:Point[]=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)out.push({x:c.x+dx,y:c.y+dy});return out;};
 const neighbors4=(p:Point)=>[{x:p.x,y:p.y-1},{x:p.x+1,y:p.y},{x:p.x,y:p.y+1},{x:p.x-1,y:p.y}];
 /** Readable log name for depth runs, e.g. "powder crab #1" or "rat #2.3". */
-export const who=(e:Enemy)=>`${enemyName(e)} #${e.id.replace(/^floor-\d+-slot-/,'').replace(/-rat/,'.')}`;
+export const who=(e:Enemy)=>/^floor-\d+-slot-/.test(e.id)?`${enemyName(e)} #${e.id.replace(/^floor-\d+-slot-/,'').replace(/-rat/,'.')}`:`${enemyName(e)} (${e.id})`;
 export const enemyName=(e:Enemy)=>e.minion?'rat':e.kind==='archer'?'sentry':e.kind==='bomber'?'powder crab':e.kind==='brute'?'brute':e.kind==='nest'?'nest':e.kind==='charger'?'charger':'pursuer';
 /** Light a keg. Every lit keg bursts during the next enemy phase: lights before the keg step wait one extra decrement. */
 export function light(ctx:Ctx|undefined,f:FeatureState){if(f.kind!=='barrel'||f.spent||f.fuse)return;f.fuse=ctx?.late?1:2;(ctx?.s??null)?.log.push('A powder keg fizzes.');}
@@ -57,6 +57,7 @@ export function depthHazards(ctx:Ctx,traps:()=>void){
   f.burning!--;if(!f.burning){f.spent=true;delete f.burning;}
  }
  if(s.tide&&s.player.hp>0){s.tideTurns=(s.tideTurns??0)+1;if(s.tideTurns>s.tide.turns){s.player.hp=Math.max(0,s.player.hp-s.tide.damage);s.log.push(`The tide hits for ${s.tide.damage}.`);if(s.player.hp===0)s.killedBy??='the rising tide';}else if(s.tideTurns===s.tide.turns)s.log.push('The tide is at the door: next turn it floods this floor.');else if(s.tide.turns-s.tideTurns===10||s.tide.turns-s.tideTurns===5)s.log.push(`The water is rising: ${s.tide.turns-s.tideTurns} turns until this floor floods.`);}
+ updatePlates(s);
  for(const nest of s.enemies.filter(e=>e.kind==='nest'&&e.hp>0)){
   if(s.roguelike&&!nest.alerted)continue;
   nest.timer=(nest.timer??nestPeriod)-1;if(nest.timer>0)continue;nest.timer=nestPeriod;
@@ -97,7 +98,12 @@ export function useSupply(ctx:Ctx,kind:SupplyKind,target:Point|undefined):boolea
  else{let n=0;for(const e of s.enemies)if(e.hp>0&&distance(e,s.player)<=flashRadius){e.stunned=Math.max(e.stunned??0,flashTurns);e.primed=false;e.aim=false;e.lane=[];n++;}s.log.push(`Flash powder! ${n} stunned.`);}
  return true;
 }
+/** Plates hold their channel on while any creature stands on them. */
+export function updatePlates(s:RunState){
+ for(const f of s.features??[])if(f.kind==='plate'&&!f.spent){const on=(s.player.x===f.x&&s.player.y===f.y)||s.enemies.some(e=>e.hp>0&&e.x===f.x&&e.y===f.y);s.signals??={};if(!!s.signals[f.channel]!==on)s.log.push(`Pressure plate ${f.channel}: ${on?'on':'off'}.`);s.signals[f.channel]=on;}
+}
 export function collectCache(s:RunState){
+ const key=featureAt(s,s.player,'key');if(key?.kind==='key'){key.spent=true;(s.keys??=[]).push(key.color);s.log.push(`Picked up the ${key.color} key.`);}
  const cache=featureAt(s,s.player,'cache');if(cache?.kind!=='cache')return;
  s.supplies??={};const have=s.supplies[cache.supply]??0,add=Math.min(cache.count,maxSupplies-have);
  if(add<=0){s.log.push(`Your ${supplyCatalog[cache.supply].name} pouch is full.`);return;}
@@ -117,6 +123,7 @@ export function interact(s:RunState):boolean{
 export function bumpFeature(s:RunState,p:Point):boolean{
  const f=featureAt(s,p);
  if(f?.kind==='barrel'){if(f.fuse)return false;light(undefined,f);s.log.push('You knock the keg: it fizzes. It bursts after the next turn.');return true;}
+ if(f?.kind==='lock'){const i=(s.keys??[]).indexOf(f.color);if(i<0)return false;s.keys!.splice(i,1);f.spent=true;s.log.push(`You unlock the ${f.color} door.`);return true;}
  if(f?.kind==='crack'){f.hp--;if(f.hp<=0){f.spent=true;s.room[p.y]=s.room[p.y].slice(0,p.x)+'.'+s.room[p.y].slice(p.x+1);s.log.push('The cracked wall gives way.');}else s.log.push(`You chip the cracked wall (${f.hp} left).`);return true;}
  return false;
 }

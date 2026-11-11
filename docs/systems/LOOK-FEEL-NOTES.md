@@ -79,4 +79,28 @@ Note for anyone running a local sandbox next to `npm run verify`: in this sessio
 - Phone builder: inspector content scrolls inside its window instead of spilling under the Undo/Redo/Play bar (`after-builder-mobile.jpg`).
 - Checks: typecheck, game 178, web 30, server 162, build pass.
 
-Next step: polish pass on town-spaces player buildings (owner banner art, plot outline), crafting scene and shop counters; consider a short hero walk cycle (2 frames).
+### 10. Two-frame walk
+- Hero walk frames (front, back, side) alternate while the character is moving (`useMoving` in art/Sprite.tsx, 280 ms after each step): town avatar, other players, room hero and dungeon hero. Creatures hop when they step. Off under reduced motion.
+- Component edits: `at={position}` / `at={player}` on the existing avatar lines in Town.tsx and TownPresence.tsx.
+- Checks: typecheck, game 178, web 30, server 162, build pass.
+
+### 11. Player buildings, devices, creator kit and private offers
+- Player-built shops drop the borrowed big-house windows (door, roof and owner banner read cleanly); dungeon entrances get slate walls and a glowing hall mark; the town notice board is cork. Player-building signs are smaller and violet; your own sign has a gold outline. One-line Town.tsx change: a class on the building group (`player-bldg` / `dungeon-bldg`).
+- Devices: switches are levers (lit when the channel is on), doors are portcullis gates (open/closed) instead of emoji badges (one line in Run.tsx). Sprites are ready for pressure plate, key, locked door and drop hatch once those components land on main (none in packages/shared yet).
+- Creator kit / trade (CSS): Library panel and blueprint text box, guide page headings, private offers framed with an "Offered to you" ribbon, stack rows and offer panels share the skin.
+- Checks: typecheck, game 178, web 30, server 162, build pass.
+
+### 12. Creator-kit cards, top bar wordmark, v13 progression art
+- Guide → Components cards show the component's sprite (or item icon) next to its name, with a cost tag; Library blueprint text, clone rows and draft attribution, and the rehearsal end panel (parchment) are skinned. One small edit in ComponentReference.tsx (icon before the card title).
+- Top bar: a pixel crest and gold serif "Saltwake" wordmark at the left of the HUD (crest only on phones). CSS only.
+- v13: keys and locked doors draw in their pair colour (named metals and colours, other names get a stable hue); pressure plates press down and glow while their channel is on; a key ring in the board corner shows keys held. Levers/gates were already wired to switch/door devices.
+- Checks: typecheck, game 181, web 30, server 163, build pass.
+
+### 13. Crafting juice, entry ceremony, fixed-window sweep
+- Crafting (CSS only): fire glow under the cauldron, bubbling brew and rising steam; the timing band glows and the marker shines; hit marks pop, misses shake; the result card scales in with a shine sweep, and fine tonics get a gold halo. The practice bench's inline-styled track gets the same skin.
+- Dungeon entry: great doors swing open with "The doors open" at the start of a run; each new floor fades in from black with a floor banner (EntryCeremony in art/RunFx.tsx; off under reduced motion).
+- Top bar crest is now an anchor; the wordmark hides below 900 px, because on phones it pushed Session onto a second HUD line.
+- Sweep: measured page height with town, wallet, inventory, help, session, room, service and run windows open at 390×844, 768×1024, 1280×720 and 1440×900. The phone run view overflowed by 84 px (practice buttons); window content now scrolls inside its own window (run aside/inventory, drawers, idle inspector, room service), and the phone purse drawer is capped to its window. No page scroll remains in any measured state. I could not reproduce the reported 865 px wallet case in demo mode; the HUD wrap and drawer cap address the likely causes.
+- Checks: typecheck, game 181, web 30, server 163, build pass.
+
+Next step: re-check wallet mode (testnet) layout when a wallet session is available; small polish as other lanes land UI.

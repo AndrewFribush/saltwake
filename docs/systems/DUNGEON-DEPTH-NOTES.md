@@ -74,6 +74,55 @@ large  reckless died  98% out   0% stalled   2% · loot out 0.00 + drunk 0.22 of
 ```
 Reading: Small is survivable for careful play (2% deaths) and still nicks reckless play; Medium punishes greed (30%) and recklessness (75%); Large kills most greedy (60%) and nearly all reckless runs, while cautious players can still take floor-one loot home. Crossbow sentries are the top killer on Small/Medium, chargers and brutes on deep Large floors. "Drunk" counts found tonics the bot used; it is not loot loss.
 
+## Fourth pass
+
+- Readable enemy names in every rule version: log lines and attack buttons now say "pursuer #0" (authored dungeons) or "pursuer (sword)" (older socket IDs) instead of raw IDs. Rules are unchanged; only text.
+- Floor-one sentries softened: crossbow sentry alert distance 6 → 5. Harness, 60 seeds, cautious bot: deaths Small 2%, Medium 5%, Large 13%, with no sentry deaths on Small or Medium (Medium had 4 before); spikes and pursuers now cause most careful-play deaths.
+
+## Rules v13: keys, locked doors, pressure plates
+
+- **Key** (colour): step on it to pick it up; keys persist across floors for the run. **Locked door** (colour): blocks movement and sight; bump it holding a matching key to unlock it for good (the key is used). Every lock colour needs a key of that colour somewhere in the dungeon (shared validation and contract). Locks count as passable for reachability, like cracked walls. **Pressure plate** (channel): the channel is on while any creature stands on it. Plates count as signal sources for door and exit wiring, so a gate can be held open by luring an enemy onto its plate. Levers/gates and one-way passages already exist (switches + doors in v10, directed connections in v6), so v13 adds only what was missing.
+- Versioning: `custom13:` modules, rules_version 13 (v12 rejects these kinds, older editions unchanged). Builder publishes the lowest version that can express a design (11, 12 or 13). Costs: 1 coin each. Contract: schema, colour/channel names, lock-key network, plate wiring, costs; **needs a testnet redeploy like v12**.
+- Builder: Features panel lists Key ⚷, Locked door ⊠ and Pressure plate ▭ with explanations and a text field for colour/channel; simple CSS art on map and board; run status shows keys held.
+- Generator: Medium and Large put a locked vault (brass lock + key elsewhere) on deeper floors in place of the cracked-wall stash (45/50 Large drafts have one). Harness bots collect keys and open locks.
+- Tests: game (keys/locks/plates, v12 rejection), contract (v13 acceptance, costs, rejections), server (paid run: key opens a vault, funded tonic extracts).
+
+Harness after v13, 60 seeds:
+```
+Saltwake depth simulation · 60 seeds per preset × policy · kit club
+small  cautious died   2% out  97% stalled   2% · loot out 0.75 + drunk 0.07 of 1.0 funded · turns 33 · floor 1.0 · tide 0 · causes pursuer 1
+small  greedy   died   2% out  95% stalled   3% · loot out 0.85 + drunk 0.10 of 1.0 funded · turns 46 · floor 1.0 · tide 0 · causes pursuer 1
+small  reckless died   5% out  93% stalled   2% · loot out 0.20 + drunk 0.02 of 1.0 funded · turns 26 · floor 1.0 · tide 0 · causes powder crab (blast) 2, Keg (blast) 1
+medium cautious died   5% out  92% stalled   3% · loot out 0.65 + drunk 0.13 of 2.0 funded · turns 54 · floor 1.1 · tide 0 · causes charger 1, Spikes 1, pursuer 1
+medium greedy   died  27% out  72% stalled   2% · loot out 0.53 + drunk 0.78 of 2.0 funded · turns 79 · floor 1.8 · tide 1 · causes charger 8, pursuer 5, Spikes 1, rat 1
+medium reckless died  78% out  22% stalled   0% · loot out 0.02 + drunk 0.10 of 2.0 funded · turns 31 · floor 1.8 · tide 0 · causes charger 12, pursuer 10, powder crab (blast) 9, sentry 8
+large  cautious died  15% out  78% stalled   7% · loot out 0.65 + drunk 0.13 of 8.3 funded · turns 76 · floor 1.0 · tide 0 · causes Spikes 4, pursuer 3, sentry 2
+large  greedy   died  52% out  42% stalled   7% · loot out 0.40 + drunk 2.22 of 8.3 funded · turns 135 · floor 2.1 · tide 2 · causes pursuer 7, sentry 6, charger 4, Spikes 4
+large  reckless died  98% out   2% stalled   0% · loot out 0.00 + drunk 0.23 of 8.3 funded · turns 36 · floor 1.8 · tide 1 · causes pursuer 15, sentry 15, charger 9, Keg (blast) 8
+```
+
+## v13 hand-build and themes
+
+- Browser: built a floor by hand in the builder (wall line with a doorway, brass key, brass lock in the doorway, pressure plate wired to a gate on channel `gate`) and rehearsed it: the key is picked up (status shows "Keys: brass"), bumping the lock without a key does nothing, with the key it unlocks and the next step walks through; the gate panel reads closed until the plate is occupied. Awkward part found: the look-feel feature layer had no art for keys, locks and plates (they were invisible); they now fall back to simple CSS shapes until look-feel skins them.
+- Generator: deeper Medium/Large floors now pick between a locked vault (key elsewhere) and an **ambush stash**: the hidden room has an open gate; the first step inside trips a switch that slams it shut, a pursuer (brute on floor 3) guards the treasure, and a lever at the back reopens the gate. Built from existing switches/doors, so it publishes at whatever version the rest needs. Large: 42/60 drafts have a vault, 18/60 an ambush. Harness bots use levers when trapped.
+- Way-out cue (QA: a delver wandered 300 turns on a cleared floor): whenever no enemy is in sight, the run panel says where the stairs are ("The way out: stairs 3 south, 5 east"), that you are on them, or that they are not found yet; once seen, the stairs tile pulses green.
+- Not yet: a plate-held puzzle gate in the generator (luring reliably is hard to guarantee solvable), and a publish-and-play-as-another-profile pass for v13.
+
+Harness, 60 seeds:
+```
+Saltwake depth simulation · 60 seeds per preset × policy · kit club
+small  cautious died   2% out  97% stalled   2% · loot out 0.75 + drunk 0.07 of 1.0 funded · turns 33 · floor 1.0 · tide 0 · causes pursuer 1
+small  greedy   died   2% out  95% stalled   3% · loot out 0.85 + drunk 0.10 of 1.0 funded · turns 46 · floor 1.0 · tide 0 · causes pursuer 1
+small  reckless died   5% out  93% stalled   2% · loot out 0.20 + drunk 0.02 of 1.0 funded · turns 26 · floor 1.0 · tide 0 · causes powder crab (blast) 2, Keg (blast) 1
+medium cautious died   5% out  92% stalled   3% · loot out 0.63 + drunk 0.17 of 2.0 funded · turns 53 · floor 1.1 · tide 0 · causes Spikes 1, rat 1, pursuer 1
+medium greedy   died  33% out  65% stalled   2% · loot out 0.30 + drunk 1.03 of 2.0 funded · turns 86 · floor 1.8 · tide 8 · causes the rising tide 8, rat 3, pursuer 3, charger 2
+medium reckless died  75% out  25% stalled   0% · loot out 0.03 + drunk 0.13 of 2.0 funded · turns 35 · floor 1.8 · tide 1 · causes powder crab (blast) 10, pursuer 9, charger 8, sentry 8
+large  cautious died  15% out  78% stalled   7% · loot out 0.67 + drunk 0.12 of 8.4 funded · turns 75 · floor 1.0 · tide 0 · causes Spikes 4, pursuer 3, sentry 2
+large  greedy   died  62% out  32% stalled   7% · loot out 0.18 + drunk 2.23 of 8.4 funded · turns 131 · floor 2.0 · tide 6 · causes pursuer 6, the rising tide 6, sentry 5, charger 5
+large  reckless died 100% out   0% stalled   0% · loot out 0.00 + drunk 0.23 of 8.4 funded · turns 35 · floor 1.8 · tide 0 · causes pursuer 18, sentry 11, charger 11, powder crab (blast) 9
+```
+Greedy deaths rose a little (Medium 27→33%, Large 52→62%), mostly from tide while trapped in ambushes; still in the intended range.
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
@@ -81,4 +130,4 @@ Reading: Small is survivable for careful play (2% deaths) and still nicks reckle
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** watch a human play Small and Medium; if sentries still dominate deaths, lower their alert range or damage on floor one of generated drafts.
+**Next step:** publish a hand-built v13 dungeon and play it as another profile in the browser; then a plate-puzzle generator theme with a guaranteed fallback lever.

@@ -78,6 +78,12 @@ More harness quirks: `vite.config.ts` ignores `**/.claude/**`, so a dev server r
 - Tests: `tests/contract/private-trades.test.ts` (refusal by others, idempotent replay, reserved buyer buys, cancel returns goods, rejected offers leave the next public listing open, credit/item conservation); HTTP check in `town-spaces-http.test.ts`. Browser: the delver offered a club privately to the proprietor; the proprietor saw "Offered to you" and bought it.
 - Needs a contract redeploy on testnet for `list_for` (coordinator).
 
+## Round 7: testnet redeploy script (prepared, not run on testnet)
+
+- `scripts/testnet-redeploy.ts`: prepare (keys + proposal + approval template, no writes) → `--execute` with an approval naming the exact accounts, RPC, WASM hash, send budget and runtime budget. Faucet-creates the contract account and funders, tops up, checks the balance covers code storage, deploys, verifies the final code hash, calls `init_public_testnet`, writes `.state/testnet-<account>.json` + `-approval.json` for `npm run server -- --testnet`, smoke-reads snapshot/land_rules/coin_offer. Journal before every send; any earlier journal for the account refuses a rerun. Mainnet accounts/RPCs refused; `--rpc` only loopback.
+- Rehearsed on the local sandbox: `rehearse2.sandbox` with two funders → DEPLOYED (hash 31890e0a…, 29.79 NEAR, land-v1, coin price 0.01 NEAR, recovery budget 160). The generated server files pass `checkTestnetApproval` once the RPC/account are substituted with testnet values. A first rehearsal exposed that the deploy is included before final; the code check now waits (bounded) and the leftover journal correctly blocked a rerun.
+- README section "Redeploy the testnet contract" has the exact commands.
+
 ## Next step
 
 Candidates: a land price or upkeep paid to the bank (needs contract + economic review), building art per kind from the look-feel lane, a visitor count on signs.

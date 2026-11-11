@@ -11,8 +11,8 @@ export function validateDevices(value:unknown):string[]{
  if(d.kind==='switch'&&!['toggle','set','clear'].includes(d.mode)||d.kind==='door'&&typeof d.open_when!=='boolean')errors.push('Invalid device behavior.');
  }return errors;
 }
-export function validateMechanismNetwork(floors:readonly {devices?:Device[]}[]):string[]{
- const devices=floors.flatMap(f=>f.devices??[]),switches=new Set(devices.filter(d=>d.kind==='switch').map(d=>d.channel)),errors:string[]=[];
+export function validateMechanismNetwork(floors:readonly {devices?:Device[]}[],plates:ReadonlySet<string>=new Set()):string[]{
+ const devices=floors.flatMap(f=>f.devices??[]),switches=new Set([...devices.filter(d=>d.kind==='switch').map(d=>d.channel),...plates]),errors:string[]=[];
  if(devices.length>64)errors.push('Use at most 64 devices across all floors.');
  for(const channel of new Set(devices.filter(d=>d.kind==='door'&&!switches.has(d.channel)).map(d=>d.channel)))errors.push(`Door channel ${channel} needs a switch somewhere in the dungeon.`);
  return errors;
