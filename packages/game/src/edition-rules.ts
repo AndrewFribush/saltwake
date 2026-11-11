@@ -9,7 +9,7 @@ export function editionRulePages(terms:EditionTerms):RulePage[]{
   {title:'Your attempt',text:`Up to ${Number(terms.run_duration_ms)/60000} minutes per run. Death, abandonment or timeout forfeits town gear to the bank. Unused dungeon goods return to their pool; consumed goods stay spent.`},
   {title:'Opening window',text:`Opens ${new Date(Number(terms.opens_at_ms)).toISOString()}. Closes ${new Date(Number(terms.closes_at_ms)).toISOString()}. Capacity: ${terms.max_runs} simultaneous attempts. Admitted runs keep their full deadline.`},
  ];
- if(!Number.isInteger(terms.rules_version)||terms.rules_version<1||terms.rules_version>13)throw Error('Unsupported dungeon rules');
+ if(!Number.isInteger(terms.rules_version)||terms.rules_version<1||terms.rules_version>14)throw Error('Unsupported dungeon rules');
  if(terms.rules_version<3){pages.push({title:'Legacy rules',text:'This edition uses an older floor system. Clear all enemies before extracting or taking onward stairs. Enemy and hazard settings use the original game defaults.'});return pages;}
  const layout=authoredLayout(terms.modules.map(decodeCustomModule),terms.sockets);
  for(const [index,room] of layout.entries()){

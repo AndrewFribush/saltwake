@@ -191,3 +191,22 @@ test('generator arenas: a one-way drop into a sealed hall whose exit and onward 
  }
  assert.ok(arenas>=8&&played>=1,`arenas ${arenas}, played ${played}`);
 });
+
+test('v14 clocks: a timed gate opens on a cycle, only in v14 floors; the solver waits for the open window',async()=>{
+ const {solveReach}=await import('../src/solver');
+ const {requiredRulesVersion}=await import('../../shared/src/depth-components');
+ const tiles=['#########','#...#...#','#.......#','#...#...#','#########'];
+ const clock={id:'c',x:1,y:1,kind:'clock',channel:'tick',period:5,on:2,offset:0};
+ const f=floor({tiles,spawn:{x:1,y:2},exit:{x:7,y:2},features:[clock],devices:[{id:'g',x:4,y:2,kind:'door',channel:'tick',open_when:true}]});
+ assert.deepEqual(validateCustomFloor(f,'clocks'),[]);assert.equal(floorFormat(f),'clocks');assert.equal(requiredRulesVersion([f],[]),14);
+ assert.ok(validateCustomFloor(f,'keys').length,'v13 rejects clocks');
+ assert.ok(validateCustomFloor({...f,features:[{...clock,on:5}]},'clocks').length,'on must be shorter than the cycle');
+ assert.ok(encodeCustomModule(f,'clocks').startsWith('custom14:'));assert.equal(decodeCustomModule(encodeCustomModule(f,'clocks')).features![0].kind,'clock');
+ let s=run(f,[]);assert.equal(s.signals?.tick,true,'on at arrival (turn 0)');
+ const seen:boolean[]=[];for(let i=0;i<10;i++){s=act(s,{type:'wait'});seen.push(!!s.signals?.tick);}
+ assert.deepEqual(seen,[true,false,false,false,true,true,false,false,false,true]);
+ const r=solveReach(run(f,[]),{x:6,y:2},5000,40);assert.ok(r.solved);
+ // Start at the gate approach while it is closed: the route must wait for the next open window.
+ const late=run({...f,features:[{...clock,offset:2}]},[]);late.player.x=3;late.player.y=2;
+ const w=solveReach(late,{x:5,y:2},5000,20);assert.ok(w.solved);assert.ok(w.actions.some(a=>a.type==='wait'),'waits for the window');
+});

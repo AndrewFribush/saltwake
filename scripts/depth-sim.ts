@@ -23,7 +23,8 @@ function stepToward(s:RunState,goals:Set<string>,avoid:Set<string>,bumpKegs:bool
  const explored=new Set((s.explored??[]).filter(k=>k.startsWith(s.roomIndex+':')).map(k=>k.slice(k.indexOf(':')+1)));
  const lock=(p:Point)=>{const f=featureAt(s,p,'lock');return f?.kind==='lock'&&!!s.keys?.includes(f.color);};
  const passages=new Set((s.connections??[]).map(key));
- const passable=(p:Point)=>!passages.has(key(p))&&(walkable(s,p)||!!featureAt(s,p,'crack')||lock(p)||bumpKegs&&!!featureAt(s,p,'barrel'))&&explored.has(key(p));
+ const clocks=new Set((s.features??[]).flatMap(f=>f.kind==='clock'?[f.channel]:[]));const timedGate=(p:Point)=>(s.devices??[]).some(d=>d.kind==='door'&&d.x===p.x&&d.y===p.y&&clocks.has(d.channel));
+ const passable=(p:Point)=>!passages.has(key(p))&&(walkable(s,p)||timedGate(p)||!!featureAt(s,p,'crack')||lock(p)||bumpKegs&&!!featureAt(s,p,'barrel'))&&explored.has(key(p));
  const prev=new Map<string,string|null>([[key(s.player),null]]);const q:Point[]=[s.player];
  for(const p of q){
   if(goals.has(key(p))&&key(p)!==key(s.player)){let k=key(p);while(prev.get(k)!==key(s.player)&&prev.get(k)!==null)k=prev.get(k)!;const [x,y]=k.split(',').map(Number);return {x,y};}
@@ -130,17 +131,18 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
  if(foe){const st=stepToward(s,new Set([key(foe)]),new Set(),true);if(st){const e=s.enemies.find(e=>e.x===st.x&&e.y===st.y);return e?{type:'attack',enemyId:e.id}:{type:'move',...st};}}
  return {type:'wait'};
 }
-export type Result={arena:boolean;dropped:boolean;arenaDeath:boolean;lureVaults:number;lured:number;status:RunState['status'];killedBy?:string;turns:number;floor:number;extracted:number;used:number;funded:number;tideDeath:boolean};
+export type Result={timedVaults:number;timedIn:number;arena:boolean;dropped:boolean;arenaDeath:boolean;lureVaults:number;lured:number;status:RunState['status'];killedBy?:string;turns:number;floor:number;extracted:number;used:number;funded:number;tideDeath:boolean};
 export function simulate(seed:number,preset:GeneratorPreset,policy:Policy,kit:RehearsalKit='club'):Result{
  const d=generateDraft(seed,generatorPresets[preset].options);let s=creatorRehearsal(d.floors,d.placements,kit,'tonic');
  let floorTurns=0,room=0;lureWaits.clear();const arenaIndex=d.floors.some(f=>f.links)?d.floors.length-1:-1;let dropped=false;
+ const timedGates=d.floors.flatMap((f,room)=>(f.devices??[]).filter(g=>g.kind==='door'&&f.features?.some(x=>x.kind==='clock'&&x.channel===g.channel)).map(g=>`${room}:${g.x},${g.y}`));const timedIn=new Set<string>();
  const gates=d.floors.flatMap((f,room)=>(f.devices??[]).filter(g=>g.kind==='door'&&f.features?.some(x=>x.kind==='plate'&&x.channel===g.channel)).map(g=>`${room}:${g.x},${g.y}`));const lured=new Set<string>();
  for(let i=0;i<600&&s.status==='active';i++){
   const a=choose(s,policy,floorTurns);let n=act(s,a);
   if(n===s)n=act(s,{type:'wait'});
-  s=n;if(s.roomIndex===arenaIndex)dropped=true;if(gates.includes(`${s.roomIndex}:${s.player.x},${s.player.y}`))lured.add(`${s.roomIndex}:${s.player.x},${s.player.y}`);if(s.roomIndex!==room){room=s.roomIndex;floorTurns=0;}else floorTurns++;
+  s=n;if(timedGates.includes(`${s.roomIndex}:${s.player.x},${s.player.y}`))timedIn.add(`${s.roomIndex}:${s.player.x},${s.player.y}`);if(s.roomIndex===arenaIndex)dropped=true;if(gates.includes(`${s.roomIndex}:${s.player.x},${s.player.y}`))lured.add(`${s.roomIndex}:${s.player.x},${s.player.y}`);if(s.roomIndex!==room){room=s.roomIndex;floorTurns=0;}else floorTurns++;
  }
- return {arena:arenaIndex>=0,dropped,arenaDeath:s.status==='died'&&s.roomIndex===arenaIndex,lureVaults:gates.length,lured:lured.size,status:s.status,killedBy:s.killedBy,turns:s.turn,floor:s.roomIndex+1,extracted:s.status==='extracted'?carried(s):0,used:Object.values(s.items).filter(i=>i.origin==='dungeon'&&i.location.kind==='consumed').length,funded:estimateDraft(d).goods,tideDeath:s.killedBy==='the rising tide'};
+ return {timedVaults:timedGates.length,timedIn:timedIn.size,arena:arenaIndex>=0,dropped,arenaDeath:s.status==='died'&&s.roomIndex===arenaIndex,lureVaults:gates.length,lured:lured.size,status:s.status,killedBy:s.killedBy,turns:s.turn,floor:s.roomIndex+1,extracted:s.status==='extracted'?carried(s):0,used:Object.values(s.items).filter(i=>i.origin==='dungeon'&&i.location.kind==='consumed').length,funded:estimateDraft(d).goods,tideDeath:s.killedBy==='the rising tide'};
 }
 const cause=(k?:string)=>!k?'?':k.replace(/ #[\d.]+/,'').replace(/ blast$/,' (blast)');
 export function report(seeds:number,kit:RehearsalKit='club'){
@@ -150,7 +152,7 @@ export function report(seeds:number,kit:RehearsalKit='club'){
   const died=rs.filter(r=>r.status==='died'),out=rs.filter(r=>r.status==='extracted');
   const causes=new Map<string,number>();for(const r of died)causes.set(cause(r.killedBy),(causes.get(cause(r.killedBy))??0)+1);
   const pct=(n:number)=>`${Math.round(100*n/rs.length)}%`;
-  rows.push(`${preset.padEnd(6)} ${policy.padEnd(8)} died ${pct(died.length).padStart(4)} out ${pct(out.length).padStart(4)} stalled ${pct(rs.length-died.length-out.length).padStart(4)} · loot out ${(rs.reduce((n,r)=>n+r.extracted,0)/rs.length).toFixed(2)} + drunk ${(rs.reduce((n,r)=>n+r.used,0)/rs.length).toFixed(2)} of ${(rs.reduce((n,r)=>n+r.funded,0)/rs.length).toFixed(1)} funded · turns ${Math.round(rs.reduce((n,r)=>n+r.turns,0)/rs.length)} · floor ${(rs.reduce((n,r)=>n+r.floor,0)/rs.length).toFixed(1)} · tide ${died.filter(r=>r.tideDeath).length} · arena ${rs.filter(r=>r.dropped).length}/${rs.filter(r=>r.arena).length} (died ${rs.filter(r=>r.arenaDeath).length}) · lure ${rs.reduce((n,r)=>n+r.lured,0)}/${rs.reduce((n,r)=>n+r.lureVaults,0)} · causes ${[...causes].sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`${k} ${v}`).join(', ')}`);
+  rows.push(`${preset.padEnd(6)} ${policy.padEnd(8)} died ${pct(died.length).padStart(4)} out ${pct(out.length).padStart(4)} stalled ${pct(rs.length-died.length-out.length).padStart(4)} · loot out ${(rs.reduce((n,r)=>n+r.extracted,0)/rs.length).toFixed(2)} + drunk ${(rs.reduce((n,r)=>n+r.used,0)/rs.length).toFixed(2)} of ${(rs.reduce((n,r)=>n+r.funded,0)/rs.length).toFixed(1)} funded · turns ${Math.round(rs.reduce((n,r)=>n+r.turns,0)/rs.length)} · floor ${(rs.reduce((n,r)=>n+r.floor,0)/rs.length).toFixed(1)} · tide ${died.filter(r=>r.tideDeath).length} · arena ${rs.filter(r=>r.dropped).length}/${rs.filter(r=>r.arena).length} (died ${rs.filter(r=>r.arenaDeath).length}) · timed ${rs.reduce((n,r)=>n+r.timedIn,0)}/${rs.reduce((n,r)=>n+r.timedVaults,0)} · lure ${rs.reduce((n,r)=>n+r.lured,0)}/${rs.reduce((n,r)=>n+r.lureVaults,0)} · causes ${[...causes].sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`${k} ${v}`).join(', ')}`);
  }
  return rows;
 }

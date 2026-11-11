@@ -10,7 +10,7 @@ impl Economy {
         random_tables: Vec<RandomTable>,
     ) -> Result<String, String> {
         let now = now_ms();
-        let valid_operating_terms = if matches!(terms.rules_version, 8 | 9 | 10 | 11 | 12 | 13) {
+        let valid_operating_terms = if matches!(terms.rules_version, 8 | 9 | 10 | 11 | 12 | 13 | 14) {
             (60_000..=3_600_000).contains(&terms.run_duration_ms.0)
                 && (1..=4).contains(&terms.max_runs)
         } else {
@@ -27,8 +27,8 @@ impl Economy {
         }
         if terms.title.trim().is_empty()
             || terms.title.len() > 80
-            || !matches!(terms.rules_version, 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13)
-            || !(if matches!(terms.rules_version, 9 | 10 | 11 | 12 | 13) { 1..=16 } else { 2..=4 }).contains(&terms.modules.len())
+            || !matches!(terms.rules_version, 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14)
+            || !(if matches!(terms.rules_version, 9 | 10 | 11 | 12 | 13 | 14) { 1..=16 } else { 2..=4 }).contains(&terms.modules.len())
             || terms.modules.iter().any(|m| {
                 if terms.rules_version >= 3 {
                     !valid_custom_module(m, if matches!(terms.rules_version, 8 | 9) { 7 } else { terms.rules_version })
@@ -45,7 +45,7 @@ impl Economy {
             || terms.closes_at_ms.0 - terms.opens_at_ms.0 > 86_400_000
             || fee.0 > 1_000_000
             || terms.sockets.len() > if terms.rules_version >= 4 { 64 } else { 16 }
-            || (matches!(terms.rules_version, 9 | 10 | 11 | 12 | 13)
+            || (matches!(terms.rules_version, 9 | 10 | 11 | 12 | 13 | 14)
                 && terms.modules.iter().filter_map(|m| custom_socket_count(m)).sum::<usize>() > 64)
             || funding.len() > 128
         {
@@ -81,15 +81,15 @@ impl Economy {
                 cost += 1;
             }
         }
-        if matches!(terms.rules_version, 7 | 8 | 9 | 10 | 11 | 12 | 13) && !valid_tuned_terms(&terms) {
+        if matches!(terms.rules_version, 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14) && !valid_tuned_terms(&terms) {
             return Err("InvalidTerms".into());
         }
-        if matches!(terms.rules_version, 10 | 11 | 12 | 13) && !valid_device_wiring(&terms.modules, terms.rules_version) {
+        if matches!(terms.rules_version, 10 | 11 | 12 | 13 | 14) && !valid_device_wiring(&terms.modules, terms.rules_version) {
             return Err("InvalidTerms".into());
         }
         if terms.rules_version >= 12 {
             let mut total = 0usize;
-            if terms.rules_version == 13 && !valid_lock_keys(&terms.modules) {
+            if terms.rules_version >= 13 && !valid_lock_keys(&terms.modules) {
                 return Err("InvalidTerms".into());
             }
             for module in &terms.modules {
@@ -442,7 +442,7 @@ struct EncounterTuning {
 fn valid_tuned_terms(terms: &Terms) -> bool {
     let mut has_links = false;
     for (room, module) in terms.modules.iter().enumerate() {
-        let Some(json) = module.strip_prefix(match terms.rules_version { 10 => "custom10:", 11 => "custom11:", 12 => "custom12:", 13 => "custom13:", _ => "custom7:" }) else { return false; };
+        let Some(json) = module.strip_prefix(match terms.rules_version { 10 => "custom10:", 11 => "custom11:", 12 => "custom12:", 13 => "custom13:", 14 => "custom14:", _ => "custom7:" }) else { return false; };
         let Ok(floor) = near_sdk::serde_json::from_str::<TunedFloor>(json) else { return false; };
         has_links |= floor.links.is_some();
         if floor.tuning.len() > 16 { return false; }
@@ -470,7 +470,7 @@ fn valid_tuned_terms(terms: &Terms) -> bool {
 fn valid_custom_graph(modules: &[String]) -> bool {
     let mut edges = Vec::new();
     for module in modules {
-        let Some(json) = module.strip_prefix("custom6:").or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:")).or_else(|| module.strip_prefix("custom12:")).or_else(|| module.strip_prefix("custom13:")) else { return false; };
+        let Some(json) = module.strip_prefix("custom6:").or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:")).or_else(|| module.strip_prefix("custom12:")).or_else(|| module.strip_prefix("custom13:")).or_else(|| module.strip_prefix("custom14:")) else { return false; };
         let Ok(floor) = near_sdk::serde_json::from_str::<CustomLinks>(json) else { return false; };
         if floor.links.iter().any(|link| link.to >= modules.len()) {
             return false;
@@ -488,11 +488,11 @@ fn valid_custom_graph(modules: &[String]) -> bool {
     seen.len() == modules.len()
 }
 fn custom_socket_count(module: &str) -> Option<usize> {
- let json = module.strip_prefix("custom4:").or_else(|| module.strip_prefix("custom5:")).or_else(|| module.strip_prefix("custom6:")).or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:")).or_else(|| module.strip_prefix("custom12:")).or_else(|| module.strip_prefix("custom13:"))?;
+ let json = module.strip_prefix("custom4:").or_else(|| module.strip_prefix("custom5:")).or_else(|| module.strip_prefix("custom6:")).or_else(|| module.strip_prefix("custom7:")).or_else(|| module.strip_prefix("custom10:")).or_else(|| module.strip_prefix("custom11:")).or_else(|| module.strip_prefix("custom12:")).or_else(|| module.strip_prefix("custom13:")).or_else(|| module.strip_prefix("custom14:"))?;
  near_sdk::serde_json::from_str::<CustomFloor>(json).ok().map(|f| f.sockets.len())
 }
 fn valid_custom_module(module: &str, version: u8) -> bool {
-    if module.len() > if matches!(version, 12 | 13) { 6144 } else if matches!(version, 7 | 10 | 11) { 4096 } else { 2048 } {
+    if module.len() > if matches!(version, 12 | 13 | 14) { 6144 } else if matches!(version, 7 | 10 | 11) { 4096 } else { 2048 } {
         return false;
     }
     let prefix = match version {
@@ -505,6 +505,7 @@ fn valid_custom_module(module: &str, version: u8) -> bool {
         11 => "custom11:",
         12 => "custom12:",
         13 => "custom13:",
+        14 => "custom14:",
         _ => return false,
     };
     let Some(json) = module.strip_prefix(prefix) else {
@@ -568,7 +569,7 @@ fn valid_custom_module(module: &str, version: u8) -> bool {
             }
         }
     }
-    if matches!(version, 10 | 11 | 12 | 13) {
+    if matches!(version, 10 | 11 | 12 | 13 | 14) {
         let Ok(devices) = near_sdk::serde_json::from_str::<DeviceFloor>(json) else { return false; };
         if devices.devices.len() > 16 { return false; }
         let mut ids = BTreeSet::new();
@@ -580,7 +581,7 @@ fn valid_custom_module(module: &str, version: u8) -> bool {
             { return false; }
         }
     }
-    if matches!(version, 12 | 13) {
+    if matches!(version, 12 | 13 | 14) {
         return depth_floor_valid(json, &floor.tiles, (floor.spawn.x, floor.spawn.y), &mut positions, version);
     }
     let mut seen = BTreeSet::new();
@@ -644,7 +645,7 @@ fn valid_device_wiring(modules: &[String], version: u8) -> bool {
     let mut count = 0;
     let mut has_extraction = false;
     for module in modules {
-        let Some(json) = module.strip_prefix(match version { 13 => "custom13:", 12 => "custom12:", 11 => "custom11:", _ => "custom10:" }) else { return false; };
+        let Some(json) = module.strip_prefix(match version { 14 => "custom14:", 13 => "custom13:", 12 => "custom12:", 11 => "custom11:", _ => "custom10:" }) else { return false; };
         let Ok(floor) = near_sdk::serde_json::from_str::<DeviceFloor>(json) else { return false; };
         if version >= 11 {
             let Ok(exit) = near_sdk::serde_json::from_str::<ExitFloor>(json) else { return false; };
@@ -655,9 +656,9 @@ fn valid_device_wiring(modules: &[String], version: u8) -> bool {
                 doors.insert(channel);
             }
         }
-        if version == 13 {
+        if version >= 13 {
             let Ok(depth) = near_sdk::serde_json::from_str::<DepthFloor>(json) else { return false; };
-            for f in depth.features { if let Feature::Plate { channel, .. } = f { switches.insert(channel); } }
+            for f in depth.features { match f { Feature::Plate { channel, .. } | Feature::Clock { channel, .. } => { switches.insert(channel); }, _ => {} } }
         }
         count += floor.devices.len();
         if count > 64 { return false; }
@@ -746,13 +747,15 @@ enum Feature {
     Key { id: String, x: usize, y: usize, color: String },
     Lock { id: String, x: usize, y: usize, color: String },
     Plate { id: String, x: usize, y: usize, channel: String },
+    // Rules v14 timing: channel on for `on` of every `period` turns, shifted by `offset`.
+    Clock { id: String, x: usize, y: usize, channel: String, period: u8, on: u8, offset: u8 },
 }
 impl Feature {
     fn place(&self) -> (&str, usize, usize) {
         match self {
             Self::Barrel { id, x, y, .. } | Self::Crack { id, x, y, .. } | Self::Oil { id, x, y } | Self::Pit { id, x, y }
             | Self::Fountain { id, x, y, .. } | Self::Altar { id, x, y, .. } | Self::Cache { id, x, y, .. }
-            | Self::Key { id, x, y, .. } | Self::Lock { id, x, y, .. } | Self::Plate { id, x, y, .. } => (id, *x, *y),
+            | Self::Key { id, x, y, .. } | Self::Lock { id, x, y, .. } | Self::Plate { id, x, y, .. } | Self::Clock { id, x, y, .. } => (id, *x, *y),
         }
     }
     fn cost(&self) -> u64 { match self { Self::Fountain { .. } | Self::Altar { .. } | Self::Cache { .. } => 2, _ => 1 } }
@@ -766,11 +769,12 @@ impl Feature {
             Self::Oil { .. } | Self::Pit { .. } => true,
             Self::Key { color, .. } | Self::Lock { color, .. } => valid_channel(color),
             Self::Plate { channel, .. } => valid_channel(channel),
+            Self::Clock { channel, period, on, offset, .. } => valid_channel(channel) && (2..=12).contains(period) && *on >= 1 && on < period && offset < period,
         }
     }
 }
 fn depth_features(module: &str, version: u8) -> Option<(usize, u64)> {
-    let floor = near_sdk::serde_json::from_str::<DepthFloor>(module.strip_prefix(if version == 13 { "custom13:" } else { "custom12:" })?).ok()?;
+    let floor = near_sdk::serde_json::from_str::<DepthFloor>(module.strip_prefix(match version { 14 => "custom14:", 13 => "custom13:", _ => "custom12:" })?).ok()?;
     Some((floor.features.len(), floor.features.iter().map(Feature::cost).sum()))
 }
 fn depth_floor_valid(json: &str, tiles: &[String], spawn: (usize, usize), positions: &mut BTreeSet<(usize, usize)>, version: u8) -> bool {
@@ -788,6 +792,7 @@ fn depth_floor_valid(json: &str, tiles: &[String], spawn: (usize, usize), positi
     for f in &floor.features {
         let (id, x, y) = f.place();
         if version < 13 && matches!(f, Feature::Key { .. } | Feature::Lock { .. } | Feature::Plate { .. }) { return false; }
+        if version < 14 && matches!(f, Feature::Clock { .. }) { return false; }
         if id.is_empty() || id.len() > 32 || !ids.insert(id) || !f.valid_config() || x >= width || y >= height || !positions.insert((x, y)) {
             return false;
         }
@@ -825,7 +830,7 @@ fn valid_lock_keys(modules: &[String]) -> bool {
     let mut keys = BTreeSet::new();
     let mut locks = BTreeSet::new();
     for module in modules {
-        let Some(json) = module.strip_prefix("custom13:") else { return false; };
+        let Some(json) = module.strip_prefix("custom13:").or_else(|| module.strip_prefix("custom14:")) else { return false; };
         let Ok(floor) = near_sdk::serde_json::from_str::<DepthFloor>(json) else { return false; };
         for f in floor.features {
             match f { Feature::Key { color, .. } => { keys.insert(color); }, Feature::Lock { color, .. } => { locks.insert(color); }, _ => {} }
