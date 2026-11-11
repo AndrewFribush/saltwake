@@ -25,7 +25,7 @@ import {ItemIcon} from './ItemIcon';
 import {places,type PlaceId} from '../../../packages/game/src/town';
 import {catalog} from '../../../packages/shared/src/catalog';
 import {Workbench} from './Workbench';
-import {FirstSteps} from './FirstSteps';
+import {FirstSteps,treasureFirst} from './FirstSteps';
 import {BuyInContext} from './BuyCoins';
 import {StackRows,stacksOf,countOf} from './TradeRows';
 import type {Action} from '../../../packages/game/src/actions';
@@ -73,7 +73,9 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
   if(r.status==='Rejected'){await refresh();throw Error(r.result);}if(r.status==='Unknown'||r.status==='Pending')throw Error(PENDING_NOTICE+' Keep the same request; do not enter again.');
  };
  const loadout=planLoadout(selected.flatMap(id=>world?.items.find(i=>i.id===id)??[]));
- const suggestions=world?matchEditions(world.editions,world.profile,{...preferences,maxFee:Math.min(preferences.maxFee,Number(world.credits))},rotation,12):[]; // the gate pages one offer at a time, so list every match
+ // The gate pages one offer at a time, so list every match; dungeons with funded treasure come first (cheapest first
+ // within each group), so a newcomer's first page is something worth escaping from rather than a no-treasure attraction.
+ const suggestions=world?treasureFirst(matchEditions(world.editions,world.profile,{...preferences,maxFee:Math.min(preferences.maxFee,Number(world.credits))},rotation,12)):[];
  const run=world?.runs.find(r=>r.id===runId)??world?.runs.find(r=>!r.terminal);
  const act=(action:Action)=>void work(async()=>{if(!run)return;const p=pendingAction.current??{run:run.id,id:crypto.randomUUID(),seq:run.seq,action};pendingAction.current=p;try{await api('runs/'+p.run+'/action',{id:p.id,seq:p.seq,action:p.action});pendingAction.current=undefined;}catch(e){if(e instanceof ApiError&&e.status>=400&&e.status<500&&e.status!==408)pendingAction.current=undefined;throw e;}});
  const toggle=(id:string)=>setSelected(ids=>ids.includes(id)?ids.filter(i=>i!==id):[...ids,id]);
@@ -93,7 +95,7 @@ const [place,setPlace]=useState<PlaceId>();const [shopId,setShopId]=useState<str
  const packStacks=stacksOf(ownedNow).sort((a,b)=>rank(a.type)-rank(b.type));
  const packCounts=Object.fromEntries(packStacks.map(s=>[s.key,s.ids.filter(id=>selected.includes(id)).length]));
  const setPack=(type:string,n:number)=>setSelected(ids=>{const stack=packStacks.find(s=>s.key===type);if(!stack)return ids;const rest=ids.filter(id=>!stack.ids.includes(id));const add=stack.ids.slice(0,n);return (type==='club'||type==='sword')?[...add,...rest]:[...rest,...add];});
- const packPanel=<section className="pack-panel" aria-label="Pack for the descent"><h3>Your pack</h3><p className={loadout.weapon==='unarmed'?'pack-warn':''}>{selected.length?`${loadout.weapon==='unarmed'?'No weapon: you will fight bare-handed':`Wielding a ${loadout.weapon} (${weaponDamage[loadout.weapon]} damage)`}${loadout.armor?' · armor on':''} · bag ${loadout.bag}/6.`:'Nothing packed. You would go in bare-handed. Add gear below.'} {!loadout.valid&&loadout.reason}</p><StackRows stacks={packStacks} counts={packCounts} onCount={setPack} disabled={busy} empty="You own nothing to take. You can still enter bare-handed."/><p className="trade-note">Packed gear is lost if you die. Everything else stays safe in town.</p></section>;
+ const packPanel=<section className="pack-panel" aria-label="Pack for the descent"><h3>Your pack</h3><p className={loadout.weapon==='unarmed'?'pack-warn':''}>{selected.length?`${loadout.weapon==='unarmed'?'No weapon: you will fight bare-handed':`Wielding a ${loadout.weapon} (${weaponDamage[loadout.weapon]} damage)`}${loadout.armor?' · armor on':''} · bag ${loadout.bag}/6.`:(()=>{const w=world?.items.find(i=>i.location.kind==='owned'&&i.location.profile===world.profile&&(i.item_type==='sword'||i.item_type==='club'));return w?`Nothing packed: you would fight bare-handed (1 damage). Press + on your ${catalog[w.item_type as keyof typeof catalog].name.toLowerCase()} to pack it (${weaponDamage[w.item_type as 'club'|'sword']} damage).`:'Nothing packed. You would go in bare-handed. Add gear below.';})()} {!loadout.valid&&loadout.reason}</p><StackRows stacks={packStacks} counts={packCounts} onCount={setPack} disabled={busy} empty="You own nothing to take. You can still enter bare-handed."/><p className="trade-note">Packed gear is lost if you die. Everything else stays safe in town.</p></section>;
  const profileNames:Record<string,string>={buyer:'The delver',maker:'The proprietor',worker:'The apprentice',worker2:'The journeyman',p2:'The mercenary',p3:'The wayfarer',p4:'The scavenger',p5:'The newcomer'};
 
  const buyIn=walletConnection?.buyCoins&&(world as any)?.buyIn?{buy:walletConnection.buyCoins,refresh}:null;

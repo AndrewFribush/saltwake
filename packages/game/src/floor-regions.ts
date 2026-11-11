@@ -38,10 +38,12 @@ export const builtInStamps:Stamp[]=[
  {name:'Twin rooms',tiles:['###.#.###','#...#...#','#.......#','#...#...#','###.#.###']},
  {name:'Wall segment',tiles:['#####']},
 ];
-/** Floor tiles that cannot be walked to from arrival (the layout check rejects these). */
-export function unreachableTiles(f:Pick<CustomFloor,'tiles'|'spawn'>):Set<string>{
+/** Floor tiles that cannot be walked to from arrival (the layout check rejects these). A cracked wall counts as a
+ * way through (delvers bump it open), so a hidden stash behind one is not reported as cut off. */
+export function unreachableTiles(f:Pick<CustomFloor,'tiles'|'spawn'>&{features?:readonly {kind:string;x:number;y:number}[]}):Set<string>{
  const h=f.tiles.length,w=f.tiles[0].length,seen=new Set<string>([`${f.spawn.x},${f.spawn.y}`]),q=[f.spawn];
- for(const p of q)for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx,y=p.y+dy,k=`${x},${y}`;if(x>=0&&y>=0&&x<w&&y<h&&f.tiles[y][x]==='.'&&!seen.has(k)){seen.add(k);q.push({x,y});}}
+ const cracks=new Set((f.features??[]).filter(x=>x.kind==='crack').map(x=>`${x.x},${x.y}`));
+ for(const p of q)for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx,y=p.y+dy,k=`${x},${y}`;if(x>=0&&y>=0&&x<w&&y<h&&(f.tiles[y][x]==='.'||cracks.has(k))&&!seen.has(k)){seen.add(k);q.push({x,y});}}
  const out=new Set<string>();f.tiles.forEach((r,y)=>[...r].forEach((c,x)=>{if(c==='.'&&!seen.has(`${x},${y}`))out.add(`${x},${y}`);}));return out;
 }
 /** Wall off unreachable floor, keeping marker tiles. */

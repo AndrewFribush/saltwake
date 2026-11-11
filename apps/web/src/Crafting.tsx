@@ -3,11 +3,13 @@ import {Reading} from './GamePanels';
 import {ItemIcon} from './ItemIcon';
 import {countOf} from './TradeRows';
 import {bestOutlets} from './outlets';
+import {markDone} from './FirstSteps';
 import React,{useEffect,useRef,useState} from 'react';
 import type {CraftView} from '../../server/src/craft';
 export type CraftSend=(path:string,body:any)=>Promise<CraftView>;
 export function Crafting({world,selected,refresh,onChange,onBusyChange,blocked=false,sendCraft,storageScope,onSelect}:{onSelect?:(ids:string[])=>void;world:any;selected:string[];refresh:()=>Promise<void>;onChange:(value:CraftView)=>void;onBusyChange:(busy:boolean)=>void;blocked?:boolean;sendCraft?:CraftSend;storageScope?:string}){
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [now,setNow]=useState(Date.now());const lock=useRef(false);const pendingKey=storageScope?'saltwake.wallet-craft:'+storageScope:'dungeon-pending-craft:'+world.profile;const [initialPending]=useState<{path:string;body:any}|null>(()=>{try{const saved=JSON.parse(sessionStorage.getItem(pendingKey)??'null');return saved&&['begin','start','input'].includes(saved.path)&&saved.body&&typeof saved.body.id==='string'?saved:null;}catch{return null;}});const pending=useRef(initialPending);const c=world.craft as CraftView|null;const recipe=recipeSelection(world.items??[],world.profile,selected);const offer=world.recoveryOffer as RecoveryOffer|undefined;
+ useEffect(()=>{if(c?.status==='finished'&&!(c as {recovery?:boolean}).recovery)markDone(world.profile,'brew');},[c?.status,world.profile]);
  useEffect(()=>{if(c?.status!=='active'||c.startedAtMs===null)return;setNow(Date.now());const t=setInterval(()=>setNow(Date.now()),30);return()=>clearInterval(t);},[c?.status,c?.startedAtMs]);
  const send=async(path:string,body:any)=>{if(lock.current||blocked)return;lock.current=true;setBusy(true);onBusyChange(true);try{
   pending.current??={path,body};sessionStorage.setItem(pendingKey,JSON.stringify(pending.current));const p=pending.current;let value:CraftView;if(sendCraft){value=await sendCraft(p.path,p.body);}else{const response=await fetch('/api/craft/'+p.path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...p.body,expectedProfile:world.profile})});value=await response.json();

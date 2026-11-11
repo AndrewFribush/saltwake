@@ -17,4 +17,5 @@ test('paste keeps the boundary closed and never walls over markers',()=>{
 test('unreachable floor is found and can be sealed',()=>{
  const f={tiles:['#######','#..#..#','#..#..#','#######'],spawn:{x:1,y:1},exit:{x:2,y:2},sockets:[]};
  assert.equal(unreachableTiles(f).size,4);assert.deepEqual(sealUnreachable(f),['#######','#..####','#..####','#######']);
+ assert.equal(unreachableTiles({...f,features:[{kind:'crack',x:3,y:1}]}).size,0,'a stash behind a cracked wall is reachable');
 });

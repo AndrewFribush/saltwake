@@ -126,7 +126,7 @@ export class Runs {
    if(prior){if(prior.hash!==hash)throw Error('Action payload conflict');return prior.view;}
    if(row.terminal)throw Error('Run terminal');if(row.seq!==expectedSeq)throw Error('Stale action sequence');if(row.seq>=2048)throw Error('Run action capacity');
    if(this.clock()>=Number(row.economic.deadline_ms)){this.finish(row,'expired');const view=this.view(id,profile);this.db.put('action',key,{hash,view});return view;}
-   noteSeen(row);const next=act(row.state,action);if(next===row.state)throw Error('Action not permitted');
+   noteSeen(row);const next=act(row.state,action);if(next===row.state)throw Error('That move is not permitted: a wall or no space there. No turn spent.');
    row.state=next;noteSeen(row);row.seq++;row.state.log=row.state.log.slice(-200);this.db.put('run',id,row);
    if(next.status!=='active')this.finish(row,next.status);
    const view=this.view(id,profile);this.db.put('action',key,{hash,view});return view;

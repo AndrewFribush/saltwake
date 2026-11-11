@@ -4,8 +4,8 @@
  * Nothing is minted; plot limits and finite seeded goods apply. This is demonstration supply, not organic activity. */
 import {generateDraft,generatorPresets,estimateDraft,type GeneratorPreset} from '../packages/game/src/draft-generator';
 import {creatorSockets,type CreatorPlacement} from '../packages/shared/src/creator-rewards';
-import {encodeCustomModule,type CustomFloor} from '../packages/shared/src/custom-layout';
-import {usesDepth,enemyCost} from '../packages/shared/src/depth-components';
+import {encodeCustomModule,floorFormat,type CustomFloor,type FloorFormat} from '../packages/shared/src/custom-layout';
+import {requiredRulesVersion,enemyCost} from '../packages/shared/src/depth-components';
 import {defaultExitRule} from '../packages/shared/src/exit-rules';
 import {publicationSchedule} from '../packages/shared/src/operating-terms';
 import {defaultInterior,type InteriorLayout} from '../packages/game/src/interiors';
@@ -16,10 +16,19 @@ import type {EditionTerms} from '../packages/shared/src/types';
 
 /** Same floor shaping the drafting table applies before publication (FloorBuilder designFloor). */
 const designFloor=(f:CustomFloor,depth:boolean):CustomFloor=>{const m={...f,tuning:f.tuning??[],devices:f.devices??[],exit_rule:f.exit_rule??{...defaultExitRule}};if(depth)return {...m,features:f.features??[]};const {features:_f,tide:_t,...rest}=m;return rest;};
+/** Rules version and module format the drafting table would publish this draft with (v13 keys/plates, newer
+ * formats as the generator gains them), so generator changes cannot publish a floor under an older format. */
+function publicationFormat(floors:CustomFloor[],placements:CreatorPlacement[][]):{rules_version:number;format:FloorFormat;depth:boolean}{
+ const rules_version=requiredRulesVersion(floors,placements.flat().map(p=>p.enemy)) as number;
+ if(rules_version<=11)return {rules_version,format:'missions',depth:false};
+ if(rules_version===12)return {rules_version,format:'depth',depth:true};
+ const known:FloorFormat[]=['keys','depth','missions','mechanisms','tuned','graph','sized',true,false];
+ return {rules_version,format:floors.map(floorFormat).find(f=>!known.includes(f))??'keys',depth:true};
+}
 export function presetPublication(seed:number,preset:GeneratorPreset,title:string,now:number,treasure=false){
- const draft=generateDraft(seed,{...generatorPresets[preset].options,treasure});const depth=usesDepth(draft.floors,draft.placements.flat().map(p=>p.enemy));
+ const draft=generateDraft(seed,{...generatorPresets[preset].options,treasure});const pf=publicationFormat(draft.floors,draft.placements);
  const schedule=publicationSchedule({delayMinutes:'0',openMinutes:'1440',runMinutes:'15',capacity:'4'},now);
- const terms:EditionTerms={title,rules_version:depth?12:11,modules:draft.floors.map(f=>encodeCustomModule(designFloor(f,depth),depth?'depth':'missions')),sockets:creatorSockets(draft.placements),opens_at_ms:schedule.opens_at_ms,closes_at_ms:schedule.closes_at_ms,no_reward:!treasure,difficulty_tag:'standard',style_tag:'combat',run_duration_ms:schedule.run_duration_ms,max_runs:schedule.max_runs};
+ const terms:EditionTerms={title,rules_version:pf.rules_version,modules:draft.floors.map(f=>encodeCustomModule(designFloor(f,pf.depth),pf.format)),sockets:creatorSockets(draft.placements),opens_at_ms:schedule.opens_at_ms,closes_at_ms:schedule.closes_at_ms,no_reward:!treasure,difficulty_tag:'standard',style_tag:'combat',run_duration_ms:schedule.run_duration_ms,max_runs:schedule.max_runs};
  return {terms,cost:estimateDraft(draft).coins,placements:draft.placements};
 }
 /** The showcase: the large three-floor preset, thinned to the proprietor's budget (easier first floor, the
@@ -29,23 +38,31 @@ export function presetPublication(seed:number,preset:GeneratorPreset,title:strin
 const SHELVED=['maker-herb-0','maker-herb-1','maker-herb-2','maker-herb-3','maker-flask-0','maker-flask-1','maker-flask-2','maker-flask-3'];
 export const SHOWCASE_COPIES=3;
 export const SHOWCASE_SEEDS=[11,23,31,47,59,71,83,97,4242,9001],SHOWCASE_TITLE='The tide vaults';
-/** Thins one draft to the budget: first optional hazards (oil, kegs, caches, altars, springs, chasms), then the most
- * expensive enemy or trap, shallowest floor first. Floor geometry, keys, locks, plates, cracked walls and devices
- * stay (those carry routes, doors and seals). Returns null if it cannot fit. */
+/** Thins one draft for a newcomer-friendly showcase. First every floor is capped on a ramp (floor n keeps at most n+1
+ * threats, counting enemies and traps), so floor 1 is a fair first fight with a club and the danger grows with depth.
+ * Then, to fit the budget: optional hazards (oil, kegs, caches, altars, springs, chasms), then threats from the floor
+ * furthest above the ramp. Every floor keeps at least one threat. Floor geometry, keys, locks, plates, cracked walls
+ * and devices stay (those carry routes, doors and seals). Returns null if it cannot fit. */
+export const SHOWCASE_RAMP=(floor:number)=>floor+2;
 function thinToBudget(draft:{floors:CustomFloor[];placements:CreatorPlacement[][]},budget:number){
  const cost=()=>estimateDraft(draft).coins;
- // Decorative hazards first (they never carry a route); keys, locks, plates and cracked walls stay put.
+ const threats=(ps:CreatorPlacement[])=>ps.reduce((n,x)=>n+Number(x.enemy!=='none')+Number(x.trap),0);
+ const removeOne=(minOver:number)=>{
+  let best:{floor:number;slot:number;save:number;over:number}|null=null;
+  draft.placements.forEach((ps,floor)=>ps.forEach((p,slot)=>{const save=enemyCost(p.enemy)+Number(p.trap);if(!save||threats(ps)<=1)return;
+   const over=threats(ps)-SHOWCASE_RAMP(floor);if(over<minOver)return;
+   if(!best||over>best.over||(over===best.over&&(floor<best.floor||(floor===best.floor&&save>best.save))))best={floor,slot,save,over};}));
+  if(!best)return false;const {floor,slot}=best as {floor:number;slot:number};
+  // a trap goes first when a socket has both, so an enemy can stay
+  const p=draft.placements[floor][slot];draft.placements[floor][slot]=p.trap&&p.enemy!=='none'?{...p,trap:false}:{...p,enemy:'none',trap:false};
+  return true;
+ };
+ while(removeOne(1));
  const optional=['oil','barrel','cache','altar','fountain','pit'];
  while(cost()>budget){
   const fi=draft.floors.findIndex(f=>(f.features??[]).some(x=>optional.includes(x.kind)));
   if(fi>=0){const fs=draft.floors[fi].features!;const kind=optional.find(k=>fs.some(x=>x.kind===k))!;const at=fs.findIndex(x=>x.kind===kind);draft.floors[fi]={...draft.floors[fi],features:fs.filter((_,i)=>i!==at)};continue;}
-  let best:{floor:number;slot:number;save:number}|null=null;
-  draft.placements.forEach((ps,floor)=>ps.forEach((p,slot)=>{const save=enemyCost(p.enemy)+Number(p.trap);if(!save)return;
-   // keep at least one enemy on the deepest floor so the showcase still has a fight at the bottom
-   if(floor===draft.placements.length-1&&p.enemy!=='none'&&ps.filter(x=>x.enemy!=='none').length<=1&&!p.trap)return;
-   if(!best||floor<best.floor||(floor===best.floor&&save>best.save))best={floor,slot,save};}));
-  if(!best)return null;const {floor,slot}=best as {floor:number;slot:number};
-  draft.placements[floor][slot]={...draft.placements[floor][slot],enemy:'none',trap:false};
+  if(!removeOne(-Infinity))return null;
  }
  return draft;
 }
@@ -62,9 +79,9 @@ export function showcasePublication(title:string,now:number,budget:number,treasu
   if(!ok)continue;
   try{
   const draft=thinToBudget({floors:base.floors.map(f=>({...f,features:[...(f.features??[])]})),placements},budget);if(!draft)continue;
-  const depth=usesDepth(draft.floors,placements.flat().map(p=>p.enemy));
+  const pf=publicationFormat(draft.floors,placements);
   const schedule=publicationSchedule({delayMinutes:'0',openMinutes:'1440',runMinutes:'20',capacity:'4'},now);
-  const terms:EditionTerms={title,rules_version:depth?12:11,modules:draft.floors.map(f=>encodeCustomModule(designFloor(f,depth),depth?'depth':'missions')),sockets:creatorSockets(placements),opens_at_ms:schedule.opens_at_ms,closes_at_ms:schedule.closes_at_ms,no_reward:false,difficulty_tag:'standard',style_tag:'combat',run_duration_ms:schedule.run_duration_ms,max_runs:schedule.max_runs};
+  const terms:EditionTerms={title,rules_version:pf.rules_version,modules:draft.floors.map(f=>encodeCustomModule(designFloor(f,pf.depth),pf.format)),sockets:creatorSockets(placements),opens_at_ms:schedule.opens_at_ms,closes_at_ms:schedule.closes_at_ms,no_reward:false,difficulty_tag:'standard',style_tag:'combat',run_duration_ms:schedule.run_duration_ms,max_runs:schedule.max_runs};
   return {seed,terms,cost:estimateDraft(draft).coins,draft};
   }catch{continue;} // a seed whose thinned floors fail validation is skipped
  }

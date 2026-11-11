@@ -234,3 +234,38 @@ Evidence: `docs/evidence/playtest/r12-offer-card.png`, `r12-run-ledger.png`, `r1
 - The showcase had only one funded attempt, so it emptied after a single win. **Fixed:** it is now funded for three delvers. Each copy is a herb on floor 2 and a fine tonic on the last floor (10 coins of goods against a 4-coin fee), all from the proprietor's seeded goods. The two fine tonics the pantry used to shelve now fund the showcase. The pantry sells the proprietor's spare sword (12 coins) instead, so the town has a sword for sale. Conservation is unchanged; demo-town.test checks for 6 funded items.
 
 **Next step:** the first five minutes for a fresh visitor. Script a path that ends either with escaping The tide vaults or with building and opening their own Small dungeon, then polish every rough step on that path. Start from the round 12 notes above: the offer card, the run ledger, the gear-up goal and the outlets text are in place. Not yet checked: whether a newcomer with 10 coins can afford the showcase (4) plus gear, and whether the Small preset fits a newcomer's budget.
+
+## Round 14: the first five minutes (demo mode)
+
+**The two open questions.**
+- *Can a newcomer with 10 coins afford the showcase plus gear?* Yes on money: every demo delver starts with 10 coins and a club; The tide vaults costs 4, which leaves 6 for a tonic (3–5 at the shops). It was not survivable, though. Thinning removed enemies shallowest-first, so floor 1 was empty and floor 2 kept two chargers and two sentries; the offer card said "Dangerous, 13 enemies over 4 floors". The bot with club and tonic escaped floor 2 at 2 health; bare-handed it died there.
+- *Does the Small preset fit a newcomer's budget?* Only just. Over 199 seeds Small costs 9–11 coins with treasure (it needs 1 good: the newcomer's club) and 8–10 without, so 10 coins usually fit and left 0–1. After one delve (8 coins left), Fit my budget said "Even the smallest layout costs more than your coins". Delving first locked a newcomer out of building.
+
+**Played as a fresh visitor (The delver, 10 coins and a club).** Town → catacombs → escaped The smugglers' hollow with a tonic in 26 turns → guild → Fit my budget → Check → rehearse → fund → opened "Sentry's stash" for 7 coins. Roughly five minutes once the steps below were fixed.
+
+**Fixed:**
+1. **The goals panel led with crafting.** A fresh visitor's first highlighted goal was "Stock up on ingredients". Now it says **Start here: pick one** and offers two cards:
+   - **Delve:** names the best affordable dungeon with funded treasure, its fee and its loot. It says to press + to pack your club, and how escaping works (stand on the stairs, choose Escape).
+   - **Build:** tells you to press Fit my budget and says what that costs with your coins.
+   Once you have done one, the other stays on top ("Next: you have delved; now build one of your own"). The crafting steps follow under "Then make a living". A tonic found in a dungeon no longer ticks off "Brew tonics"; only a finished batch does.
+2. **The gate opened on a no-treasure attraction** (Rat warren). Dungeons with funded treasure left now come first, cheapest first within each group.
+3. **The gate didn't tell you to pack your club.** It said "Nothing packed. You would go in bare-handed." Now it says "Press + on your club to pack it (2 damage)".
+4. **The showcase now ramps.** First every floor is capped at floor number + 1 threats (enemies plus traps), then the budget trim runs. Every floor keeps at least one threat. Seed 11 now goes 2 / 3 / 4 / 4 threats. A cautious bot with club and tonic escapes with the herb at 6 health; bare-handed it escapes at 4. A test pins the ramp and the club escape.
+5. **Fit my budget always gives you something to open.** If even Small doesn't fit, it trims a Small: optional hazards first, then traps, then the costliest enemies, always keeping one enemy. Over 199 seeds: 6 coins → 5–6-coin dungeons every time, 5 coins → 91%, 4 coins → 40%; 3 coins says what the minimum is and how to earn. New `packages/game/src/draft-budget.ts`, with tests.
+6. **The builder's generator sat below the long stamp list**, under the coach's "press Generate starting floors". The generator now comes first in 1 Draw, and the coach names Fit my budget.
+7. **Builder notices vanished at once.** The 700 ms autosave cleared every notice, so "Fitted to your budget…" and "Generated…" were never seen. Autosave no longer clears them.
+8. **The cost hint described the next seed, not your draft.** After fitting a 7-coin draft it still said "costs about 9 coins… too big for you". It now says "Your current draft costs 7 coins to open", then what a new generated Small would cost. "1 goods" is now "1 good".
+9. **The cut-off hatching marked a hidden stash** behind a cracked wall as unreachable, and offered to wall it off. Cracked walls now count as a way through.
+10. **The Check and Open funding errors had no fix button.** Both now have "Fund the treasure in 3 Treasure →". "Put 1 of your goods in it" used to pick the club (a newcomer's only weapon). It now offers spare goods first, cheapest first, and names them: "Put your tonic in it".
+11. **New drafts defaulted to a 0-coin fee.** They now default to 1, and the hint shows what other open dungeons charge ("1–4 coins"). The opened notice says what to do next: give it a door in town with Build here, and watch the record at the steward.
+12. **The coach forgot you had rehearsed** after a reload. Now remembered per draft on this device.
+13. **Bumping a wall in a paid run showed "Action not permitted"** in an alarm banner. It now says "That move is not permitted: a wall or no space there. No turn spent." Legacy editions' "Extract" button is now "Escape", like the newer ones.
+14. **The showcase ignored newer rules versions** (dungeon lane's tip). It and the demo presets now publish with `requiredRulesVersion` and the matching module format (v13 keys/plates, and any newer format the generator emits). A test checks every showcase seed.
+
+Not fixed, for other lanes: the run's "You made it out." card is partly covered by the ledger card (look-feel). The Large preset is labelled "3 floors" but the showcase seed makes 4 (dungeon-depth). "The smugglers' hollow" plays under its legacy room title "The candle cellars" (old v1 edition).
+
+Checks: typecheck, game 197, web 31, server 173 and build are green. On contract (no contract changes this round), closure and craft pass when run alone. economy-stress's "S17 support exhaustion" still hit an RPC TimeoutError on a solo rerun at load average ~20-30, with the other lanes testing; the other stress tests passed alone.
+
+Wallet mode was not played this round. The wallet sandbox, API and Vite started and the dev-signer sign-in page loaded, then the session wrapped up.
+
+**Next step:** the same five minutes in wallet mode (`scripts/wallet-sandbox.ts` + `--wallet-local`, dev signer). A wallet newcomer starts with whatever the local seed gives, so check that the Start-here cards, Fit my budget and the buy-in suggestion line up. Then a second player (gstack `$B`) plays the newcomer's freshly opened dungeon, and the maker reads the result in the revision view.
