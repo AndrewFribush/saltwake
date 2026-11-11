@@ -70,7 +70,7 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  if(rooms.length>3&&r()<.6)carve(center(rooms[0]),center(rooms[rooms.length-1]));
  // Hidden side room behind a cracked wall: solid rock all around except the crack.
  const features:Feature[]=[];let id=0;const fid=()=>`f${depth}-${id++}`;
- let secret:P[]=[];const devices:Device[]=[];const ambushSockets:{p:P;placement:CreatorPlacement}[]=[];const ambush=depth>=1&&r()<(vault?.5:.35);
+ let secret:P[]=[];const devices:Device[]=[];const ambushSockets:{p:P;placement:CreatorPlacement}[]=[];const ambush=depth>=1&&r()<(vault?.5:.35);const ambushKeep:P[]=[];
  for(let tries=0;tries<60&&!secret.length;tries++){
   const w=int(2,3),h=int(2,3),x=int(2,W-w-2),y=int(2,H-h-2);
   let clear=true;for(let yy=y-1;yy<=y+h;yy++)for(let xx=x-1;xx<=x+w;xx++)if(g[yy]?.[xx]!=='#')clear=false;
@@ -85,8 +85,9 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
    // Ambush stash: an open gate; the first step inside slams it shut; a lever at the back reopens it.
    g[door.y][door.x]='.';const ch=`ambush${depth}`;devices.push({id:`gate${depth}`,x:door.x,y:door.y,channel:ch,kind:'door',open_when:false});
    const dist=(p:P)=>Math.abs(p.x-door.x)+Math.abs(p.y-door.y);const order=[...secret].sort((a,b)=>dist(a)-dist(b));
-   devices.push({id:`trip${depth}`,...order[0],channel:ch,kind:'switch',mode:'set'},{id:`lever${depth}`,...order[order.length-1],channel:ch,kind:'switch',mode:'clear'});
-   ambushSockets.push({p:order[1],placement:{enemy:depth>=2?'brute':'pursuer',trap:false,reward:'random'}});
+   // The trip is one step in from the entry tile, so the way back out can step around it (rooms are at least 2 wide).
+   devices.push({id:`trip${depth}`,...order[1],channel:ch,kind:'switch',mode:'set'},{id:`lever${depth}`,...order[order.length-1],channel:ch,kind:'switch',mode:'clear'});ambushKeep.push(order[0]);
+   ambushSockets.push({p:order[2],placement:{enemy:depth>=2?'brute':'pursuer',trap:false,reward:'random'}});
   }else if(vault){g[door.y][door.x]='.';features.push({...defaultFeature('lock',fid(),door.x,door.y),color:'brass'} as Feature);}
   else features.push(defaultFeature('crack',fid(),door.x,door.y));
  }
@@ -98,7 +99,7 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  const take=(filter:(p:P)=>boolean=()=>true):P|undefined=>{const options=floorTiles.filter(p=>!used.has(key(p))&&filter(p));if(!options.length)return;const p=pick(options);used.add(key(p));return p;};
  const far=(p:P)=>Math.abs(p.x-spawn.x)+Math.abs(p.y-spawn.y)>=5;
  // Themed rooms: a keg gallery guarded by a sentry, or an oil-slicked hall with a keg at its edge.
- for(const d of devices)used.add(key(d));for(const a of ambushSockets)used.add(key(a.p));
+ for(const d of [...devices,...ambushKeep])used.add(key(d));for(const a of ambushSockets)used.add(key(a.p));
  const themeSockets:{p:P;placement:CreatorPlacement}[]=[...ambushSockets];
  const middle=rooms.slice(1,-1).filter(m=>m.w>=4);
  if(middle.length&&r()<.8){

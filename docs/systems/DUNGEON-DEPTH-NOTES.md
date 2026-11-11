@@ -123,6 +123,27 @@ large  reckless died 100% out   0% stalled   0% · loot out 0.00 + drunk 0.23 of
 ```
 Greedy deaths rose a little (Medium 27→33%, Large 52→62%), mostly from tide while trapped in ambushes; still in the intended range.
 
+## Ambush fix and smarter bots
+
+- Real design bug found by the harness: the ambush trip switch sat on the entry tile, so walking back out re-tripped it and slammed the gate again — the room could never be left. The trip now sits one step inside (rooms are at least 2 wide, so the way out can step around it) and the entry tile is kept clear.
+- Bots now pull a reachable lever when a gate is closed and nothing else is worth doing, and careful bots avoid stepping on trip switches.
+- Removed the temporary v13 CSS fallback inside the shared feature layer: look-feel's sprites (b46ed1c) now draw keys, locks and plates on the board. The builder's own preview tiles keep the simple shapes.
+
+Harness, 60 seeds:
+```
+Saltwake depth simulation · 60 seeds per preset × policy · kit club
+small  cautious died   2% out  97% stalled   2% · loot out 0.75 + drunk 0.07 of 1.0 funded · turns 33 · floor 1.0 · tide 0 · causes pursuer 1
+small  greedy   died   2% out  95% stalled   3% · loot out 0.85 + drunk 0.10 of 1.0 funded · turns 46 · floor 1.0 · tide 0 · causes pursuer 1
+small  reckless died   5% out  93% stalled   2% · loot out 0.20 + drunk 0.02 of 1.0 funded · turns 26 · floor 1.0 · tide 0 · causes powder crab (blast) 2, Keg (blast) 1
+medium cautious died   5% out  92% stalled   3% · loot out 0.63 + drunk 0.15 of 2.0 funded · turns 54 · floor 1.1 · tide 0 · causes Spikes 1, rat 1, pursuer 1
+medium greedy   died  22% out  77% stalled   2% · loot out 0.45 + drunk 0.88 of 2.0 funded · turns 82 · floor 1.8 · tide 0 · causes pursuer 5, sentry 3, rat 3, Spikes 1
+medium reckless died  75% out  25% stalled   0% · loot out 0.05 + drunk 0.13 of 2.0 funded · turns 35 · floor 1.8 · tide 0 · causes sentry 10, powder crab (blast) 10, pursuer 9, charger 8
+large  cautious died  15% out  78% stalled   7% · loot out 0.67 + drunk 0.12 of 8.4 funded · turns 75 · floor 1.0 · tide 0 · causes Spikes 4, pursuer 3, sentry 2
+large  greedy   died  57% out  37% stalled   7% · loot out 0.23 + drunk 2.05 of 8.4 funded · turns 130 · floor 2.0 · tide 3 · causes brute 6, charger 5, pursuer 5, Spikes 5
+large  reckless died 100% out   0% stalled   0% · loot out 0.00 + drunk 0.23 of 8.4 funded · turns 35 · floor 1.8 · tide 0 · causes pursuer 17, charger 12, sentry 11, powder crab (blast) 10
+```
+Greedy tide deaths on Medium went from 8 to 0 (they were ambush traps); greedy deaths Medium 22%, Large 57%.
+
 ## Next
 
 - Done: walking enemies avoid burning oil and lit-keg blast zones; a charge that ends against a keg lights it. A brute's sweep also breaks cracked walls it covers.
@@ -130,4 +151,4 @@ Greedy deaths rose a little (Medium 27→33%, Large 52→62%), mostly from tide 
 - Per-kind tuning (sentry range, nest period), keyed doors/keys, more altar boons, enemy variety per floor depth.
 - Sight radius is 4 tiles (BFS); consider a light-radius feature (braziers).
 
-**Next step:** publish a hand-built v13 dungeon and play it as another profile in the browser; then a plate-puzzle generator theme with a guaranteed fallback lever.
+**Next step:** publish the hand-built key/lock/plate/gate floor and play it as another profile (step on the plate, watch the gate open); then the plate-lure puzzle room with a solvability check and the one-way drop into a sealed arena.
