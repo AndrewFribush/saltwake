@@ -78,7 +78,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
  const walking=useMoving(s.player.x,s.player.y);const look=useMyLook();
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
- return <><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
+ return <><ArenaLayer s={s}/><WireLayer s={s} viewport={viewport}/><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
   {(s.blasts??[]).filter(b=>b.x>=viewport.x&&b.y>=viewport.y).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
   {fx.ghosts.map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
   {enemies.map(e=>{const flip=fx.enemyFlip.get(e.id)??(e.x>s.player.x),max=fx.maxHp.get(e.id)??e.hp,lunge=fx.enemyLunge.get(e.id),hit=fx.enemyHit.has(e.id);
@@ -120,4 +120,18 @@ export function WireLayer({s,viewport}:{s:RunState;viewport:{x:number;y:number;c
  return <svg className="wire-layer" aria-hidden="true" viewBox={`0 0 ${viewport.columns} ${viewport.rows}`} preserveAspectRatio="none">
   {lines.map((l,i)=><g key={i} className={`wire ${l.on?'on':''}`}><path className="wire-bg" d={`M${cx(l.a.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.g.y)}`}/><path d={`M${cx(l.a.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.a.y)} L${cx(l.g.x)} ${cy(l.g.y)}`}/><circle cx={cx(l.a.x)} cy={cy(l.a.y)} r=".09"/><circle cx={cx(l.g.x)} cy={cy(l.g.y)} r=".09"/></g>)}
  </svg>;
+}
+
+/** Sealed arena (every way out needs the room cleared): iron frame while foes remain, a short banner on arrival and when cleared. */
+export function ArenaLayer({s}:{s:RunState}){
+ const sealed=s.status==='active'&&!!s.exitRule?.require_clear&&(s.connections??[]).every(c=>c.require_clear);
+ const foes=s.enemies.filter(e=>e.hp>0).length;
+ const [banner,setBanner]=useState<string|null>(null);const was=useRef<{room:number;foes:number}|null>(null);
+ useEffect(()=>{const w=was.current;was.current={room:s.roomIndex,foes};if(!sealed)return;
+  let text:string|null=null;
+  if(!w||w.room!==s.roomIndex){if(foes)text='Sealed arena · defeat every foe to leave';}
+  else if(w.foes>0&&foes===0){text='Arena cleared · the way out opens';emit('open');}
+  if(!text)return;setBanner(text);const t=setTimeout(()=>setBanner(null),2600);return()=>clearTimeout(t);},[s.roomIndex,foes,sealed]);
+ if(!sealed)return null;
+ return <div className={`arena-layer ${foes?'locked':'cleared'}`} aria-hidden="true">{banner&&<span key={banner} className="arena-banner">{banner}</span>}</div>;
 }

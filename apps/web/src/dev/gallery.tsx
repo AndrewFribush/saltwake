@@ -54,7 +54,7 @@ function scene():RunState{
 
 /** ?vault=lure|ambush: a real generated Large draft, rehearsed from the floor with that room, the delver placed beside its trigger. */
 function vaultScene(kind:string):RunState{
- const [seed,floor]=kind==='ambush'?[2,1]:[1,1];const d=generateDraft(seed,generatorPresets.large.options);
+ const [seed,floor]=kind==='ambush'?[2,1]:kind==='arena'?[2,3]:[1,1];const d=generateDraft(seed,generatorPresets.large.options);
  const st=startTrial('g','g',{floors:d.floors,placements:d.placements},'armored','tonic',floor).state;
  const f=d.floors[floor] as any;const t=kind==='ambush'?(f.devices??[]).find((x:any)=>x.kind==='switch'):(f.features??[]).find((x:any)=>x.kind==='plate');
  if(t)for(const [dx,dy] of [[0,2],[2,0],[0,-2],[-2,0],[1,1],[-1,1],[0,1],[1,0]]){const p={x:t.x+dx,y:t.y+dy};if(walkable(st,p)&&!st.enemies.some(e=>e.x===p.x&&e.y===p.y)){st.player={...st.player,...p};break;}}
