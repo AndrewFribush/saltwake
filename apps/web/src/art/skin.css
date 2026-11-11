@@ -102,3 +102,65 @@
  .actor-sprite,.loot-art,.actor-bubble,.threat-mark,.fx-flame,.actor.stunned::after{animation:none!important}
  .saltwake .expedition .board.shake-a,.saltwake .expedition .board.shake-b{animation:none}
 }
+
+/* ---------- Town ---------- */
+.town-avatar{transition:transform .085s linear}
+.tile-town-grid{opacity:.3}
+.harbor-map{image-rendering:pixelated}
+.town-avatar .hero-body,.presence-avatar .hero-body{animation:sw-idle 1.4s steps(2) infinite}
+
+/* ---------- Interiors ---------- */
+.saltwake .room-board{gap:0;background:#1d1611;border:4px solid #3a2a1c;box-shadow:0 0 0 2px #120d09,0 10px 26px #0009;image-rendering:pixelated}
+.saltwake .room-board button.room-tile{background:var(--tx-plank-a) center/100% 100% no-repeat;box-shadow:none;outline:0;color:#f3e2b5}
+.saltwake .room-board button.room-tile:nth-child(3n):not(.room-wall){background-image:var(--tx-plank-b)}
+.saltwake .room-board button.room-wall{background:var(--tx-plaster) center/100% 100% no-repeat;box-shadow:none}
+.saltwake .room-board button.room-fixture,.saltwake .room-board button.room-player,.saltwake .room-board button.room-exit{background-color:transparent;box-shadow:none;outline:0}
+.saltwake .room-gate .room-board button.room-tile:not(.room-wall){background:var(--tx-slate) center/100% 100% no-repeat}
+.saltwake .room-gate .room-board button.room-wall{background:var(--tx-wall) center/100% 100% no-repeat}
+.saltwake .room-board button.room-tile:not(:disabled):hover{box-shadow:inset 0 0 0 2px #f2dc9a66}
+.saltwake .room-board button.room-fixture:not(:disabled):hover{box-shadow:inset 0 0 0 2px #f2dc9a}
+.saltwake .room-board .room-tile>.fixture-sprite{position:absolute;inset:6% 6% 14%;width:auto;height:auto}
+.saltwake .room-board .room-tile>.door-sprite{inset:0}
+.room-tile .fixture-glyph{font-size:clamp(18px,3.4vw,32px);text-shadow:0 2px 0 #0008}
+.room-tile .character-sprite{position:absolute;inset:0;z-index:2;animation:sw-step .18s ease-out}
+.saltwake .room-tile small{z-index:3;background:#1a120cd9;color:#f3dfaa;border-top:1px solid #6b5236;letter-spacing:.02em}
+@keyframes sw-step{0%{transform:translateY(-8%) scale(.96,1.04)}100%{transform:none}}
+@media(prefers-reduced-motion:reduce){.town-avatar{transition:none}.room-tile .character-sprite,.town-avatar .hero-body,.presence-avatar .hero-body{animation:none}}
+
+/* ---------- UI skin: harbor wood, brass trim, sea-dark panels ---------- */
+.saltwake{--sw-brass:#d9b866;--sw-brass-lo:#8f7436;--sw-wood:#3b2a1b;--sw-wood-hi:#5b4129;--sw-panel:#16262a;--sw-ink:#0c1618;--sw-paper:#efe3c4;
+ --sw-head:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+ --sw-frame:inset 0 0 0 1px #d9b86640,0 0 0 1px #070d0e,0 0 0 3px #2d2117,0 8px 22px #0009;
+ scrollbar-color:#8f7436 #0c1618;scrollbar-width:thin}
+body{background:radial-gradient(ellipse 120% 80% at 50% 0%,#28403d 0,#152a2e 55%,#0d1d22 100%)}
+.saltwake h1,.saltwake h2,.saltwake h3{font-family:var(--sw-head);letter-spacing:.01em;text-shadow:0 2px 0 #0008}
+.saltwake :is(.status,.purse,.hud-stock,.wallet-balances){font-variant-numeric:tabular-nums}
+
+/* Buttons: bevelled boards with a brass edge; they press in. */
+.saltwake button:not(.tile):not(.place-sign):not(.character-token):not(.close-place){background:linear-gradient(#3f5348,#2b3b34);border:1px solid #070d0c;border-radius:3px;color:var(--sw-paper);text-shadow:0 1px 0 #000b;font-weight:600;
+ box-shadow:inset 0 1px 0 #ffffff24,inset 0 -2px 0 #00000055,0 0 0 1px #9c8a5a55,0 2px 0 #000a;transition:transform 70ms,filter 120ms,box-shadow 120ms}
+.saltwake button:not(.tile):not(.place-sign):not(.character-token):not(.close-place):hover:not(:disabled){background:linear-gradient(#4a6053,#33463d);filter:none;box-shadow:inset 0 1px 0 #ffffff30,inset 0 -2px 0 #00000055,0 0 0 1px #d9b866aa,0 2px 0 #000a}
+.saltwake button:not(.tile):not(.place-sign):not(.character-token):not(.close-place):active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 2px 2px #0008,0 0 0 1px #d9b866aa}
+.saltwake button.primary:not(.tile):not(.place-sign):not(.character-token):not(.close-place){background:linear-gradient(#ecd07f,#b8913f);color:#2a1d0c;text-shadow:0 1px 0 #fff5;box-shadow:inset 0 1px 0 #fff8,inset 0 -2px 0 #6b4f1c,0 0 0 1px #2a1d0c,0 2px 0 #000a}
+.saltwake button.primary:not(.tile):not(.place-sign):not(.character-token):not(.close-place):hover:not(:disabled){background:linear-gradient(#f4dc93,#c49c48);box-shadow:inset 0 1px 0 #fff8,inset 0 -2px 0 #6b4f1c,0 0 0 1px #2a1d0c,0 0 10px #e8c56a66}
+.saltwake button[aria-pressed=true]:not(.tile),.saltwake button[aria-expanded=true]:not(.tile){background:linear-gradient(#6d5a2c,#4b3d1d)!important;color:#fff1c8!important;text-shadow:0 1px 0 #000b!important;box-shadow:inset 0 2px 3px #0009,0 0 0 1px var(--sw-brass)!important}
+.saltwake button:not(.tile):disabled{filter:saturate(.35);opacity:.5;box-shadow:inset 0 1px 0 #ffffff12,0 0 0 1px #9c8a5a33}
+
+/* Panels share one frame. */
+.saltwake .player-hud,.saltwake .game-stage .room-service,.saltwake .turn-feedback,.saltwake .town-chat,.saltwake .shrine,.saltwake .purse-drawer{border:0;border-radius:4px;box-shadow:var(--sw-frame)}
+.saltwake .player-hud{background:linear-gradient(#20342f,#16262a)}
+.saltwake .game-stage .room-service{background:linear-gradient(#1b2e2c,#132225)}
+.saltwake .turn-feedback{background:#122023;border-left:3px solid var(--sw-brass)}
+.saltwake .player-hud .character-token{border-left-color:var(--sw-brass)}
+.saltwake .purse{position:relative;padding-left:40px!important}
+.saltwake .purse::before{content:'';position:absolute;left:10px;top:50%;width:22px;height:22px;transform:translateY(-50%);background:var(--tx-coin) center/contain no-repeat;image-rendering:pixelated;filter:drop-shadow(0 1px 0 #000)}
+
+/* Town signs read as painted signboards. */
+.saltwake .place-sign{background:linear-gradient(#5b4129,#3b2a1b);border:1px solid #140d07;box-shadow:inset 0 1px 0 #ffffff22,0 0 0 1px #d9b86688,0 3px 0 #000a;color:#f6e7bf;border-radius:3px;font-family:var(--sw-head)}
+.saltwake .place-sign span{color:#e6cf98;font-family:system-ui,sans-serif}
+.saltwake .place-sign:hover:not(:disabled){filter:brightness(1.12)}
+.saltwake .town-field{border-color:#3a2a1b;box-shadow:0 0 0 2px #120d09,inset 0 0 0 1px #d9b86640,0 10px 28px #000a}
+.saltwake .town-chat{background:#0f1c1fe6;backdrop-filter:blur(2px)}
+.saltwake .town-chat-log b{color:var(--sw-brass)}
+.saltwake .studio-tabs button:not(.tile){font-family:var(--sw-head);letter-spacing:.02em}
+.presence-name{paint-order:stroke;stroke:#000;stroke-width:3px;font-weight:700}

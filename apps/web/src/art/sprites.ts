@@ -97,7 +97,10 @@ const door=[
  '..kkkkkkkkkkkk..','.kbbbbbbbbbbbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbByek.',
  '.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','.kbBbbbBbbbBbbk.','kkkkkkkkkkkkkkkk','WWWWWWWWWWWWWWWW'];
 
-export const spriteMaps={heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
+const coin=[
+ '................','.....kkkkkk.....','...kkyyyyyykk...','..kyyEEyyyyyYk..','..kyEyyYYYyyYk..','.kyyEyYyyyYyyYk.','.kyyyyYyyyyyyYk.','.kyyyyyYYYyyyYk.',
+ '.kyyyyyyyyYyyYk.','.kyyyyYyyyYyyYk.','.kyyyyyYYYyyYYk.','..kyyyyyyyyYYk..','..kYyyyyyyYYYk..','...kkYYYYYYkk...','.....kkkkkk.....','................'];
+export const spriteMaps={coin,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};
 const urls=new Map<string,string>();
@@ -127,10 +130,10 @@ function bricks(seed:number){
   const row=Math.floor((y-3)/4),by=(y-3)%4,sx=(x+(row%2?4:0))%8;if(by===3||sx===0)return '#1f2420';
   const v=n[y*16+x];return v>.85?'#47513f':v<.12?'#2c332b':row%2?'#3b4337':'#363e33';});
 }
-function grass(seed:number){const n=noiseGrid(seed);return tile((x,y)=>{const v=n[y*16+x];return v>.93?'#6f8f55':v>.86?'#557a47':v<.08?'#2f4630':pick(n[(y*7+x*3)%256],['#3a5638','#3d5a3a','#38533a']);});}
+function grass(seed:number){const n=noiseGrid(seed);return tile((x,y)=>{const v=n[y*16+x];return v>.95?'#5f804c':v>.88?'#4b6c41':v<.06?'#334b33':pick(n[(y*7+x*3)%256],['#3a5638','#3d5a3a','#38533a']);});}
 function cobbles(seed:number){
- const n=noiseGrid(seed);return tile((x,y)=>{const row=Math.floor(y/5),sx=(x+(row%2?3:0))%6,by=y%5;if(by===4||sx===5)return '#5f5848';const v=n[y*16+x];
-  if(by===0&&sx<4)return '#a49778';return v>.88?'#9a8d70':v<.1?'#6f6754':'#887c62';});
+ const n=noiseGrid(seed);return tile((x,y)=>{const row=Math.floor(y/5),sx=(x+(row%2?3:0))%6,by=y%5;if(by===4||sx===5)return '#6c6452';const v=n[y*16+x];
+  if(by===0&&sx<4)return '#968a6e';return v>.9?'#928669':v<.08?'#776e59':'#857a61';});
 }
 function water(seed:number){const n=noiseGrid(seed);return tile((x,y)=>{const wave=(y===4&&x>2&&x<9)||(y===5&&(x===2||x===9))||(y===12&&x>8&&x<15)||(y===13&&(x===8||x===15));if(wave)return '#6aa2ab';const v=n[y*16+x];return v>.95?'#3b7380':v<.3?'#1f4a55':'#235361';});}
 function planks(seed:number){
@@ -141,6 +144,8 @@ function planks(seed:number){
 function plaster(seed:number){
  const n=noiseGrid(seed);return tile((x,y)=>{if(y>=11)return y===11?'#2c221a':y===15?'#3a2c1f':(x%4===0?'#4c3926':'#5f4730');if(y===10)return '#8a7458';const v=n[y*16+x];return v>.9?'#5a6a5c':v<.1?'#3e4b40':'#4a594c';});
 }
+function shingle(){return tile((x,y)=>{const row=Math.floor(y/4),by=y%4,sx=(x+(row%2?4:0))%8;if(by===3)return '#00000066';if(sx===0&&by<3)return '#00000040';if(by===0)return '#ffffff22';return null;});}
+function timber(seed:number){const n=noiseGrid(seed);return tile((x,y)=>{if(x===0||y===15)return '#5e4129';if(x===1)return '#7a5636';if((x+y===15)&&x>1&&x<15&&y>0&&y<15)return '#6b4a30';const v=n[y*16+x];return v>.92?'#d2bb8c':v<.08?'#a88f62':'#bfa676';});}
 function slate(seed:number){return flagstones(seed,['#4b5a57','#46534f','#50605a'],'#2b3533','#6c7c75');}
 
 /** CSS custom properties injected once at startup; stylesheets refer to them. */
@@ -154,7 +159,8 @@ export const textureVars:Record<string,string>={
  '--tx-plank-a':planks(12),'--tx-plank-b':planks(17),
  '--tx-plaster':plaster(2),
  '--tx-slate':slate(13),
- '--tx-flame':flameStrip,
+ '--tx-shingle':shingle(),'--tx-timber':timber(21),
+ '--tx-flame':flameStrip,'--tx-coin':dataUrl(pixelSvg(coin,P)),
 };
 /** Raw data URLs (without url()) for SVG <image href>. */
 export const textureHref=(name:string)=>textureVars[name].slice(5,-2).replace(/^"|"$/g,'');

@@ -31,4 +31,14 @@ Verify: typecheck, game, web, server (156) and build pass; contract suite 80/82 
 
 Screenshots: `docs/evidence/look-feel/before-*.jpg`, `after-*.jpg`, `gallery-*.jpg`.
 
-Next step: town tiles and avatar movement/facing, interiors (floor/wall textures, furniture sprites), then the UI skin (windows, buttons, purse, chat, typography) and a mobile pass.
+### 2. Town, interiors, UI skin
+- Town map tiles use pixel textures (grass, cobbles, water, town wall); buildings get timber walls, shingled roofs and a slate gatehouse. Grid lines faded.
+- The town avatar glides between tiles (85 ms, matches the walk step), faces its direction and idles; other players use the same sprite with their own facing. The avatar remounts on district change, so it never slides across the map.
+- Interiors: plank floors, plaster/wainscot walls (slate in the gatehouse), furniture sprites (counter, scales, kettle, banner, crossed swords, bed, shelves, chest, barrels, account book) and a door sprite; unknown furniture falls back to its glyph. The player faces the way they walked and does a small step animation.
+- UI skin: bevelled board buttons with a brass edge that press in; brass primary buttons; pressed/selected state; one panel frame for HUD, service window, turn feedback, chat, shrine and purse; pixel coin on the wallet; painted signboards for town places; serif headings (system Palatino/Iowan/Georgia stack, no web fonts); thin brass scrollbars.
+
+Verify: typecheck, game 168, web 29, server and build pass; contract suite 81/82: `S17 support exhaustion` (tests/contract/economy-stress.test.ts) hits its operation timeout under machine load (load average 10 to 27), also when rerun alone; this change touches only apps/web and docs.
+
+Note for anyone running a local sandbox next to `npm run verify`: in this session the local sandbox process exited each time the contract suite ran. Restart it (and the API) after verify.
+
+Next step: shopkeepers behind counters, water animation, builder grid textures; mobile pass (map window larger when idle in town; dungeon board centring in the real layout); then more feedback polish (pickup sparkle, stairs glow, low-health vignette).
