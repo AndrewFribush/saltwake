@@ -92,7 +92,7 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
    if(url.pathname==='/api/command'&&req.method==='POST'){
     const body=await readAction();if(typeof body.id!=='string'||!/^[\w-]{1,40}$/.test(body.id))throw Error('Invalid request ID');
     const accountId=wallet?.walletSessions.get(req.headers.cookie).accountId;const id=accountId?playerOperationId(accountId,body.id):profile+'-'+body.id;let action=body.action as Command['action'];
-    if(!action||(!['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order','create_shop','update_shop','stock_shop'].includes(action.type)&&!(wallet&&['begin_craft','begin_recovery'].includes(action.type)&&box.db.operation(id)?.authority==='player')))throw Error('Command not allowed');
+    if(!action||(!['publish','publish_random','refresh','set_fee','finalize_close','admit','list','cancel_listing','buy','bank_buy','bank_sell','fill_npc_order','create_shop','update_shop','stock_shop','remove_shop'].includes(action.type)&&!(wallet&&['begin_craft','begin_recovery'].includes(action.type)&&box.db.operation(id)?.authority==='player')))throw Error('Command not allowed');
     if(action.type==='admit'){
      const prior=box.db.operation(id);const existing=prior?.command.action;
      const seed=existing?.type==='admit'?existing.seed:BigInt('0x'+randomBytes(8).toString('hex')).toString();

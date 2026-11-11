@@ -13,6 +13,7 @@ export type Command={readonly actor:string;readonly action:
  |{readonly type:'create_shop';readonly title:string;readonly district:string;readonly x:number;readonly y:number;readonly interior:string;readonly open:boolean}
  |{readonly type:'update_shop';readonly shop_id:string;readonly expected_version:string;readonly title:string;readonly district:string;readonly x:number;readonly y:number;readonly interior:string;readonly open:boolean}
  |{readonly type:'stock_shop';readonly shop_id:string;readonly item_ids:readonly string[];readonly unit_price:string}
+ |{readonly type:'remove_shop';readonly shop_id:string;readonly expected_version:string}
  |{readonly type:'debit';readonly amount:string}
  |{readonly type:'publish';readonly terms:EditionTerms;readonly fee:string;readonly funding:readonly string[]}
  |{readonly type:'admit';readonly edition_id:string;readonly expected_version:string;readonly expected_fee:string;readonly loadout_ids:readonly string[];readonly seed:string}

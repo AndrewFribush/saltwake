@@ -206,6 +206,7 @@ pub enum Action {
     CreateShop {title:String,district:String,x:u8,y:u8,interior:String,open:bool},
     UpdateShop {shop_id:String,expected_version:U64,title:String,district:String,x:u8,y:u8,interior:String,open:bool},
     StockShop {shop_id:String,item_ids:Vec<String>,unit_price:U64},
+    RemoveShop {shop_id:String,expected_version:U64},
 }
 #[near(serializers=[borsh,json])]
 #[derive(Clone)]

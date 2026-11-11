@@ -1,6 +1,11 @@
 import type {PlaceId,TownPoint} from './town';
-export type RoomFixture={id:string;name:string;glyph:string;x:number;y:number};
-export type InteriorLayout={tiles:string[];entry:TownPoint;exit:TownPoint;fixtures:RoomFixture[]};
+/** `text` is optional authored copy a visitor reads when they interact with the furnishing (signs, notices, displays). */
+export type RoomFixture={id:string;name:string;glyph:string;x:number;y:number;text?:string};
+/** `kind`/`edition` mark a player building's use. Absent means a shop (every interior saved before land-v1). */
+export type BuildingKind='shop'|'dungeon';
+export type InteriorLayout={tiles:string[];entry:TownPoint;exit:TownPoint;fixtures:RoomFixture[];kind?:BuildingKind;edition?:string};
+export const MAX_FIXTURE_TEXT=160;
+export const buildingKind=(layout:InteriorLayout):BuildingKind=>layout.kind==='dungeon'?'dungeon':'shop';
 export const roomSize={width:11,height:9};
 export const roomEntry={x:5,y:7};
 export const roomExit={x:5,y:8};
@@ -31,8 +36,12 @@ export function validateInterior(value:unknown):string[]{
  if(!point(v.entry)||!point(v.exit))return fail('Place an arrival tile and a door within the room.');
  if(v.entry.x<1||v.entry.x>9||v.entry.y<1||v.entry.y>7)return fail('The arrival tile must be inside the house.');
  if(v.exit.y!==8||v.exit.x<1||v.exit.x>9)return fail('Place the door in the south wall.');
- if(!Array.isArray(v.fixtures)||v.fixtures.length>24||v.fixtures.some(f=>!f||!point(f)||typeof f.id!=='string'||!(/^(service|wallet|decor-[\w-]{1,40})$/).test(f.id)||typeof f.name!=='string'||f.name.length>80||typeof f.glyph!=='string'||f.glyph.length>4))return fail('Room furnishings are invalid (maximum 24).');
+ if(v.kind!==undefined&&v.kind!=='shop'&&v.kind!=='dungeon')return fail('Unknown building use.');
+ const dungeon=v.kind==='dungeon';
+ if(dungeon!==(v.edition!==undefined)||v.edition!==undefined&&(typeof v.edition!=='string'||!v.edition||v.edition.length>64))return fail(dungeon?'Choose which of your published dungeons this entrance opens.':'Only a dungeon entrance links to an edition.');
+ if(!Array.isArray(v.fixtures)||v.fixtures.length>24||v.fixtures.some(f=>!f||!point(f)||typeof f.id!=='string'||!(/^(service|wallet|decor-[\w-]{1,40})$/).test(f.id)&&!(dungeon&&f.id==='portal')||typeof f.name!=='string'||f.name.length>80||typeof f.glyph!=='string'||f.glyph.length>4||f.text!==undefined&&(typeof f.text!=='string'||f.text.length>MAX_FIXTURE_TEXT)))return fail(`Room furnishings are invalid (maximum 24; notices up to ${MAX_FIXTURE_TEXT} characters).`);
  if(v.fixtures.filter(f=>f.id==='service').length!==1||v.fixtures.filter(f=>f.id==='wallet').length!==1)return fail('Keep one service station and one account book.');
+ if(dungeon&&v.fixtures.filter(f=>f.id==='portal').length!==1)return fail('A dungeon entrance needs one stairway down.');
  if(new Set(v.fixtures.map(f=>f.id)).size!==v.fixtures.length||new Set(v.fixtures.map(f=>`${f.x},${f.y}`)).size!==v.fixtures.length)return fail('Furnishings cannot overlap.');
  for(let y=0;y<9;y++)for(let x=0;x<11;x++)if((x===0||x===10||y===0||y===8)&&!(x===v.exit.x&&y===v.exit.y)&&v.tiles[y][x]!== '#')return fail('Keep the outside walls closed except for the door.');
  if(v.fixtures.some(f=>v.tiles[f.y][f.x]!=='.'||f.x===v.exit.x&&f.y===v.exit.y||f.x===v.entry.x&&f.y===v.entry.y))return fail('Furnishings need their own floor tile, clear of the arrival and door.');
