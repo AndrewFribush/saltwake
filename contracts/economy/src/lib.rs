@@ -52,6 +52,9 @@ fn hash<T: borsh::BorshSerialize>(value: &T) -> String {
         .map(|b| format!("{b:02x}"))
         .collect()
 }
+/// Receipt capacity: 256 for every normal world; only `init_simulation` raises it (own storage key, layout unchanged).
+const RECEIPT_CAP_KEY: &[u8] = b"receipt_cap.v1";
+fn receipt_cap() -> usize { env::storage_read(RECEIPT_CAP_KEY).map(|b| u32::from_le_bytes(b.try_into().expect("Corrupt receipt cap")) as usize).unwrap_or(256) }
 fn now_ms() -> u64 {
     env::block_timestamp() / 1_000_000
 }
@@ -191,6 +194,8 @@ impl Economy {
     pub fn init_simulation(makers: u8, artisans: u8, delvers: u8, delver_coins: U64) -> Self {
         assert!(makers <= 16 && artisans <= 16 && delvers <= 32 && delver_coins.0 <= 1000, "Simulation seed too large");
         let mut s = Self::init_demo_extended();
+        // Long simulations need more receipt slots than the 256-slot prototype cap.
+        env::storage_write(RECEIPT_CAP_KEY, &4096u32.to_le_bytes());
         let mut give = |s: &mut Self, owner: &str, ty: ItemType, prefix: &str, n: u32| {
             for k in 0..n {
                 let id = format!("sim-{owner}-{prefix}-{k}");
@@ -330,6 +335,7 @@ impl Economy {
             .collect(),
         }
     }
+    pub fn receipt_capacity(&self) -> u32 { receipt_cap() as u32 }
     pub fn land_rules(&self) -> shops::LandRules {
         shops::land_rules()
     }
@@ -407,7 +413,7 @@ impl Economy {
             assert_eq!(r.payload_hash, payload_hash, "Operation payload conflict");
             return r.clone();
         }
-        assert!(self.receipts.len() < 256, "Receipt capacity exhausted");
+        assert!(self.receipts.len() < receipt_cap(), "Receipt capacity exhausted");
         // Receipt identity is the submitted command. Derive execution randomness
         // only for a new player admission, never for replay or operator demos.
         if player {
@@ -436,7 +442,7 @@ impl Economy {
         let (status, result) = match outcome {
             Ok(result) => {
                 assert!(
-                    staged.receipts.len() + 1 + staged.reserved_capacity() <= 256,
+                    staged.receipts.len() + 1 + staged.reserved_capacity() <= receipt_cap(),
                     "ReceiptCapacityReserved"
                 );
                 *self = staged;
@@ -446,7 +452,7 @@ impl Economy {
             }
             Err(code) => {
                 assert!(
-                    self.receipts.len() + 1 + self.reserved_capacity() <= 256,
+                    self.receipts.len() + 1 + self.reserved_capacity() <= receipt_cap(),
                     "ReceiptCapacityReserved"
                 );
                 ("Rejected", code)

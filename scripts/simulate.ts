@@ -53,7 +53,8 @@ try{
  const db=new Store('.state/'+local.epoch+'/server.sqlite');
  const chain=new NearChain(provider,KeyPairSigner.fromSecretKey(local.privateKey as KeyPairString),local.accountId,local.accountId);
  const snapshot=()=>provider.callFunction<any>({contractId:local.accountId,method:'snapshot',args:{},blockQuery:{finality:'final'}});
- const box=new Outbox(db,chain,new CostJournal(db,snapshot));
+ const cap=await provider.callFunction<number>({contractId:local.accountId,method:'receipt_capacity',args:{},blockQuery:{finality:'final'}});
+ const box=new Outbox(db,chain,new CostJournal(db,snapshot),{capacity:cap});
  const {server}=httpServer(box,new Runs(db,box),snapshot,new DemoSessions({profiles:PROFILES,secureCookies:false}));
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
  const api=apiClient('http://127.0.0.1:'+(server.address() as AddressInfo).port);
