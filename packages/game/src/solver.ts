@@ -3,7 +3,7 @@
 import {act,type Action} from './actions';
 import type {RunState,Point} from './state';
 export type SolveResult={solved:boolean;actions:Action[];explored:number;truncated:boolean};
-const stateKey=(s:RunState)=>JSON.stringify([s.roomIndex,s.player.x,s.player.y,s.enemies.map(e=>[e.id,e.x,e.y,e.stunned??0,e.recovering?1:0]),s.signals??{},(s.features??[]).map(f=>f.spent?1:0),s.keys??[],(s.devices??[]).length]);
+const stateKey=(s:RunState)=>JSON.stringify([s.roomIndex,s.player.x,s.player.y,s.enemies.map(e=>[e.id,e.x,e.y,e.stunned??0,e.recovering?1:0]),s.signals??{},(s.features??[]).map(f=>[f.spent?1:0,(f as {fuse?:number}).fuse??0]),s.keys??[],(s.devices??[]).length]);
 /** Moves, shoves and waits only; enemies and hazards resolve exactly as in play. */
 export function solveReach(start:RunState,goal:Point,maxStates=20000,maxDepth=60):SolveResult{
  const seen=new Set([stateKey(start)]);let frontier:{s:RunState;path:Action[]}[]=[{s:start,path:[]}];let explored=0;

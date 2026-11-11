@@ -33,7 +33,7 @@ export function fitBudget(seed:number,coins:number,goods:number):{preset:Generat
 function trimFloor(f:CustomFloor,ps:CreatorPlacement[],b:FloorBudget){
  // Keep cracked walls (they guard reachability of hidden rooms), then the cheapest-first remainder within the coin cap.
  let coins=0;const keep=new Set<string>();
- for(const x of f.features!)if(x.kind==='crack'||x.kind==='lock'||x.kind==='key'){keep.add(x.id);coins+=featureCatalog[x.kind].cost;}
+ for(const x of f.features!)if(x.kind==='crack'||x.kind==='lock'||x.kind==='key'||x.kind==='plate'){keep.add(x.id);coins+=featureCatalog[x.kind].cost;}
  for(const x of f.features!)if(x.kind!=='crack'&&coins+featureCatalog[x.kind].cost<=b.featureCoins){keep.add(x.id);coins+=featureCatalog[x.kind].cost;}
  f.features=f.features!.filter(x=>keep.has(x.id));
  let enemies=0,traps=0,treasure=0;const slots:number[]=[];
@@ -71,6 +71,8 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  // Hidden side room behind a cracked wall: solid rock all around except the crack.
  const features:Feature[]=[];let id=0;const fid=()=>`f${depth}-${id++}`;
  let secret:P[]=[];const devices:Device[]=[];const ambushSockets:{p:P;placement:CreatorPlacement}[]=[];const ambush=depth>=1&&r()<(vault?.5:.35);const ambushKeep:P[]=[];
+ // Lure vault: a gate held open only by a plate two tiles out along its approach (shove the guard onto it), and a lever-door exit.
+ const lureWanted=vault&&!ambush&&r()<.6;let lure:{gate:P;approach:P;line:P;plate:P;exit:P;exitOut:P}|null=null;
  for(let tries=0;tries<60&&!secret.length;tries++){
   const w=int(2,3),h=int(2,3),x=int(2,W-w-2),y=int(2,H-h-2);
   let clear=true;for(let yy=y-1;yy<=y+h;yy++)for(let xx=x-1;xx<=x+w;xx++)if(g[yy]?.[xx]!=='#')clear=false;
@@ -81,7 +83,24 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
   if(!doors.length)continue;
   for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){g[yy][xx]='.';secret.push({x:xx,y:yy});}
   const door=pick(doors);
-  if(ambush&&secret.length>=4){
+  if(lureWanted){
+   const outside=(p:P)=>g[p.y]?.[p.x]==='.'&&!secret.some(q=>q.x===p.x&&q.y===p.y);
+   const lines=doors.flatMap(d=>{const inner=secret.find(q=>Math.abs(q.x-d.x)+Math.abs(q.y-d.y)===1)!;const v={x:d.x-inner.x,y:d.y-inner.y};const a={x:d.x+v.x,y:d.y+v.y},l={x:a.x+v.x,y:a.y+v.y},pl={x:l.x+v.x,y:l.y+v.y};
+    return outside(a)&&outside(l)&&outside(pl)?[{gate:d,approach:a,line:l,plate:pl}]:[];});
+   const near=(a:P,b:P)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y)<=1;
+   // Exit hatch: any side wall of the vault whose straight tunnel (up to 3 rock tiles) reaches open floor.
+   const ring:{d:P;v:P}[]=[];for(let xx=x;xx<x+w;xx++)ring.push({d:{x:xx,y:y-1},v:{x:0,y:-1}},{d:{x:xx,y:y+h},v:{x:0,y:1}});for(let yy=y;yy<y+h;yy++)ring.push({d:{x:x-1,y:yy},v:{x:-1,y:0}},{d:{x:x+w,y:yy},v:{x:1,y:0}});
+   const tunnels=ring.flatMap(({d,v})=>{const path:P[]=[];for(let k=1;k<=4;k++){const t={x:d.x+k*v.x,y:d.y+k*v.y};if(t.x<1||t.y<1||t.x>W-2||t.y>H-2)return [];if(outside(t))return [{door:d,path,out:t}];path.push(t);}return [];});
+   const choice=lines.length?pick(lines):null,exits=choice?tunnels.filter(t=>!near(t.door,choice.gate)&&!near(t.out,choice.plate)&&!near(t.out,choice.line)).sort((a,b)=>a.path.length-b.path.length):[];
+   if(choice&&exits.length){const e=exits.filter(t=>t.path.length===exits[0].path.length);const t=pick(e);for(const q of t.path)g[q.y][q.x]='.';lure={...choice,exit:t.door,exitOut:t.out};}
+  }
+  if(lure){
+   const ch=`plate${depth}`,out=`vault${depth}`;g[lure.gate.y][lure.gate.x]='.';g[lure.exit.y][lure.exit.x]='.';
+   const dist=(p:P)=>Math.abs(p.x-lure!.gate.x)+Math.abs(p.y-lure!.gate.y);const order=[...secret].sort((a,b)=>dist(a)-dist(b));
+   devices.push({id:`gate${depth}`,...lure.gate,channel:ch,kind:'door',open_when:true},{id:`hatch${depth}`,...lure.exit,channel:out,kind:'door',open_when:true},{id:`lever${depth}`,...order[order.length-1],channel:out,kind:'switch',mode:'toggle'});
+   features.push({...defaultFeature('plate',fid(),lure.plate.x,lure.plate.y),channel:ch} as Feature);
+   ambushKeep.push(order[0],lure.approach,lure.line,lure.plate,lure.exitOut);
+  }else if(ambush&&secret.length>=4){
    // Ambush stash: an open gate; the first step inside slams it shut; a lever at the back reopens it.
    g[door.y][door.x]='.';const ch=`ambush${depth}`;devices.push({id:`gate${depth}`,x:door.x,y:door.y,channel:ch,kind:'door',open_when:false});
    const dist=(p:P)=>Math.abs(p.x-door.x)+Math.abs(p.y-door.y);const order=[...secret].sort((a,b)=>dist(a)-dist(b));
@@ -101,6 +120,7 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  // Themed rooms: a keg gallery guarded by a sentry, or an oil-slicked hall with a keg at its edge.
  for(const d of [...devices,...ambushKeep])used.add(key(d));for(const a of ambushSockets)used.add(key(a.p));
  const themeSockets:{p:P;placement:CreatorPlacement}[]=[...ambushSockets];
+ if(lure){const a=lure.approach,d=(p:P)=>Math.abs(p.x-a.x)+Math.abs(p.y-a.y);const g=take(p=>d(p)>=2&&d(p)<=4&&key(p)!==key(lure!.line));if(!g)return null;themeSockets.unshift({p:g,placement:{enemy:'pursuer',trap:false,reward:null}});}
  const middle=rooms.slice(1,-1).filter(m=>m.w>=4);
  if(middle.length&&r()<.8){
   const m=pick(middle),inside=(p:P)=>tiles[p.y]?.[p.x]==='.'&&!used.has(key(p))&&!secretKeys.has(key(p));
@@ -131,7 +151,31 @@ function generateFloor(r:()=>number,depth:number,count:number,W:number,H:number,
  const last=depth===count-1;
  const floor:CustomFloor={tiles,spawn,exit,sockets,tuning:[],devices,exit_rule:{...defaultExitRule,require_clear:false},features,...(depth>0?{tide:{turns:Math.max(35,Math.round(tiles.join('').split('.').length*0.8)),damage:Math.min(3,depth)}}:{})};
  if(last)floor.exit_rule={extract:true,require_clear:false};
- return validateCustomFloor(floor,floorFormat(floor)).length?null:{floor,placements};
+ if(validateCustomFloor(floor,floorFormat(floor)).length)return null;
+ if(lure){
+  // With the vault sealed, the rest of the floor must still connect (the vault is never the only way through).
+  const sealedTiles=tiles.map((row,y)=>[...row].map((c,x)=>secretKeys.has(`${x},${y}`)||(x===lure!.gate.x&&y===lure!.gate.y)||(x===lure!.exit.x&&y===lure!.exit.y)?'#':c).join(''));
+  if(depthReachable(sealedTiles,spawn,features).missing)return null;
+  if(!lureSolvable(floor,lure,sockets[0]))return null;
+ }
+ return {floor,placements};
+}
+/** Lure vaults on a floor: a gate whose channel is driven only by a plate in line with its approach, and the guard nearest it. */
+export function lureRooms(floor:CustomFloor,placements:readonly CreatorPlacement[]):{gate:P;approach:P;guard:P}[]{
+ return (floor.features??[]).flatMap(f=>{if(f.kind!=='plate')return [];const gate=(floor.devices??[]).find(d=>d.kind==='door'&&d.channel===f.channel);if(!gate)return [];
+  const dx=Math.sign(f.x-gate.x),dy=Math.sign(f.y-gate.y);if(dx&&dy)return [];const approach={x:gate.x+dx,y:gate.y+dy};
+  const guards=floor.sockets.filter((_,i)=>placements[i]?.enemy==='pursuer').sort((a,b)=>Math.abs(a.x-approach.x)+Math.abs(a.y-approach.y)-Math.abs(b.x-approach.x)-Math.abs(b.y-approach.y));
+  return guards.length?[{gate:{x:gate.x,y:gate.y},approach,guard:guards[0]}]:[];});
+}
+/** Proof for a generated lure vault: from the approach, with only its guard present, a shove onto the plate gets the player
+ * through the gate (exact play rules, bounded search); and from inside, the lever-door leads back to the stairs. */
+export function lureSolvable(floor:CustomFloor,lure:{gate:P;approach:P},guard:P):{entry:SolveResult;exit:SolveResult}|null{
+ const base={...floor,tuning:[],exit_rule:{extract:true,require_clear:false}};delete (base as {tide?:unknown}).tide;
+ const inner={x:2*lure.gate.x-lure.approach.x,y:2*lure.gate.y-lure.approach.y};
+ const enter=authoredRehearsal([{...base,sockets:[guard]}],[{id:'guard',room:0,slot:0,enemy:'pursuer',trap:false,reward:null}],'club');enter.player.x=lure.approach.x;enter.player.y=lure.approach.y;
+ const entry=solveReach(enter,inner,6000,24);if(!entry.solved)return null;
+ const leave=authoredRehearsal([{...base,sockets:[]}],[],'club');leave.player.x=inner.x;leave.player.y=inner.y;
+ const exit=solveReach(leave,floor.exit,6000,80);return exit.solved?{entry,exit}:null;
 }
 /** Generate a seeded multi-floor starting draft: rooms, a hidden stash, hazards and mixed enemies. */
 export function generateDraft(seed:number,options:GeneratorOptions={}):GeneratedDraft{
@@ -146,7 +190,8 @@ export function generateDraft(seed:number,options:GeneratorOptions={}):Generated
  }
  return {floors,placements};
 }
-import {creatorRehearsal,type RehearsalKit} from './authored-layout';
+import {creatorRehearsal,authoredRehearsal,type RehearsalKit} from './authored-layout';
+import {solveReach,type SolveResult} from './solver';
 /** Synthetic practice on a generated draft. Nothing is funded and nothing carries home. */
 export function depthPractice(seed:number,kit:RehearsalKit='club'){
  const d=generateDraft(seed);const s=creatorRehearsal(d.floors,d.placements,kit,'tonic');
