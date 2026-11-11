@@ -1,5 +1,6 @@
 /** Town and interior art helpers: SVG patterns for the town map and furniture sprites for rooms. */
-import React from 'react';
+import React,{useEffect} from 'react';
+import {emit} from './Sound';
 import {Sprite,HeroSvg,useMoving,type Facing} from './Sprite';
 import {textureVars,keeperUrl,type SpriteName} from './sprites';
 
@@ -37,6 +38,7 @@ export function DoorArt(){return <Sprite name="door" className="fixture-sprite d
 /** The player inside a room, drawn over the tile grid so it glides between tiles. */
 export function RoomHero({x,y,facing,columns,rows}:{x:number;y:number;facing:Facing;columns:number;rows:number}){
  const walking=useMoving(x,y);
+ useEffect(()=>{emit('door');},[]);
  return <span aria-hidden="true" className="room-hero" style={{left:`${x/columns*100}%`,top:`${y/rows*100}%`,width:`${100/columns}%`,height:`${100/rows}%`}}><HeroSvg facing={facing} walking={walking}/></span>;
 }
 

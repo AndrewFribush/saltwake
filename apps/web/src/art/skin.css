@@ -551,3 +551,10 @@ html[data-first-visit] .saltwake .town-field .place-sign,html[data-first-visit] 
 .saltwake .expedition-offer button.primary::before{content:'';position:absolute;left:12px;top:50%;width:30px;height:30px;transform:translateY(-50%);background:var(--sp-stairs) center/contain no-repeat;image-rendering:pixelated;border-radius:2px;box-shadow:0 0 0 1px #2a1d0c}
 .saltwake .expedition-offer button.primary:hover:not(:disabled)::before{filter:brightness(1.2) drop-shadow(0 0 4px #fff6b0)}
 .saltwake .room-world.room-gate .room-board button.room-wall{background:var(--tx-wall) center/100% 100% no-repeat!important}
+
+/* ---------- Sound toggle in the top bar ---------- */
+.saltwake .sound-ctl{display:flex;align-items:center;gap:6px;margin-left:auto;margin-right:2px}
+.saltwake .sound-ctl+button,.saltwake .player-hud .sound-ctl~.session-controls{margin-left:0}
+.saltwake .sound-ctl .sound-toggle{min-width:40px;padding:6px 8px!important;font-size:16px!important;line-height:1}
+.saltwake .sound-ctl .sound-volume{width:84px;accent-color:#d9b866}
+@media(max-width:700px){.saltwake .sound-ctl .sound-volume{width:56px}.saltwake .sound-ctl .sound-toggle{min-width:32px;padding:4px 6px!important}}

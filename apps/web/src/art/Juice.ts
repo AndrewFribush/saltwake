@@ -2,6 +2,7 @@
  * animation when they change (coins clink out or in; a parcel flies to the satchel). No component state is read
  * or changed; it only adds temporary classes and decorative elements. Disabled under reduced motion. */
 import {spriteUrl} from './sprites';
+import {emit} from './Sound';
 
 const num=(el:Element|null)=>{const m=el?.textContent?.match(/-?\d+/);return m?Number(m[0]):null;};
 
@@ -21,14 +22,14 @@ function fly(target:Element){
 
 export function installHudJuice(){
  if(typeof document==='undefined'||typeof MutationObserver==='undefined')return;
- if(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ const still=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
  let purse:number|null=null,goods:number|null=null,lastProfile='';
  const check=()=>{
   const p=document.querySelector('.player-hud .purse'),g=document.querySelector('.player-hud .hud-stock'),who=document.querySelector('.player-hud .character-token')?.textContent??'';
   if(who!==lastProfile){lastProfile=who;purse=num(p);goods=num(g);return;}
   const np=num(p),ng=num(g);
-  if(p&&np!==null&&purse!==null&&np!==purse)burst(p,np<purse?'spend':'earn');
-  if(g&&ng!==null&&goods!==null&&ng>goods)fly(g);
+  if(p&&np!==null&&purse!==null&&np!==purse){emit(np<purse?'coin':'coinIn');if(!still)burst(p,np<purse?'spend':'earn');}
+  if(g&&ng!==null&&goods!==null&&ng>goods){emit('pickup');if(!still)fly(g);}
   purse=np;goods=ng;
  };
  let queued=false;
