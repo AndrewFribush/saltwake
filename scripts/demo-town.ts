@@ -25,6 +25,9 @@ export function presetPublication(seed:number,preset:GeneratorPreset,title:strin
 /** The showcase: the large three-floor preset, thinned to the proprietor's budget (easier first floor, the
  * strongest enemies kept deepest), with two fixed treasures funded from goods the proprietor already owns:
  * a fine tonic on floor 2 and a sword at the bottom. Same publication shape as the drafting table. */
+/** Goods the demo shelves in shops; the showcase never takes these. */
+const SHELVED=['maker-herb-0','maker-herb-1','maker-herb-2','maker-herb-3','maker-flask-0','maker-flask-1','maker-flask-2','maker-flask-3'];
+export const SHOWCASE_COPIES=3;
 export const SHOWCASE_SEEDS=[11,23,31,47,59,71,83,97,4242,9001],SHOWCASE_TITLE='The tide vaults';
 /** Thins one draft to the budget: first optional hazards (oil, kegs, caches, altars, springs, chasms), then the most
  * expensive enemy or trap, shallowest floor first. Floor geometry, keys, locks, plates, cracked walls and devices
@@ -49,7 +52,7 @@ function thinToBudget(draft:{floors:CustomFloor[];placements:CreatorPlacement[][
 /** The showcase: the large three-floor preset, thinned to the proprietor's budget, with fixed treasures funded from
  * goods the proprietor already owns. Tries several seeds so generator changes cannot break seeding; returns null if
  * none fits (the caller skips the showcase with a note). Same publication shape as the drafting table. */
-export function showcasePublication(title:string,now:number,budget:number,treasure:{floor:number;type:'sword'|'fineTonic'}[],seeds:readonly number[]=SHOWCASE_SEEDS){
+export function showcasePublication(title:string,now:number,budget:number,treasure:{floor:number;type:'sword'|'fineTonic'|'herb'|'flask'|'tonic'}[],seeds:readonly number[]=SHOWCASE_SEEDS){
  for(const seed of seeds){
   const base=generateDraft(seed,{...generatorPresets.large.options,treasure:true});
   if(base.floors.length<3)continue;
@@ -94,23 +97,24 @@ export async function seedDemoTown(api:Api,log:(s:string)=>void=()=>{}){
  // on it: if no seed fits the budget or the publish is refused, the town is seeded without it and the log says so.
  let showId:string|undefined;
  try{
-  const mw=await world('maker');const shelved=['maker-fine-tonic-2','maker-fine-tonic-3'];const own=(type:string)=>mw.items.find((i:any)=>i.item_type===type&&!shelved.includes(i.id)&&i.location.kind==='owned'&&i.location.profile==='maker')?.id as string|undefined;
-  const sword=own('sword'),fine=own('fineTonic');
-  const show=sword&&fine?showcasePublication(SHOWCASE_TITLE,now,Number(mw.credits)-12,[{floor:1,type:'fineTonic'},{floor:99,type:'sword'}]):null;
-  if(!show)log(`Demo town: showcase skipped (${!sword||!fine?'the proprietor lacks the sword or fine tonic':'no generator seed fits the proprietor’s budget'}).`);
-  else{showId=await cmd('maker','pub-showcase',{type:'publish',terms:show.terms,fee:'4',funding:[fine,sword]});log(`Demo town: showcase “${SHOWCASE_TITLE}” from seed ${show.seed}, ${show.cost} coins.`);}
+  // Three funded copies: each run can win a herb on floor 2 and a fine tonic at the bottom (10 coins of goods against a 4-coin fee).
+  const mw=await world('maker');const ownAll=(type:string)=>(mw.items as any[]).filter(i=>i.item_type===type&&i.location.kind==='owned'&&i.location.profile==='maker'&&!SHELVED.includes(i.id)).map(i=>i.id as string);
+  const fines=ownAll('fineTonic').slice(0,SHOWCASE_COPIES),herbs=ownAll('herb').reverse().slice(0,SHOWCASE_COPIES);const enough=fines.length===SHOWCASE_COPIES&&herbs.length===SHOWCASE_COPIES;
+  const show=enough?showcasePublication(SHOWCASE_TITLE,now,Number(mw.credits)-12,[{floor:1,type:'herb'},{floor:99,type:'fineTonic'}]):null;
+  if(!show)log(`Demo town: showcase skipped (${!enough?`the proprietor lacks ${SHOWCASE_COPIES} fine tonics and herbs`:'no generator seed fits the proprietor’s budget'}).`);
+  else{showId=await cmd('maker','pub-showcase',{type:'publish',terms:show.terms,fee:'4',funding:[...herbs,...fines]});log(`Demo town: showcase “${SHOWCASE_TITLE}” from seed ${show.seed}, ${show.cost} coins.`);}
  }catch(e){log(`Demo town: showcase skipped (${(e as Error).message}).`);}
  const p3=Number((await world('p3')).credits);const small=presetPublication(77,'small','Rat warren',now);
  if(small.cost>p3)throw Error(`Small preset needs ${small.cost} coins; the wayfarer has ${p3}`);
  const warrenId=await cmd('p3','pub-small',{type:'publish',terms:small.terms,fee:'1',funding:[]});
- if(showId)await build('maker','hall-showcase',SHOWCASE_TITLE,place('e',4,10),room(r=>withBuildingUse(r,'dungeon',showId!),0,'A deep dig. A fine tonic waits on the second floor, a sword at the bottom. Escape to keep them.'),true);
+ if(showId)await build('maker','hall-showcase',SHOWCASE_TITLE,place('e',4,10),room(r=>withBuildingUse(r,'dungeon',showId!),0,'A deep dig, funded for three delvers: a herb on the second floor, a fine tonic at the bottom. Escape to keep them.'),true);
  await build('maker','hall-tide','The drowned stair',place('se',4,10),room(r=>withBuildingUse(r,'dungeon',tideId),0,'Two floors. The tide rises; keep moving.'),true);
  await build('p3','hall-warren','Rat warren',place('ne',4,10),room(r=>withBuildingUse(r,'dungeon',warrenId),0,'One floor, no treasure: a cheap warm-up.'),true);
  // Shops with display shelves, stocked from goods each owner already holds.
  const pantry=await build('maker','shop-pantry','Proprietor’s pantry',place('center',14,7),room(r=>r,3,'Ingredients for the kettle: two herbs and two flasks make a batch.'),true);
  await cmd('maker','stock-herbs',{type:'stock_shop',shop_id:pantry,item_ids:['maker-herb-0','maker-herb-1','maker-herb-2','maker-herb-3'],unit_price:'2'});
  await cmd('maker','stock-flasks',{type:'stock_shop',shop_id:pantry,item_ids:['maker-flask-0','maker-flask-1','maker-flask-2','maker-flask-3'],unit_price:'2'});
- await cmd('maker','stock-fine',{type:'stock_shop',shop_id:pantry,item_ids:['maker-fine-tonic-2','maker-fine-tonic-3'],unit_price:'6'});
+ {const spare=(await world('maker')).items.find((i:any)=>i.item_type==='sword'&&i.location.kind==='owned'&&i.location.profile==='maker');if(spare)await cmd('maker','stock-sword',{type:'stock_shop',shop_id:pantry,item_ids:[spare.id],unit_price:'12'});}
  const rack=await build('p2','shop-rack','Mercenary’s rack',place('s',4,10),room(r=>r,1,'Used but sound.'),true);
  await cmd('p2','stock-club',{type:'stock_shop',shop_id:rack,item_ids:['p2-club'],unit_price:'4'});
  const barrow=await build('p4','shop-barrow','Scavenger’s barrow',place('w',14,10),room(r=>r,1,'Found it below, priced to move.'),true);
