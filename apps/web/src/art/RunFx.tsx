@@ -9,11 +9,12 @@ import type {SpriteName} from './sprites';
 export const enemySprite=(e:Enemy):SpriteName=>e.minion?'rat':e.kind==='charger'?'boar':e.kind==='archer'?'sentry':e.kind==='bomber'?'crab':e.kind==='brute'?'brute':e.kind==='nest'?'nest':'rat';
 
 type Pt={x:number;y:number};
-type Floater={id:number;x:number;y:number;text:string;tone:'hurt'|'heal'|'hit'};
+type Floater={id:number;x:number;y:number;text:string;tone:'hurt'|'heal'|'hit'|'loot'};
 type Ghost={id:number;x:number;y:number;sprite:SpriteName;flip:boolean;minion:boolean};
-type Snap={room:number;turn:number;hp:number;pos:Pt;enemies:Map<string,Enemy>};
+type Snap={room:number;turn:number;hp:number;pos:Pt;enemies:Map<string,Enemy>;bag:number};
 let seq=0;
-const snap=(s:RunState):Snap=>({room:s.roomIndex,turn:s.turn,hp:s.player.hp,pos:{x:s.player.x,y:s.player.y},enemies:new Map(s.enemies.map(e=>[e.id,{...e}]))});
+const bagCount=(s:RunState)=>Object.values(s.items).filter(i=>i.location.kind!=='floor').length+Object.values(s.supplies??{}).reduce((n,v)=>n+(v??0),0);
+const snap=(s:RunState):Snap=>({room:s.roomIndex,turn:s.turn,hp:s.player.hp,pos:{x:s.player.x,y:s.player.y},enemies:new Map(s.enemies.map(e=>[e.id,{...e}])),bag:bagCount(s)});
 const adj=(a:Pt,b:Pt)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y))===1;
 const dirTo=(a:Pt,b:Pt):Facing=>{const dx=b.x-a.x,dy=b.y-a.y;return Math.abs(dx)>=Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');};
 const reduced=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -46,6 +47,7 @@ export function useRunFx(s:RunState):RunFx{
    for(const e of s.enemies){const old=p.enemies.get(e.id);if(old&&old.x===e.x&&old.y===e.y&&adj(e,now.pos)&&!e.stunned){enemyLunge.set(e.id,{x:now.pos.x-e.x,y:now.pos.y-e.y});break;}}
    if((hurt>=3||(s.blasts?.length??0)>0)&&!reduced())setShake(n=>n+1);}
   else if(hurt<0)add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:`+${-hurt}`,tone:'heal'});
+  if(now.bag>p.bag)add.push({id:++seq,x:now.pos.x,y:now.pos.y,text:'✦',tone:'loot'});
   if((s.blasts?.length??0)>2&&hurt<=0&&!reduced())setShake(n=>n+1);
   setEvents({turn:now.turn,playerLunge,playerHit:hurt>0,enemyLunge,enemyHit});
   if(add.length){setFloaters(f=>[...f.slice(-8),...add]);const ids=new Set(add.map(a=>a.id));setTimeout(()=>setFloaters(f=>f.filter(x=>!ids.has(x.id))),950);}
@@ -66,7 +68,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
  const enemies=s.enemies.filter(e=>e.hp>0&&visible.has(`${e.x},${e.y}`));
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
- return <div className="actor-layer" aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
+ return <div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
   {(s.blasts??[]).filter(b=>b.x>=viewport.x&&b.y>=viewport.y).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
   {fx.ghosts.map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
   {enemies.map(e=>{const flip=fx.enemyFlip.get(e.id)??(e.x>s.player.x),max=fx.maxHp.get(e.id)??e.hp,lunge=fx.enemyLunge.get(e.id),hit=fx.enemyHit.has(e.id);
