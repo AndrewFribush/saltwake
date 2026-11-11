@@ -140,8 +140,8 @@ const hatch=[
  '................','................','..XXXXXXXXXXXX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..','..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..',
  '..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XkbbkbbkbbkX..','..XkbbkbbkbbkX..','..XkkkkkkkkkkX..','..XXXXXXXXXXXX..','.......Ek.......','......EEEk......'];
 const crest=[
- '.....kkkkkk.....','...kkyyyyyykk...','..kyYkkkkkkYyk..','.kyYk..kk..kYyk.','.kyk..kyyk..kyk.','kyYk...kk...kYyk','kyk.kkkyykkk.kyk','kyk...kyyk...kyk',
- 'kyk...kyyk...kyk','kyk.k.kyyk.k.kyk','kyYkyk.kk.kykYyk','.kyk.kyyyyk.kyk.','.kyYk.kkkk.kYyk.','..kyuucuucuuyk..','...kkcuucuukk...','.....kkkkkk.....'];
+ '......kkkk......','.....kyyyyk.....','.....ky..yk.....','.....kyyyyk.....','......kyyk......','..kkkkkyykkkkk..','..kyyyyyyyyyyk..','..kkkkkyykkkkk..',
+ '......kyyk......','......kyyk......','k.....kyyk.....k','kyk...kyyk...kyk','.kyk..kyyk..kyk.','..kyykkyykkyyk..','...kkyyyyyykk...','.....kkkkkk.....'];
 export const spriteMaps={crest,leverOff,leverOn,gateClosed,gateOpen,plate,key,lockedDoor,hatch,heroDownWalk,heroUpWalk,heroSideWalk,coin,drafting,notice,display,heroDown,heroUp,heroSide,rat,boar,sentry,crab,brute,nest,keg,cache,loot,fountain,altar,crack,spikesArmed,spikesSafe,stairs,counter,bed,chest,shelves,book,kettle,banner,scales,swords,barrels,door};
 export type SpriteName=keyof typeof spriteMaps;
 const pal:Palette={...P,q:'#07090b'};

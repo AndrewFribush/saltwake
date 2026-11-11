@@ -69,7 +69,7 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
  const [hero,heroFlip]=heroFrame(fx.playerFacing);
  const walking=useMoving(s.player.x,s.player.y);
  const lungeStyle=(l:Pt|null|undefined)=>l?{'--lx':`${l.x*38}%`,'--ly':`${l.y*38}%`} as React.CSSProperties:undefined;
- return <div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
+ return <><EntryCeremony key={`entry-${s.roomIndex}`} roomIndex={s.roomIndex} turn={s.turn} title="The doors open"/><div className={`actor-layer ${s.status==='active'&&s.player.hp<=3?'low-hp':''}`} aria-hidden="true" key={`${viewport.x},${viewport.y},${s.roomIndex}`}>
   {(s.blasts??[]).filter(b=>b.x>=viewport.x&&b.y>=viewport.y).map((b,i)=><span key={`b${s.turn}-${b.x},${b.y}`} className="fx-blast" style={{...at(b,viewport),animationDelay:`${(i%5)*25}ms`}}>{Array.from({length:6},(_,k)=><i key={k} style={{'--a':`${k*60+(i*23)%60}deg`} as React.CSSProperties}/>)}</span>)}
   {fx.ghosts.map(g=><span key={g.id} className={`actor ghost ${g.minion?'minion':''}`} style={at(g,viewport)}><Sprite name={g.sprite} flip={g.flip} className="actor-sprite"/><span className="fx-puff"><i/><i/><i/><i/></span></span>)}
   {enemies.map(e=>{const flip=fx.enemyFlip.get(e.id)??(e.x>s.player.x),max=fx.maxHp.get(e.id)??e.hp,lunge=fx.enemyLunge.get(e.id),hit=fx.enemyHit.has(e.id);
@@ -85,5 +85,16 @@ export function ActorLayer({s,fx,visible,viewport,danger,ended}:{s:RunState;fx:R
   </span>
   {!!s.keys?.length&&<span className="key-ring" title={`Keys: ${s.keys.join(', ')}`}>{s.keys.map((k,i)=><span key={i} className="px-sprite key-chip" style={{backgroundImage:tintedSprite('key',k)}}/>)}</span>}
   {fx.floaters.map(f=><span key={f.id} className={`fx-float tone-${f.tone}`} style={at(f,viewport)}>{f.text}</span>)}
+ </div></>;
+}
+
+/** Dungeon entry: great doors swing apart at the start of a run; later floors fade in with a floor banner. */
+export function EntryCeremony({roomIndex,turn,title}:{roomIndex:number;turn:number;title:string}){
+ const [show,setShow]=useState(()=>turn===0||roomIndex>0);
+ useEffect(()=>{if(reduced()){setShow(false);return;}const t=setTimeout(()=>setShow(false),roomIndex===0?1400:1000);return()=>clearTimeout(t);},[]);
+ if(!show)return null;
+ return <div className={`entry-ceremony ${roomIndex===0&&turn===0?'doors':'descend'}`} aria-hidden="true">
+  {roomIndex===0&&turn===0&&<><span className="entry-door left"/><span className="entry-door right"/></>}
+  <span className="entry-title">{roomIndex===0&&turn===0?title:`Floor ${roomIndex+1}`}</span>
  </div>;
 }
