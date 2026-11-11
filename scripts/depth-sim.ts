@@ -8,6 +8,7 @@ import {canContinue,canExtract,hasNextRoom} from '../packages/game/src/generatio
 import {visibleThreatTiles} from '../packages/game/src/telegraph';
 import {depthThreatTiles} from '../packages/game/src/depth';
 import {visibleTiles} from '../packages/game/src/roguelike';
+import {doorOpen} from '../packages/shared/src/mechanisms';
 import {walkable,featureAt,type RunState,type Point} from '../packages/game/src/state';
 
 export type Policy='cautious'|'greedy'|'reckless';
@@ -66,6 +67,9 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
  else{
   for(const i of Object.values(s.items))if(i.location.kind==='floor'&&i.location.room===s.roomIndex&&s.explored?.includes(`${s.roomIndex}:${i.location.x},${i.location.y}`))goals.add(`${i.location.x},${i.location.y}`);
   for(const f of s.features??[])if(!f.spent&&(f.kind==='cache'||f.kind==='crack'||f.kind==='key'||(f.kind==='lock'&&s.keys?.includes(f.color))||(f.kind==='fountain'&&s.player.hp<9))&&s.explored?.includes(`${s.roomIndex}:${f.x},${f.y}`))goals.add(key(f));
+  // A closed gate with a reachable lever: pull it before wandering (ambush rooms, gated vaults).
+  const closedDoor=(s.devices??[]).some(d=>d.kind==='door'&&!doorOpen(d,s.signals));
+  if(!goals.size&&closedDoor){for(const d of s.devices??[])if(d.kind==='switch'&&d.mode!=='set'&&!(d.x===s.player.x&&d.y===s.player.y)&&s.explored?.includes(`${s.roomIndex}:${d.x},${d.y}`))goals.add(key(d));}
   if(!goals.size)for(const k of frontier(s))goals.add(k);
   if(!goals.size)goals.add(key(exit));
  }
@@ -77,7 +81,8 @@ export function choose(s:RunState,policy:Policy,floorTurns:number):Action{
   const pressOn=s.player.hp>4&&(!safe||(dist.get(key(safe))??999)>=(dist.get(here)??999))&&!s.enemies.some(e=>e.kind==='bomber'&&e.primed||e.kind==='brute'&&e.lane?.length)&&!depthThreatTiles(s).some(p=>key(p)===here);
   if(!pressOn)return safe?{type:'move',...safe}:{type:'guard'};
  }
- const avoid=policy==='reckless'||danger.has(here)?new Set<string>():danger;
+ const trips=(s.devices??[]).filter(d=>d.kind==='switch'&&d.mode==='set').map(key);
+ const avoid=new Set([...(policy==='reckless'||danger.has(here)?[]:danger),...(policy==='reckless'?[]:trips)]);
  const levers=new Set((s.devices??[]).filter(d=>d.kind==='switch'&&d.mode!=='set'&&!(d.x===s.player.x&&d.y===s.player.y)).map(key));
  const step=stepToward(s,goals,avoid,policy==='reckless')??stepToward(s,goals,new Set(),true)??stepToward(s,frontier(s),new Set(),true)??stepToward(s,levers,new Set(),true);
  if(step){const e=s.enemies.find(e=>e.x===step.x&&e.y===step.y);return e?{type:'attack',enemyId:e.id}:{type:'move',...step};}
