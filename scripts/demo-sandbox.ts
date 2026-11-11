@@ -17,7 +17,11 @@ try{
   }
   console.log('Starter town: proprietor-funded expedition (two copies), tonic stalls. Existing seeded assets only.');
  }
- mkdirSync('.state',{recursive:true,mode:0o700});writeFileSync('.state/sandbox.json',JSON.stringify({epoch:randomUUID(),profiles:['buyer','maker','p2','p3','p4','p5','worker','worker2'],rpcUrl:sandbox.rpcUrl,accountId:genesis.accountId,privateKey:genesis.privateKey}),{mode:0o600,flag:'wx'});
+ const local={epoch:randomUUID(),profiles:['buyer','maker','p2','p3','p4','p5','worker','worker2'],rpcUrl:sandbox.rpcUrl,accountId:genesis.accountId,privateKey:genesis.privateKey};
+ mkdirSync('.state/'+local.epoch,{recursive:true,mode:0o700});
+ // Demonstration town (default; --plain or --empty skip it): demo characters build through the ordinary player API.
+ if(!process.argv.includes('--empty')&&!process.argv.includes('--plain')){const {runDemoTownSeed}=await import('./demo-town');await runDemoTownSeed(local);}
+ writeFileSync('.state/sandbox.json',JSON.stringify(local),{mode:0o600,flag:'wx'});
  console.log('Fresh local sandbox ready. Start npm run server in another terminal. Keep this process running while restarting the server.');
  await new Promise<void>(resolve=>{process.once('SIGINT',resolve);process.once('SIGTERM',resolve);});
  unlinkSync('.state/sandbox.json');
