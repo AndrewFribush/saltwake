@@ -130,4 +130,12 @@ Checked on the demo town: notice-board outcome chips render on the pinned notes 
 - Sweep of the latest merges: the coach's "What does each piece do?" link reads as a link on parchment; no other unstyled windows found.
 - Checks: typecheck, game 181, web 31, server 168, build pass.
 
-Next step: polish as lanes land UI.
+### 18. Trading and extraction juice, edition insight, gate pager
+- Trading juice (`art/Juice.ts`, a MutationObserver on the HUD; no component state read or changed): when the purse goes down, coins pop out of it and it shakes; when it goes up, coins fall in and it glows; when the satchel count rises, a parcel flies from the middle of the screen into it (`juice-purchase.jpg`). Off under reduced motion.
+- Extraction: "Back in the daylight." fades in with a glow and the run summary's lines reveal one by one.
+- Edition insight (funnel, loot per spot, suggestions) is readable on the parchment banner and steward ledger (dark ink, ✎ for suggestions).
+- Gate: the dungeon pager is a wooden signpost; "Pay N coins & enter …" is a big brass button with a stairway icon (`after-gate-pager.jpg`).
+- Fixed: the gatehouse walls were flat dark (an `!important` rule in tiles.css); they show the brick texture again.
+- Checks: typecheck, game 183, web 31, server 168, build pass.
+
+Next step: builder power tools (region select/copy/paste/rotate, stamps, multi-floor overview) when they land.
