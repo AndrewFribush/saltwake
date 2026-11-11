@@ -16,6 +16,8 @@ test('demonstration town seed builds through the player API within plot limits a
   // No issuance: total credits (including coins escrowed in open commissions) and the item set are unchanged.
   const total=(s:any)=>Object.values(s.credits).reduce((n:bigint,v:any)=>n+BigInt(v),0n)+BigInt(s.bank)+((s.commissions??[]) as any[]).reduce((n:bigint,c:any)=>n+BigInt(c.escrow),0n);
   assert.equal(total(after),total(before));assert.deepEqual(after.items.map((i:any)=>i.id).sort(),before.items.map((i:any)=>i.id).sort());
+  // Seeding never throws on the showcase, so check here that the current generator still produces it.
+  const show=after.editions.find((e:any)=>e.terms.title==='The tide vaults');assert.ok(show,'showcase published against the current generator');assert.equal(show.terms.no_reward,false);
   assert.equal(after.shops.length,6);for(const o of new Set<string>(after.shops.map((s:any)=>s.owner)))assert.ok(after.shops.filter((s:any)=>s.owner===o).length<=landRules.maxPlotsPerOwner);
   const editions=after.editions.map((e:any)=>({...e,status:e.closed?'closed':'open',bundles:0,record:{attempts:0,completed:after.runs.filter((r:any)=>r.edition===e.id&&r.status!=='active').length,extracted:0,died:0}}));
   const board=boardEntries(after.shops,editions,after.listings);
