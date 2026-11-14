@@ -63,7 +63,7 @@
 
 /* Minimap: top-right of the board column, read-only. */
 .expedition>div:first-child{position:relative}
-.run-minimap{position:absolute;top:34px;right:6px;z-index:4;pointer-events:none;background:#0f1d19e6;border:1px solid #2d443c;border-radius:3px;padding:4px;display:flex;flex-direction:column;gap:3px;max-width:min(240px,46%)}
+.run-minimap{position:relative;align-self:flex-end;margin:4px 0 0;pointer-events:none;background:#0f1d19e6;border:1px solid #2d443c;border-radius:3px;padding:4px;display:flex;flex-direction:column;gap:3px;max-width:min(240px,46%)}
 .run-minimap-rooms{display:flex;gap:4px;align-items:flex-end;flex-wrap:wrap}
 .mm-room{border:1px solid #2d443c;padding:1px;background:#0a1512}.mm-room.current{border-color:#e2c783}
 .mm-room.unknown{width:22px;height:22px;display:grid;place-items:center;color:#7d8f86;border-style:dashed;font-size:11px}

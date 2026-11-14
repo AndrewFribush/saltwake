@@ -31,7 +31,7 @@ const clockLabel=(f:{channel:string;period:number;on:number;offset:number},turn:
 const featureLabel=(f:FeatureState,turn=0)=>f.kind==='clock'?clockLabel(f,turn):f.kind==='barrel'?`Powder keg${f.fuse?' · lit, bursts next turn':' · bump to light'}`:f.kind==='crack'?`Cracked wall · ${f.hp} bump${f.hp>1?'s':''} to break`:f.kind==='oil'?(f.burning?`Burning oil · ${f.burning} turns`:'Oil slick · flammable'):f.kind==='pit'?'Chasm · shove enemies in':f.kind==='fountain'?`Salt spring · +${f.heal} health, ${f.charges} left`:f.kind==='altar'?`Blood altar · pay ${f.cost} health: ${altarBoons[f.boon]}`:f.kind==='cache'?`Supply cache · ${f.count} × ${supplyCatalog[f.supply].name}`:f.kind==='key'?`${f.color} key · step on it to pick up`:f.kind==='lock'?`${f.color} locked door · bump with a ${f.color} key`:`Pressure plate · channel ${f.channel} on while occupied`;
 
 export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;terminal:string|null;settlement:any;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean}}) {
- const [local, set] = useState(()=>depthPractice(crypto.getRandomValues(new Uint32Array(1))[0]));const s=remote?.state??local;
+ const [local, set] = useState(()=>{const q=Number(new URLSearchParams(location.search).get('seed'));return depthPractice(Number.isSafeInteger(q)&&q>0?q:crypto.getRandomValues(new Uint32Array(1))[0]);});const s=remote?.state??local;
  const board = useRef<HTMLDivElement>(null);
  // Keys go to the board as soon as a run screen appears (including after a reload mid-run).
  useEffect(()=>{board.current?.focus({preventScroll:true});},[]);

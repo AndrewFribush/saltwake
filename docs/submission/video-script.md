@@ -31,6 +31,7 @@ Screen: Copper Kettle craft, or commissions board, then the testnet explorer pag
 Say: "Artisans craft the tonics, shops resell them, commissions are escrowed orders between players. The contract is live on NEAR testnet, players sign their own actions with a wallet, and the test suite runs the whole economy against the real WASM and checks the coin total never changes. Saltwake, built at NEAR HACKATHON."
 
 ## Notes
+- Footage can come from practice at the Salt Lantern: open the game with `?seed=11` (or 17, 19) for a three-floor practice layout that shows every enemy kind, kegs, oil, cracked walls, a pit, a spring and an altar. Y retries the same seed. For a paid run on camera, The wreck of the Marigold (large preset) has the same spread.
 - Keep the purse visible during the pay and settle scenes.
 - If the shrine appears on floor one, take the heal (1) and keep moving; don't explain it.
 - Abandon is Shift+X twice; avoid it on camera.
