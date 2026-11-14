@@ -113,6 +113,21 @@ After rebuilding the contract, stop only the API process (keep the sandbox runni
 
 Rehearsal against a local sandbox (loopback only; the sandbox root emulates the faucet and accounts are named `<name>.<root>`): `npx tsx scripts/testnet-redeploy.ts --rpc http://127.0.0.1:<port> --account r1.sandbox --funder f1.sandbox` then `--execute` with an approval whose `approvedBy` is `local-rehearsal`.
 
+## Host the testnet demo (one container, needs Andrew's approval of the destination)
+
+The server has a hosted mode: `--public-origin https://<host> --serve-web apps/web/dist --listen 0.0.0.0` makes one Node process serve the built web and `/api` on the public https origin, with Secure cookies and the wallet's NEP-413 origin bound to that host (`apps/server/src/static-web.ts`). It is testnet only; the loopback demo is unchanged. The `Dockerfile` copies the already-built WASM, builds the web and starts `deploy/entrypoint.sh`, which writes the operator config and runtime approval from two secrets and starts the server. `fly.toml` describes a Fly.io app with a volume for `.state/` (SQLite and town history survive deploys). The operator key lives only in the `SALTWAKE_CONFIG_JSON` secret, never in the image or the repo.
+
+```sh
+npm run build:contract
+docker build -t saltwake-hosted .                      # local image check
+fly launch --no-deploy --copy-config --name saltwake   # creates the app (approval)
+fly volumes create saltwake_state --region ord --size 1
+fly secrets set SALTWAKE_CONFIG_JSON="$(cat .state/testnet-<account>.json)" SALTWAKE_APPROVAL_JSON="$(cat .state/testnet-<account>-approval.json)"
+fly deploy
+```
+
+The hosted server enforces the same approved transaction budget and expiry as the local testnet server, so it stops settling when the approval expires.
+
 ## Two local wallet players at once
 
 Wallet sign-in is bound to one origin, and one browser keeps one cookie jar per host. For a second simultaneous local wallet player, give the API a loopback alias and let Vite keep the Host header (local wallet mode only; testnet ignores both):

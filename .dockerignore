@@ -1,0 +1,9 @@
+node_modules
+.git
+.claude
+.state
+docs
+research
+apps/web/dist
+contracts/economy/target/**
+!contracts/economy/target/wasm32-unknown-unknown/release/dungeon_economy.wasm

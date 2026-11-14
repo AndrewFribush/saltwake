@@ -1,4 +1,6 @@
 import type {Store} from './db';
+import {createReadStream} from 'node:fs';
+import {publicOriginProblem,isLocalOrigin,staticFile} from './static-web';
 import {existsSync,readFileSync} from 'node:fs';
 import {WalletSessions,WalletAuthError} from './wallet-auth';
 import {playerOperationId} from '../../../packages/shared/src/player-identity';
@@ -25,9 +27,9 @@ import {TownPresence,presenceIdentity} from './presence';
 import {Crowd} from './crowd';
 import type {Command,EconomySnapshot} from '../../../packages/shared/src/types';
 export type WalletHttpConfig={walletSessions:WalletSessions;origin:string;network:string;contractId:string;aliases?:readonly string[]};
-export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig,options:{webOrigin?:string;pollMs?:number;historyPath?:string;crowd?:number}={}){
- const webOrigin=wallet?.origin??options.webOrigin??'http://127.0.0.1:18930';{const u=new URL(webOrigin);if(u.origin!==webOrigin||u.protocol!=='http:'||u.hostname!=='127.0.0.1')throw Error('Web origin must be a local HTTP origin');}const webHost=new URL(webOrigin).host;
- if(wallet){if(!wallet.walletSessions.matchesConfiguration(wallet.origin,wallet.network,wallet.contractId))throw Error('Wallet authentication configuration mismatch');const origin=new URL(wallet.origin);if(origin.origin!==wallet.origin||origin.protocol!=='http:'||origin.hostname!=='127.0.0.1')throw Error('Wallet origin must match the local HTTP origin');}
+export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig,options:{webOrigin?:string;pollMs?:number;historyPath?:string;crowd?:number;webDir?:string}={}){
+ const webOrigin=wallet?.origin??options.webOrigin??'http://127.0.0.1:18930';if(!isLocalOrigin(webOrigin)&&publicOriginProblem(webOrigin))throw Error('Web origin must be a local HTTP origin or a public https origin');const webHost=new URL(webOrigin).host;
+ if(wallet){if(!wallet.walletSessions.matchesConfiguration(wallet.origin,wallet.network,wallet.contractId))throw Error('Wallet authentication configuration mismatch');if(wallet.origin!==webOrigin)throw Error('Wallet origin must match the web origin');}
  const identity=wallet?.walletSessions??sessions;
  const craft=new Craft(box.db,box);const feedback=new Feedback(box.db);
  const sync=reconciler(async()=>{
@@ -95,6 +97,9 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
     try{return reply(200,{session:sessions.get(req.headers.cookie),authMode:'demo',label:DEMO_CUSTODY_LABEL});}catch(e){if(!(e instanceof SessionError)||e.code!=='UNAUTHENTICATED')throw e;}
     const created=sessions.create();res.setHeader('Set-Cookie',created.setCookie);return reply(200,{session:created.session,authMode:'demo',label:DEMO_CUSTODY_LABEL});
    }
+   // Hosted mode: the built web lives on the same origin as /api (static-web.ts). Dev keeps using Vite's proxy. Before any sign-in requirement: the shell must load signed out.
+   if(options.webDir&&(req.method==='GET'||req.method==='HEAD')){const file=staticFile(options.webDir,url.pathname);
+    if(file){res.statusCode=200;res.setHeader('Content-Type',file.type);res.setHeader('Cache-Control',file.cache);if(req.method==='HEAD')return res.end();return createReadStream(file.path).on('error',()=>{res.statusCode=500;res.end();}).pipe(res);}}
    const profile=identity.requireProfile(req.headers.cookie);
    const recheck=()=>{if(identity.requireProfile(req.headers.cookie)!==profile)throw Error('Profile changed; refresh before acting');};
    const readAction=async()=>{const body=await bodyOf(req,url.pathname==='/api/command'?largePublicationBytes:legacyCommandBytes);const current=identity.requireProfile(req.headers.cookie);if(current!==profile||(body.expectedProfile!==undefined&&body.expectedProfile!==current))throw Error('Profile changed; refresh before acting');return body;};
