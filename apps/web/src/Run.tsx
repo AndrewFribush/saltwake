@@ -4,6 +4,9 @@ import {enemyTelegraph,visibleThreatTiles} from '../../../packages/game/src/tele
 import {itemUse} from '../../../packages/shared/src/equipment';
 import {attackDamage} from '../../../packages/game/src/state';
 import {appendPlayEvent,type PlayTrace} from '../../../packages/game/src/play-events';
+import {freshLines} from './run-journal';
+import {lootHere,equipChoice,supplyTarget} from '../../../packages/game/src/controls';
+import {RunMinimap} from './RunMinimap';
 import {Pages,Reading} from './GamePanels';
 import {TileArt} from './tileset';
 import {Sprite} from './art/Sprite';
@@ -35,9 +38,15 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
  const [compactTab,setCompactTab]=useState<'Map'|'Bag'|'Journal'>('Map'),[itemPage,setItemPage]=useState(0);
  const [notice, setNotice] = useState('');
  const [shoving,setShoving]=useState(false),[aiming,setAiming]=useState<SupplyKind|null>(null);const trace=useRef<PlayTrace>({events:[],dropped:0});
+ // The journal: every message the run produced, oldest first, like a roguelike message log. The engine keeps only the
+ // last 8 lines on the state, so the view accumulates them here (exact lines locally; the log's new tail for server runs).
+ const [journal,setJournal]=useState<{turn:number;line:string}[]>(()=>s.log.map(line=>({turn:s.turn,line})));const prevLog=useRef(s.log);const journalEl=useRef<HTMLOListElement>(null);
+ const note=(lines:string[],turn:number)=>{if(lines.length)setJournal(j=>[...j,...lines.map(line=>({turn,line}))].slice(-400));};
+ useEffect(()=>{if(!remote)return;const lines=freshLines(prevLog.current,s.log);prevLog.current=s.log;note(lines,s.turn);},[s]);
+ useEffect(()=>{const el=journalEl.current;if(el)el.scrollTop=el.scrollHeight;},[journal.length]);
  const send = (a:Action) => {
   if(remote){if(!remote.busy&&!remote.terminal)remote.send(a);return;}
-  let messages:string[]=[];const next=actWithMessages(s,a,lines=>{messages=lines;});trace.current=appendPlayEvent(trace.current,s,a,next,messages);setNotice(next===s?'Cannot do that here, or no space. No turn spent.':'');set(next);board.current?.focus();
+  let messages:string[]=[];const next=actWithMessages(s,a,lines=>{messages=lines;});trace.current=appendPlayEvent(trace.current,s,a,next,messages);if(next!==s){prevLog.current=next.log;note(messages,next.turn);}setNotice(next===s?'Cannot do that here, or no space. No turn spent.':'');set(next);board.current?.focus();
  };
  const canShove=!!s.depth||s.rulesVersion===4&&s.player.weapon==='club';
  const click=(x:number,y:number)=>{
@@ -45,7 +54,8 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
   const enemy=s.enemies.find(e=>e.x===x&&e.y===y);
   send(enemy?{type:shoving&&canShove?'shove':'attack',enemyId:enemy.id}:{type:'move',x,y});
  };
- const restart=(armor=false,replay=false)=>{set(depthPractice(replay?s.expeditionSeed??0:crypto.getRandomValues(new Uint32Array(1))[0],armor?'armored':'club'));trace.current={events:[],dropped:0};setShoving(false);setItemPage(0);setNotice('');board.current?.focus();};
+ const saveRecord=()=>{const blob=new Blob([JSON.stringify({fixture:s.layout?.[0]?.id,kit:s.player.weapon,...trace.current},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='saltwake-practice-trace.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+ const restart=(armor=false,replay=false)=>{const fresh=depthPractice(replay?s.expeditionSeed??0:crypto.getRandomValues(new Uint32Array(1))[0],armor?'armored':'club');set(fresh);prevLog.current=fresh.log;setJournal(fresh.log.map(line=>({turn:0,line})));trace.current={events:[],dropped:0};setShoving(false);setItemPage(0);setNotice('');board.current?.focus();};
  const canGoDeeper=remote?(remote.canContinue??(s.exitRule===undefined&&(remote.canExtract??false)&&(remote.hasNextRoom??false))):canContinue(s);
  const canLeave=remote?(remote.canExtract??false):canExtract(s);
  const visible=visibleTiles(s);const visibleEnemies=s.enemies.filter(e=>visible.has(`${e.x},${e.y}`));
@@ -69,7 +79,15 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
   <div>
    <div className="status"><strong>{remote?.title??roomTitle(s)} · {s.roomIndex+1}/{remote?.roomCount??s.layout?.length??2}</strong><span>Health {s.player.hp}/12 · Turn {s.turn}{s.tide?` · ${(s.tideTurns??0)>=s.tide.turns?`Flooding −${s.tide.damage}/turn`:`Tide in ${s.tide.turns-(s.tideTurns??0)}`}`:''}{s.buffs?.might?` · Might +${s.buffs.might}`:''}{s.keys?.length?` · Keys: ${s.keys.join(', ')}`:''}{s.buffs?.ward?` · Ward +${s.buffs.ward}`:''}</span></div>
    <div className={`board ${fx.shake?(fx.shake%2?'shake-a':'shake-b'):''}`} style={{gridTemplateColumns:`repeat(${viewport.columns},1fr)`,gridTemplateRows:`repeat(${viewport.rows},minmax(0,1fr))`,aspectRatio:`${viewport.columns}/${viewport.rows}`}} ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait. Select Shove mode to push instead of attack." onKeyDown={e=>{
-    const a=keyAction(s,e);if(a){e.preventDefault();if(e.key==='Escape'&&aiming){setAiming(null);return;}send(a.type==='attack'&&shoving&&canShove?{type:'shove',enemyId:a.enemyId}:a);}else if(e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)e.preventDefault();
+    if(e.key==='Escape'&&aiming){e.preventDefault();setAiming(null);setNotice('');return;}
+    const k=e.key.toLowerCase();const plain=!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.repeat;
+    if(plain&&k==='v'&&canShove&&!ended){e.preventDefault();setShoving(!shoving);return;}
+    if(plain&&compact&&(k==='['||k===']')){e.preventDefault();setItemPage(p=>k==='['?Math.max(0,p-1):Math.min(Math.max(0,visibleItems.length-1),p+1));return;}
+    if(plain&&compact&&(k==='m'||k==='i'||k==='j')){e.preventDefault();setCompactTab(k==='m'?'Map':k==='i'?'Bag':'Journal');return;}
+    if(plain&&!remote&&k==='p'){e.preventDefault();restart(e.shiftKey);return;}
+    if(plain&&!remote&&k==='y'){e.preventDefault();restart(false,true);return;}
+    if(plain&&!remote&&k==='l'){e.preventDefault();saveRecord();return;}
+    const a=keyAction(s,e);if(a){e.preventDefault();if(ended)return;send(a.type==='attack'&&shoving&&canShove?{type:'shove',enemyId:a.enemyId}:a);}else if(plain&&['b','n','q','r','t','backspace','delete'].includes(k)){e.preventDefault();setNotice(k==='b'||k==='n'?'No enemy in range for that.':k==='q'?'Nothing to drink.':k==='r'?'Nothing better to equip.':k==='t'?'Nothing to take here.':'Nothing of the dungeon’s to drop.');}else if(e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)e.preventDefault();
    }}>
     {s.room.slice(viewport.y,viewport.y+viewport.rows).flatMap((row,dy)=>[...row].slice(viewport.x,viewport.x+viewport.columns).map((tile,dx)=>{const x=viewport.x+dx,y=viewport.y+dy;
      const seen=!s.roguelike||s.explored?.includes(`${s.roomIndex}:${x},${y}`);const lit=visible.has(`${x},${y}`);
@@ -96,31 +114,34 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
     }))}
     <ActorLayer s={s} fx={fx} visible={visible} viewport={viewport} danger={danger.has(`${s.player.x},${s.player.y}`)} ended={ended} dangerSet={danger} canLeave={canLeave}/>
    </div>
-   <div className="controls">
-    {canShove&&<button aria-pressed={shoving} disabled={ended} onClick={()=>{setShoving(!shoving);board.current?.focus();}}>Shove mode {shoving?'on':'off'}</button>}
-    <button title="Spend a turn to halve the first incoming hit, after armor, rounded up." onClick={()=>send({type:'guard'})} disabled={ended}>Guard [G]</button>
-    <button onClick={()=>send({type:'wait'})} disabled={ended}>Wait [Space]</button>
-    {s.enemies.filter(e=>distance(e,s.player)===1).map(e=><button key={e.id} disabled={ended} onClick={()=>send({type:shoving&&canShove?'shove':'attack',enemyId:e.id})}>{shoving&&canShove?'Shove':'Attack'} {nameOf(e)}</button>)}
-    {s.depth&&(()=>{const f=featureAt(s,s.player);return f?.kind==='fountain'?<button disabled={ended||s.player.hp>=12} onClick={()=>send({type:'interact'})}>Drink spring +{f.heal} [E]</button>:f?.kind==='altar'?<button disabled={ended||s.player.hp<=f.cost} title={altarBoons[f.boon]} onClick={()=>send({type:'interact'})}>Blood pact: −{f.cost} health for {f.boon} [E]</button>:null;})()}
-    {s.depth&&(['bomb','dart','flash'] as SupplyKind[]).filter(k=>(s.supplies?.[k]??0)>0).map(k=><button key={k} aria-pressed={aiming===k} title={supplyCatalog[k].summary} disabled={ended} onClick={()=>{if(k==='flash'){send({type:'supply',supply:'flash'});return;}setAiming(aiming===k?null:k);setNotice(aiming===k?'':`Choose a target tile for the ${supplyCatalog[k].name.toLowerCase()}. Escape cancels.`);board.current?.focus();}}>{k==='flash'?'Use':aiming===k?'Cancel':'Throw'} {supplyCatalog[k].name} ×{s.supplies![k]}</button>)}
-    <button onClick={()=>send({type:'extract'})} disabled={ended||!canLeave}>{s.exitRule!==undefined||s.rulesVersion===4?'Escape · enemies act':'Escape'}</button>
-    {(remote?(remote.hasNextRoom??false):hasNextRoom(s))&&<button onClick={()=>send({type:'continue'})} disabled={ended||!canGoDeeper}>Continue deeper</button>}
+   <RunMinimap s={s} roomCount={remote?.roomCount??s.layout?.length} exit={exitTile??undefined}/>
+   <div className="controls key-prompts" aria-label="Actions available now">
+    {!ended&&<>
+    {canShove&&<Key k="V" on={shoving}>Shove mode {shoving?'on':'off'}</Key>}
+    <Key k="G">Guard</Key><Key k="Space">Wait</Key>
+    {s.enemies.some(e=>distance(e,s.player)===1)&&<Key k="↑↓←→">{shoving&&canShove?'Shove':'Attack'} {s.enemies.filter(e=>distance(e,s.player)===1).map(nameOf).join(', ')}</Key>}
+    {s.depth&&(()=>{const f=featureAt(s,s.player);return f?.kind==='fountain'?<Key k="E" on={s.player.hp<12}>Drink spring +{f.heal}</Key>:f?.kind==='altar'?<Key k="E" on={s.player.hp>f.cost}>Blood pact: −{f.cost} health for {f.boon}</Key>:null;})()}
+    {s.depth&&(['bomb','dart','flash'] as SupplyKind[]).filter(k=>(s.supplies?.[k]??0)>0).map(k=><Key key={k} k={k==='bomb'?'B':k==='dart'?'N':'F'} on={k==='flash'||!!supplyTarget(s,k)}>{k==='flash'?'Use':'Throw'} {supplyCatalog[k].name.toLowerCase()} ×{s.supplies![k]}{k!=='flash'&&!supplyTarget(s,k)?' (no target)':''}</Key>)}
+    {canLeave&&<Key k="X">{s.exitRule!==undefined||s.rulesVersion===4?'Escape · enemies act':'Escape'}</Key>}
+    {(remote?(remote.hasNextRoom??false):hasNextRoom(s))&&canGoDeeper&&<Key k="C">Continue deeper</Key>}
+    {lootHere(s).length>0&&<Key k="T">Take {catalog[lootHere(s)[0].type].name.toLowerCase()}{bag.length>=6?' (bag full: drop first)':''}</Key>}
+    {(()=>{const drink=['fineTonic','tonic'].map(t=>bag.find(i=>i.type===t)).find(Boolean);return drink&&s.player.hp<12?<Key k="Q">Drink {catalog[drink.type].name.toLowerCase()}</Key>:null;})()}
+    {(()=>{const g=equipChoice(s);return g?<Key k="R">Equip {catalog[g.type].name.toLowerCase()}</Key>:null;})()}
+    {bag.some(i=>i.origin==='dungeon')&&<Key k="⌫">Drop {catalog[[...bag].reverse().find(i=>i.origin==='dungeon')!.type].name.toLowerCase()}</Key>}
+    </>}
    </div>
    <p className="legend">{s.roguelike&&<>{remote?'Uncharted descent':s.rulesVersion===4?'Experimental rules rehearsal':`Descent #${s.expeditionSeed}`}  · {s.exitRule===undefined&&<>{s.boon?`Shrine: ${s.boon}`:'No shrine blessing'} · </>}Unexplored ground is hidden.<br/></>}Gold cloak: you · Grey: rat · Tusks: charging boar ·{s.depth&&' Crossbow: sentry · Red shell: powder crab · Hulk: brute · Mound: nest · Keg, oil, chasm, spring, altar, cache are features · Gold edge: bolt line · Red edge: blast · Orange edge: brute smash ·'} Spikes: bright armed, dark safe · ◆ Loot · Steps: exit</p>
    <p className="legend">{s.exitRule!==undefined?'Exit conditions govern departure. Enemies and hazards act before you leave.':s.connections!==undefined?'Walk onto a passage to travel; enemies act before you leave. Cleared rooms stay cleared when revisited. Reach extraction stairs in a cleared room to return home.':s.rulesVersion===4?'Reach the exit to escape; enemies and hazards act before you leave. Club shoves; sword hits harder.':'Kill the enemies, then reach the stairs to extract or continue. Charges hit the first creature; spikes hurt both sides. Recovery lasts one turn.'}</p>
-   {s.exitRule===undefined&&s.roguelike&&s.roomIndex===0&&canLeave&&(remote?remote.hasNextRoom:atClearedExit(s)&&hasNextRoom(s))&&!s.boon&&!ended&&<section className="shrine"><h2>The threshold shrine</h2><p>One choice for this descent. Leave safely now, or prepare for the deeper vault.</p><button onClick={()=>send({type:'boon',choice:'rest'})}>Rest: recover 4 health</button><button disabled={s.player.hp<=3} onClick={()=>send({type:'boon',choice:'edge'})}>Blood edge: lose 3 health, gain +1 damage</button></section>}
+   {s.exitRule===undefined&&s.roguelike&&s.roomIndex===0&&canLeave&&(remote?remote.hasNextRoom:atClearedExit(s)&&hasNextRoom(s))&&!s.boon&&!ended&&<section className="shrine"><h2>The threshold shrine</h2><p>One choice for this descent. Leave safely now, or prepare for the deeper vault.</p><Key k="1">Rest: recover 4 health</Key><Key k="2" on={s.player.hp>3}>Blood edge: lose 3 health, gain +1 damage</Key></section>}
    <section className="inventory" aria-label="Run inventory">
     <h2>Equipment & loot</h2><p>Bag {bag.length}/6 · Weapon: {s.player.weapon} · Armor: {s.player.armor?'equipped':'none'}</p>
     {(compact?visibleItems.slice(Math.min(itemPage,Math.max(0,visibleItems.length-1)),Math.min(itemPage,Math.max(0,visibleItems.length-1))+1):visibleItems).map(i=><div className="item" key={i.id} data-item-id={i.id}>
      <span className="item-description"><ItemIcon type={i.type}/><strong>{catalog[i.type].name}</strong><small>{itemUse[i.type]}</small><small>{i.origin} · {i.location.kind} · {i.id}</small></span>
      <div className="controls">
-      {i.location.kind==='floor'&&<button disabled={ended} onClick={()=>send({type:'pickup',itemId:i.id})}>Take {catalog[i.type].name}</button>}
-      {isConsumable(i.type)&&<button disabled={ended||s.player.hp===12} onClick={()=>send({type:'use',itemId:i.id})}>Drink {catalog[i.type].name}</button>}
-      {['club','sword','armor'].includes(i.type)&&!['weapon','armor'].includes(i.location.kind)&&<button disabled={ended} onClick={()=>send({type:'equip',itemId:i.id})}>Equip {catalog[i.type].name}</button>}
-      {i.origin==='dungeon'&&i.location.kind==='bag'&&<button disabled={ended} onClick={()=>send({type:'drop',itemId:i.id})}>Drop {catalog[i.type].name}</button>}
+      <small className="item-keys">{i.location.kind==='floor'?'On the floor here: step on it or press T':isConsumable(i.type)?'Q drinks the best tonic':['club','sword','armor'].includes(i.type)&&!['weapon','armor'].includes(i.location.kind)?'R equips the best gear':i.origin==='dungeon'&&i.location.kind==='bag'?'⌫ drops the last find':''}</small>
      </div>
     </div>)}
-   {compact&&<div className="studio-row"><button disabled={itemPage===0} onClick={()=>setItemPage(Math.max(0,itemPage-1))}>Previous item</button><span>{Math.min(itemPage+1,visibleItems.length)}/{visibleItems.length}</span><button disabled={itemPage>=visibleItems.length-1} onClick={()=>setItemPage(itemPage+1)}>Next item</button></div>}
+   {compact&&visibleItems.length>1&&<div className="studio-row"><Key k="[ ]">Item {Math.min(itemPage+1,visibleItems.length)}/{visibleItems.length}</Key></div>}
    </section>
   </div>
   <aside>
@@ -130,17 +151,18 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
    {!ended&&<Pages items={visibleEnemies} label="Visible enemies" render={e=><p key={e.id}><strong>{s.depth?who(e):`${enemyCatalog[e.kind??'pursuer'].name} ${e.id}`}</strong>: {e.hp} health · {Math.ceil(e.hp/attackDamage(s))} hits with {s.player.weapon}. {enemyTelegraph(s,e)}</p>}/>}
    {s.depth&&(()=>{const fs=(s.features??[]).filter(f=>!f.spent&&visible.has(`${f.x},${f.y}`));return fs.length?<Pages items={fs} label="Visible features" render={f=><p>{featureLabel(f,s.floorTurn??0)} · {f.x},{f.y}. {featureCatalog[f.kind].summary}</p>}/>:null;})()}
    {!!visibleDevices.length&&<Pages items={visibleDevices} label="Visible devices" render={d=><p>{deviceLabel(d)} · {d.x},{d.y}{d.kind==='switch'?' · Walk onto it to activate.':''}</p>}/>}
-   <ol className="run-log" aria-label="Turn log, newest first">{s.log.slice(-8).reverse().map((line,i)=><li key={i} className={i===0?'newest':''}>{line}</li>)}</ol>
+   <ol className="run-log" ref={journalEl} aria-label="Journal: everything that happened this run, oldest first">{journal.map((e,i)=><li key={i} className={`${i===journal.length-1?'newest':''} ${i>0&&journal[i-1].turn!==e.turn?'turn-break':''}`}><small>T{e.turn}</small>{e.line}</li>)}</ol>
    {ended&&<RunSummary s={s} remote={remote} report={report??(remote&&!remote.terminal?safeDisposition(s):null)}/>}
-   {!remote&&<><button className="primary" onClick={()=>restart()}>New practice · tonic kit</button>
-   <button className="primary secondary" onClick={()=>restart(true)}>New practice · armor kit</button><button className="primary secondary" onClick={()=>restart(false,true)}>Retry this seed</button>
-   <button onClick={()=>{const blob=new Blob([JSON.stringify({fixture:s.layout?.[0]?.id,kit:s.player.weapon,...trace.current},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='saltwake-practice-trace.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}>Save practice record</button>
+   {!remote&&<><div className="key-prompts"><Key k="P">New practice · tonic kit</Key><Key k="Shift+P">New practice · armor kit</Key><Key k="Y">Retry this seed</Key><Key k="L">Save practice record</Key><Key k="H">Return to the inn</Key></div>
    <p className="legend">Practice uses synthetic gear. Create and rehearse your own floors at the guild. No gear carries between attempts. Town gear cannot be dropped. Found gear returns to the dungeon on death; used potions stay spent.</p></>}
 
 
   </aside>
  </section>;
 }
+
+/** A key prompt: what pressing it does right now. `on` false dims it (shown but not currently useful). */
+function Key({k,on=true,children}:{k:string;on?:boolean;children:React.ReactNode}){return <span className={`key-hint ${on?'':'off'}`}><kbd>{k}</kbd> {children}</span>;}
 
 const outcomeText:Record<string,[string,string]>={
  dungeonExtracted:['Carried out','Dungeon finds you brought home are now yours.'],dungeon_extracted:['Carried out','Dungeon finds you brought home are now yours.'],

@@ -6,3 +6,14 @@ html,body,#root{height:100%;margin:0}body{overflow:hidden}.saltwake:not(.studio-
 .game-stage .town-field{max-width:none}.saltwake .game-shell button:not(.tile):not(.place-sign):not(.character-token):not(.close-place){font-size:12px;padding:6px 8px;min-height:28px}.saltwake .builder-studio button:not(.tile):not(.place-sign):not(.character-token):not(.close-place){font-size:12px;padding:6px 8px;min-height:28px}.saltwake .builder-studio .floor-builder button.fb-cell{min-height:0;aspect-ratio:auto}.builder-studio .studio-map-area .fb-grid{grid-template-rows:repeat(9,minmax(0,1fr));height:min(100cqh,calc(100cqw * 9 / 13))}
 @media(max-width:700px){.saltwake .game-shell button:not(.tile):not(.place-sign):not(.character-token):not(.close-place),.saltwake .builder-studio button:not(.tile):not(.place-sign):not(.character-token):not(.close-place){font-size:11px;padding:4px 6px;min-height:26px}.saltwake .builder-studio .integrated-workspace .studio-floor-actions button:not(.tile){font-size:10px;padding:3px 4px;min-height:23px}}
 @media(max-width:580px){.wallet-visible .town-stage{padding-bottom:0;flex:0 0 34%;height:34%;max-height:34%}.wallet-visible .town-world .town-field{width:min(100cqw,calc((100cqh - 60px) * 1.5));height:min(calc(100cqw / 1.5),calc(100cqh - 60px))}.wallet-visible .game-stage>.room-world{flex:0 0 34%;height:34%;max-height:34%;opacity:1;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.wallet-visible .room-world .room-service,.wallet-visible .room-world .room-foot{display:none}.wallet-visible .game-stage>.compact-run{flex:0 0 30%;max-height:30%;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto}.wallet-visible .compact-run>aside,.wallet-visible .compact-run .inventory,.wallet-visible .compact-run .studio-tabs{display:none!important}}
+
+/* Mode strip and shift: one of town, expedition, builder is on screen at a time. */
+.hud-stock .mode-strip{display:inline-flex;gap:2px;margin-right:10px;vertical-align:middle}
+.saltwake .hud-stock .mode-strip button{all:unset;cursor:pointer;font-size:11px;padding:3px 8px;border:1px solid #68766c;color:#e6d9b8;background:#10211b;line-height:1}
+.saltwake .hud-stock .mode-strip button:first-child{border-radius:3px 0 0 3px}.saltwake .hud-stock .mode-strip button:last-child{border-radius:0 3px 3px 0}
+.saltwake .hud-stock .mode-strip button[aria-pressed="true"]{background:#e2c783;color:#142522;font-weight:600;cursor:default}
+.saltwake .hud-stock .mode-strip button:disabled:not([aria-pressed="true"]){opacity:.45;cursor:default}
+.saltwake .hud-stock .mode-strip button:focus-visible{outline:2px solid #e3cb8e}
+.game-stage>.town-stage,.game-stage>.expedition,.game-stage>.studio-backdrop,.game-stage>.interior,.game-stage>.practice-return{animation:mode-in .22s ease-out}
+@keyframes mode-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.game-stage>*{animation:none}}

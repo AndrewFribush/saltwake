@@ -22,9 +22,10 @@ import {availability} from './availability';
 import {walletView} from './wallet';
 import {Runs,type SavedRun} from './runs';
 import {TownPresence,presenceIdentity} from './presence';
+import {Crowd} from './crowd';
 import type {Command,EconomySnapshot} from '../../../packages/shared/src/types';
 export type WalletHttpConfig={walletSessions:WalletSessions;origin:string;network:string;contractId:string;aliases?:readonly string[]};
-export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig,options:{webOrigin?:string;pollMs?:number;historyPath?:string}={}){
+export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnapshot>,sessions=new DemoSessions({profiles:['buyer','maker','p2','p3','p4','p5'],secureCookies:false}),wallet?:WalletHttpConfig,options:{webOrigin?:string;pollMs?:number;historyPath?:string;crowd?:number}={}){
  const webOrigin=wallet?.origin??options.webOrigin??'http://127.0.0.1:18930';{const u=new URL(webOrigin);if(u.origin!==webOrigin||u.protocol!=='http:'||u.hostname!=='127.0.0.1')throw Error('Web origin must be a local HTTP origin');}const webHost=new URL(webOrigin).host;
  if(wallet){if(!wallet.walletSessions.matchesConfiguration(wallet.origin,wallet.network,wallet.contractId))throw Error('Wallet authentication configuration mismatch');const origin=new URL(wallet.origin);if(origin.origin!==wallet.origin||origin.protocol!=='http:'||origin.hostname!=='127.0.0.1')throw Error('Wallet origin must match the local HTTP origin');}
  const identity=wallet?.walletSessions??sessions;
@@ -136,6 +137,8 @@ export function httpServer(box:Outbox,runs:Runs,snapshot:()=>Promise<EconomySnap
   }catch(e){reply(e instanceof SessionError?e.status:e instanceof WalletAuthError?(e.code==='UNAUTHENTICATED'?401:400):400,{...(wallet?{authMode:'wallet'}:{}),error:e instanceof Error?e.message:'Request failed'});}
  });
  const presence=new TownPresence().attach(server);
+ // Hosted townsfolk (scenery in presence only). Started after listen so a failing snapshot never blocks the server.
+ if(options.crowd){const crowd=new Crowd(presence,{size:options.crowd,world:async()=>await snapshot() as any});server.once('listening',()=>void crowd.start().catch(()=>{}));server.on('close',()=>crowd.stop());}
  const timer=setInterval(()=>void sync(false).catch(()=>{}),options.pollMs??2000);timer.unref();server.on('close',()=>clearInterval(timer));return {server,sync};
 }
 async function bodyOf(req:IncomingMessage,maxBytes:number){let bytes=0;const chunks:Buffer[]=[];for await(const chunk of req){bytes+=chunk.length;if(bytes>maxBytes)throw Error('Request too large');chunks.push(chunk);}const body=JSON.parse(Buffer.concat(chunks).toString('utf8'));if(!body||typeof body!=='object'||Array.isArray(body))throw Error('JSON object required');return body;}

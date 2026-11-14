@@ -45,7 +45,7 @@ test('moves are validated and throttled; unknown players are refused',()=>{
  now=141;assert.equal(town.move('buyer',at('center',4,8)),true);
 });
 
-test('chat is normalized, length-limited, rate-limited and kept as short district history',()=>{
+test('chat is normalized, length-limited, rate-limited, town-wide and kept as short history',()=>{
  let now=10_000;const town=new TownPresence({now:()=>now,chatMax:20,chatBurst:3,chatWindowMs:10_000});
  const a=fakeStream(),b=fakeStream(),far=fakeStream();
  town.connect('buyer',a.stream);town.connect('maker',b.stream);town.connect('p3',far.stream);
@@ -56,7 +56,8 @@ test('chat is normalized, length-limited, rate-limited and kept as short distric
  assert.equal(m.from,'buyer');
  assert.deepEqual(b.events('chat').map(c=>c.text),['<b>hi</b> there']);
  assert.deepEqual(a.events('chat').map(c=>c.text),['<b>hi</b> there'],'sender gets the normalized echo');
- assert.equal(far.events('chat').length,0);
+ assert.deepEqual(far.events('chat').map(c=>c.text),['<b>hi</b> there'],'town chat reaches every district');
+ assert.equal(far.events('chat')[0].district,'center','a town message says where it was spoken');
  for(const bad of ['','   ','x'.repeat(21),42,null])assert.throws(()=>town.chat('maker',bad),status(400));
  assert.equal(normalizeChat('🦀'.repeat(20),20).length,40,'limit counts characters, not UTF-16 units');
  town.chat('buyer','two');town.chat('buyer','three');

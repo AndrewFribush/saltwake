@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {playerLabel,sellerIs} from '../src/presence-names';
+import {playerLabel,sellerIs,isNpc} from '../src/presence-names';
 
 test('presence labels: demo profiles get character names, wallet accounts are shown and truncated',()=>{
  assert.equal(playerLabel('buyer'),'The delver');
  assert.equal(playerLabel('alice.testnet'),'alice.testnet');
  assert.equal(playerLabel('a-very-long-account-name.testnet'),'a-very-long-account…');
+ assert.equal(playerLabel('npc:maren'),'Maren','hosted townsfolk show a first name');
+ assert.equal(isNpc('npc:maren'),true);assert.equal(isNpc('maker'),false);assert.equal(isNpc('npcmaren.testnet'),false);
 });
 
 test('trade partner listings match demo profiles and wallet profiles, nothing looser',()=>{

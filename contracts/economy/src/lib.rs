@@ -161,7 +161,8 @@ impl Economy {
     }
     // Explicit extended seed issuance: market demo (170 credits, 19 items),
     // plus 6 reserved labor credits and 32 materials (8 herbs + 8 flasks each
-    // for maker and bank). Total: 176 credits, 51 items. Two zero-asset workers.
+    // for maker and bank). Total: 176 credits, 51 items. Two zero-asset workers,
+    // plus 140 coins for two sample makers (dredger, salvager).
     // Recipe transforms consume 4 input instances and issue exactly 2 outputs.
     #[init]
     #[private]
@@ -170,6 +171,10 @@ impl Economy {
         s.recovery.budget = U64(6);
         s.credits.insert("worker".into(), 0);
         s.credits.insert("worker2".into(), 0);
+        // Two sample makers for the local demo town (scripts/demo-town.ts publishes their dungeons).
+        // Labelled demonstration supply: 140 coins, no goods. Not claimable as player profiles.
+        s.credits.insert("dredger".into(), 60);
+        s.credits.insert("salvager".into(), 80);
         for owner in ["maker", "bank"] {
             for (ty, prefix) in [(ItemType::Herb, "herb"), (ItemType::Flask, "flask")] {
                 for n in 0..8 {
@@ -244,6 +249,9 @@ impl Economy {
     #[private]
     pub fn init_public_testnet() -> Self {
         let mut s = Self::init_demo_extended();
+        // The two sample makers belong to the local demo town only; on testnet every profile is a wallet account.
+        s.credits.remove("dredger");
+        s.credits.remove("salvager");
         // Four 2-coin jobs reach exactly one batch of ingredients (8 coins): earn -> craft -> sell -> build.
         // 160 reserved wage credits fund 40 newcomers' full earn path.
         s.recovery.budget = U64(160);

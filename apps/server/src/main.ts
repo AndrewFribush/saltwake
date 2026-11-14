@@ -12,7 +12,7 @@ import {withArchive} from './history-archive';
 import {Store} from './db';import {Outbox} from './outbox';import {NearChain} from './chain';import {Runs} from './runs';import {httpServer} from './http';
 import type {EconomySnapshot} from '../../../packages/shared/src/types';
 // Local sandbox: operator-controlled demo profiles. Testnet: wallet sign-in only, no demo profiles.
-const {values:args}=parseArgs({options:{testnet:{type:'boolean',default:false},'wallet-local':{type:'boolean',default:false},'wallet-local-alias':{type:'string',multiple:true,default:[]},config:{type:'string'},approval:{type:'string',default:'.state/testnet-runtime-approval.json'},port:{type:'string',default:process.env.SALTWAKE_API_PORT??'18931'},'web-origin':{type:'string',default:'http://127.0.0.1:18930'},'rpc-cache-ms':{type:'string',default:'5000'}}});
+const {values:args}=parseArgs({options:{testnet:{type:'boolean',default:false},'wallet-local':{type:'boolean',default:false},'wallet-local-alias':{type:'string',multiple:true,default:[]},config:{type:'string'},approval:{type:'string',default:'.state/testnet-runtime-approval.json'},port:{type:'string',default:process.env.SALTWAKE_API_PORT??'18931'},'web-origin':{type:'string',default:'http://127.0.0.1:18930'},'rpc-cache-ms':{type:'string',default:'5000'},crowd:{type:'string'}}});
 const testnet=args.testnet!;
 // --wallet-local: wallet sign-in against the local sandbox (scripts/wallet-sandbox.ts). Dev only; never testnet.
 const walletLocal=args['wallet-local']!;if(walletLocal&&testnet)throw Error('--wallet-local and --testnet are exclusive');const port=Number(args.port);if(!Number.isSafeInteger(port)||port<1024||port>65535)throw Error('Invalid --port');
@@ -60,6 +60,8 @@ const aliases=args['wallet-local-alias'] as string[];if(aliases.length&&!walletL
 const wallet=testnet||walletLocal?{origin:webOrigin,network:walletNetwork,contractId:config.accountId,aliases,walletSessions:new WalletSessions({origin:webOrigin,network:walletNetwork,contractId:config.accountId,provider,secureCookies:false,sessionMs:3600000,aliases,
  // Sessions survive a server restart: hashed tokens with expiry in this epoch's SQLite.
  store:{get:h=>db.get('wallet-session',h),put:(h,s)=>db.put('wallet-session',h,s),delete:h=>db.remove('wallet-session',h)}})}:undefined;
-const {server}=httpServer(box,runs,snapshot,demo,wallet,{webOrigin,pollMs:testnet?5000:2000,historyPath:'.state/'+config.epoch+'/town-history.json'});
+// --crowd N: hosted townsfolk walking and chatting in presence (scenery only). Default 10 on the local demo, 0 for wallet and testnet servers.
+const crowd=Number(args.crowd??(wallet?'0':process.env.SALTWAKE_CROWD??'10'));if(!Number.isInteger(crowd)||crowd<0||crowd>40)throw Error('--crowd must be 0-40');
+const {server}=httpServer(box,runs,snapshot,demo,wallet,{webOrigin,pollMs:testnet?5000:2000,historyPath:'.state/'+config.epoch+'/town-history.json',crowd});
 server.listen(port,'127.0.0.1',()=>console.log(walletLocal?`Saltwake LOCAL wallet API http://127.0.0.1:${port} for ${webOrigin} · sandbox contract ${config.accountId}`:testnet?`Saltwake testnet API (wallet sign-in) http://127.0.0.1:${port} for ${webOrigin} · contract ${config.accountId} · operator budget ${JSON.stringify(bounded!.status())}`:`Local custodial demo API: http://127.0.0.1:${port}`));
 for(const signal of ['SIGINT','SIGTERM'] as const)process.on(signal,()=>server.close(()=>{db.close();process.exit();}));

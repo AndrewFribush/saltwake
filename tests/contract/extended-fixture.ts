@@ -19,7 +19,7 @@ export async function extendedFixture(){
   assert.equal(new Set(s.items.map((i:any)=>i.id)).size,s.items.length);
   const escrow=s.runs.filter((r:any)=>r.status==='active').reduce((n:bigint,r:any)=>n+BigInt(r.fee),0n);
   const wages=s.batches.reduce((n:bigint,b:any)=>n+BigInt(b.wage_reserved),0n)+(s.commissions??[]).reduce((n:bigint,c:any)=>n+BigInt(c.escrow),0n);
-  assert.equal(Object.values(s.credits).reduce<bigint>((n,v)=>n+BigInt(v as string),BigInt(s.bank)+BigInt(s.npc_order.budget)+BigInt(s.recovery.budget)+escrow+wages),176n);
+  assert.equal(Object.values(s.credits).reduce<bigint>((n,v)=>n+BigInt(v as string),BigInt(s.bank)+BigInt(s.npc_order.budget)+BigInt(s.recovery.budget)+escrow+wages),316n,'176 seeded + 140 for the two sample makers (dredger, salvager)');
   return r;
  };
  const advance=async(deadline:string)=>{for(let i=0;i<10&&BigInt(await view('clock_ms'))<BigInt(deadline);i++){const r=await fetch(sandbox.rpcUrl,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:'ff',method:'sandbox_fast_forward',params:{delta_height:1000}}),signal:AbortSignal.timeout(30000)});assert.equal((await r.json()).error,undefined);}assert.ok(BigInt(await view('clock_ms'))>=BigInt(deadline));};

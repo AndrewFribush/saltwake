@@ -98,9 +98,13 @@ type Api=(profile:string,path:string,body?:unknown)=>Promise<any>;
 export function apiClient(url:string):Api{
  const jars=new Map<string,string>();
  const raw=async(jar:string,path:string,body?:unknown)=>{const r=await fetch(url+'/api/'+path,{method:body===undefined?'GET':'POST',headers:{Cookie:jars.get(jar)??'',Origin:url,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const c=r.headers.get('set-cookie');if(c)jars.set(jar,c.split(';')[0]);const v=await r.json() as any;if(r.status!==200)throw Error(`${path}: ${JSON.stringify(v).slice(0,200)}`);return v;};
- return async(profile,path,body)=>{if(!jars.has(profile)){await raw(profile,'session',{});await raw(profile,'profile',{profile});}return raw(profile,path,body);};
+ // A failed claim drops the jar: a new demo session auto-claims some free profile, and acting through it would act as
+ // that profile. Callers only use profiles their server offers (see sampleMakers).
+ return async(profile,path,body)=>{if(!jars.has(profile)){await raw(profile,'session',{});try{await raw(profile,'profile',{profile});}catch(e){jars.delete(profile);throw e;}}return raw(profile,path,body);};
 }
-export async function seedDemoTown(api:Api,log:(s:string)=>void=()=>{}){
+/** `sampleMakers`: also publish the four sample dungeons as the contract-seeded sample makers. Only when the serving
+ * sessions offer those profiles (runDemoTownSeed does); the simulator's town keeps the original six buildings. */
+export async function seedDemoTown(api:Api,log:(s:string)=>void=()=>{},{sampleMakers=false}={}){
  const cmd=async(profile:string,id:string,action:any)=>{const r=await api(profile,'command',{id:'demo-'+id,action});if(r.status!=='Applied')throw Error(`Demo town step ${id} (${profile}): ${r.status} ${r.result??r.reason??''}`);return r.result as string;};
  const world=(p:string)=>api(p,'world');
  const now=Date.now();
@@ -124,6 +128,23 @@ export async function seedDemoTown(api:Api,log:(s:string)=>void=()=>{}){
  const p3=Number((await world('p3')).credits);const small=presetPublication(77,'small','Rat warren',now);
  if(small.cost>p3)throw Error(`Small preset needs ${small.cost} coins; the wayfarer has ${p3}`);
  const warrenId=await cmd('p3','pub-small',{type:'publish',terms:small.terms,fee:'1',funding:[]});
+ // Sample dungeons from two NPC makers whose coins the contract seeds for the local demo (labelled demonstration
+ // supply, scripts never mint): a spread of sizes and prices so the town has choices from the first minute. Each is
+ // optional: a refused publish or a blocked plot skips that one with a note, never the seed.
+ const samples:[string,number,GeneratorPreset,string,string,DistrictId,string][]=[
+  ['dredger',58,'small','The brine cut','1','n','One floor of rats and wet stone. A first dig for the cautious.'],
+  ['dredger',23,'medium','Coffin lane','3','nw','Two floors. The second one bites.'],
+  ['salvager',202,'small','Mudlark hollow','1','sw','Cheap and quick: in, grab, out.'],
+  ['salvager',101,'large','The wreck of the Marigold','5','w','Three floors down into a drowned hull. Bring a sword.'],
+ ];
+ for(const [profile,seed,preset,title,fee,district,blurb] of sampleMakers?samples:[]){
+  try{const pub=presetPublication(seed,preset,title,now);const credits=Number((await world(profile)).credits);
+   if(pub.cost>credits){log(`Demo town: sample “${title}” skipped (${pub.cost} coins; ${profile} has ${credits}).`);continue;}
+   const id=await cmd(profile,`pub-${seed}`,{type:'publish',terms:pub.terms,fee,funding:[]});
+   await build(profile,`hall-${seed}`,title,place(district,4,10),room(r=>withBuildingUse(r,'dungeon',id),0,blurb),true);
+   log(`Demo town: sample “${title}” (${preset}, seed ${seed}, ${pub.cost} coins, fee ${fee}) in ${district}.`);
+  }catch(e){log(`Demo town: sample “${title}” skipped (${(e as Error).message}).`);}
+ }
  if(showId)await build('maker','hall-showcase',SHOWCASE_TITLE,place('e',4,10),room(r=>withBuildingUse(r,'dungeon',showId!),0,'A deep dig, funded for three delvers: a herb on the second floor, a fine tonic at the bottom. Escape to keep them.'),true);
  await build('maker','hall-tide','The drowned stair',place('se',4,10),room(r=>withBuildingUse(r,'dungeon',tideId),0,'Two floors. The tide rises; keep moving.'),true);
  await build('p3','hall-warren','Rat warren',place('ne',4,10),room(r=>withBuildingUse(r,'dungeon',warrenId),0,'One floor, no treasure: a cheap warm-up.'),true);
@@ -146,18 +167,22 @@ export async function seedDemoTown(api:Api,log:(s:string)=>void=()=>{}){
   const run=(await world(profile)).runs.find((r:any)=>!r.terminal);if(!run)throw Error('Demo admission produced no run');
   await api(profile,`runs/${run.id}/abandon`,{});
  }
- log(`Demo town: 3 dungeon entrances (showcase “The tide vaults” with funded treasure, “The drowned stair” medium preset, “Rat warren” small preset; starter at the gate), 3 shops with display shelves, 1 open tonic commission, 2 settled runs. Demonstration supply from seeded assets only.`);
+ log(`Demo town: 7 dungeon entrances (4 sample dungeons from the dredger and the salvager; showcase “The tide vaults” with funded treasure, “The drowned stair” medium preset, “Rat warren” small preset; starter at the gate), 3 shops with display shelves, 1 open tonic commission, 2 settled runs. Demonstration supply from seeded assets only.`);
 }
 
 import type {AddressInfo} from 'node:net';
 import {JsonRpcProvider,KeyPairSigner,type KeyPairString} from 'near-api-js';
+import {DemoSessions} from '../apps/server/src/auth';
+export const DEMO_PROFILES=['buyer','maker','p2','p3','p4','p5'] as const;
+/** Contract-seeded sample makers (init_demo_extended): seed-time only, never offered as player profiles. */
+export const SAMPLE_MAKERS=['dredger','salvager'] as const;
 import {Store} from '../apps/server/src/db';import {Outbox} from '../apps/server/src/outbox';import {NearChain} from '../apps/server/src/chain';import {Runs} from '../apps/server/src/runs';import {httpServer} from '../apps/server/src/http';import {CostJournal} from '../apps/server/src/cost-ledger';
 /** Runs the seed against the epoch's own server database, through an in-process copy of the API on a loopback port. */
 export async function runDemoTownSeed(config:{rpcUrl:string;accountId:string;privateKey:string;epoch:string},log:(s:string)=>void=console.log){
  const provider=new JsonRpcProvider({url:config.rpcUrl});const db=new Store('.state/'+config.epoch+'/server.sqlite');
  const chain=new NearChain(provider,KeyPairSigner.fromSecretKey(config.privateKey as KeyPairString),config.accountId,config.accountId);
  const snapshot=()=>provider.callFunction<any>({contractId:config.accountId,method:'snapshot',args:{},blockQuery:{finality:'final'}});
- const box=new Outbox(db,chain,new CostJournal(db,snapshot));const {server}=httpServer(box,new Runs(db,box),snapshot);
- try{await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));await seedDemoTown(apiClient('http://127.0.0.1:'+(server.address() as AddressInfo).port),log);}
+ const box=new Outbox(db,chain,new CostJournal(db,snapshot));const {server}=httpServer(box,new Runs(db,box),snapshot,new DemoSessions({profiles:[...DEMO_PROFILES,...SAMPLE_MAKERS],secureCookies:false}));
+ try{await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));await seedDemoTown(apiClient('http://127.0.0.1:'+(server.address() as AddressInfo).port),log,{sampleMakers:true});}
  finally{await new Promise<void>(r=>server.close(()=>r()));db.close();}
 }

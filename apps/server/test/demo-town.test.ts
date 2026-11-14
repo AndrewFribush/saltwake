@@ -19,10 +19,10 @@ test('demonstration town seed builds through the player API within plot limits a
   // Seeding never throws on the showcase, so check here that the current generator still produces it.
   const show=after.editions.find((e:any)=>e.terms.title==='The tide vaults');assert.ok(show,'showcase published against the current generator');assert.equal(show.terms.no_reward,false);
   assert.equal(after.items.filter((i:any)=>i.location.kind==='edition_fixed'&&i.location.edition===show.id).length,6,'three funded copies of herb + fine tonic');
-  assert.equal(after.shops.length,6);for(const o of new Set<string>(after.shops.map((s:any)=>s.owner)))assert.ok(after.shops.filter((s:any)=>s.owner===o).length<=landRules.maxPlotsPerOwner);
+  assert.equal(after.shops.length,10,'3 shops, the showcase, the 2 preset halls and the 4 sample halls');for(const o of new Set<string>(after.shops.map((s:any)=>s.owner)))assert.ok(after.shops.filter((s:any)=>s.owner===o).length<=landRules.maxPlotsPerOwner);
   const editions=after.editions.map((e:any)=>({...e,status:e.closed?'closed':'open',bundles:0,record:{attempts:0,completed:after.runs.filter((r:any)=>r.edition===e.id&&r.status!=='active').length,extracted:0,died:0}}));
   const board=boardEntries(after.shops,editions,after.listings);
-  assert.equal(board.filter(e=>e.kind==='dungeon').length,3);assert.equal(board.filter(e=>e.kind==='shop').length,3);
+  assert.equal(board.filter(e=>e.kind==='dungeon').length,7);assert.equal(board.filter(e=>e.kind==='shop').length,3);
   assert.ok(board.filter(e=>e.kind==='shop').every(e=>e.goods!.count>0));
   assert.equal(after.runs.filter((r:any)=>r.status==='abandoned').length,2);
   assert.equal((after.commissions??[]).filter((c:any)=>c.status==='open').length,1,'one demo commission shows artisans player demand');

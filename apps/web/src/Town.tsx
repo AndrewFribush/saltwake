@@ -13,6 +13,7 @@ import {landRules} from '../../../packages/shared/src/land';
 import {atNoticeBoard,boardEntries,directionsTo,noticeBoard,type BoardEntry} from '../../../packages/game/src/town-board';
 import {TownBoard} from './TownBoard';
 import {PresenceAvatars,TownChat,useTownPresence,useRoomPresence,setRoomCrowd,playerLabel,type Facing} from './TownPresence';
+import {isNpc} from './presence-names';
 import {PlayerTrade,type TradeContext} from './PlayerTrade';
 import {atDistrictPost,districtPost,districtDigest} from '../../../packages/game/src/town-life';
 import {DistrictPost,TownBanner,TownsfolkLayer,talkLine,useClock} from './TownLife';
@@ -49,7 +50,7 @@ export function Town({onEnter,disabled=false,openings,stock,children,shops=[],on
   }}>
    <svg className="harbor-map" viewBox={`0 0 ${townSize.width*cell} ${townSize.height*cell}`} role="img" aria-label={`Saltwake: ${districtInfo.name}. Walk to an open edge to visit the next district.`} onClick={e=>{
     if(disabled)return;const r=e.currentTarget.getBoundingClientRect();const p={x:Math.floor((e.clientX-r.left)/r.width*townSize.width),y:Math.floor((e.clientY-r.top)/r.height*townSize.height)};
-    const other=trade&&presence.others.find(o=>o.x===p.x&&o.y===p.y&&!blockedIds.includes(o.id));if(other){setTradeWith(other.id);return;}
+    const other=trade&&presence.others.find(o=>o.x===p.x&&o.y===p.y&&!blockedIds.includes(o.id)&&!isNpc(o.id));if(other){setTradeWith(other.id);return;}
     const building=places.find(b=>p.x>=b.x&&p.x<b.x+b.width&&p.y>=b.y&&p.y<b.y+b.height);if(building){travel(building.id);return;}
     if(p.x===position.x&&p.y===position.y&&(p.x===0||p.x===23||p.y===0||p.y===15)){towardEdge(p,p.x===0?-1:p.x===23?1:0,p.x===0||p.x===23?0:p.y===0?-1:1);}else setRoute(districtPath(district,position,p,shops));field.current?.focus({preventScroll:true});
    }}>
@@ -85,7 +86,7 @@ export function Town({onEnter,disabled=false,openings,stock,children,shops=[],on
    {district===noticeBoard.district&&<button className="place-sign notice-board-sign" disabled={disabled} style={{left:`${(noticeBoard.x+.5)/townSize.width*100}%`,top:`${(noticeBoard.y-.55)/townSize.height*100}%`}} onClick={()=>{if(atNoticeBoard(district,position))setBoardOpen(true);else setRoute(districtPath(district,position,noticeBoard,shops));field.current?.focus({preventScroll:true});}} aria-label="Walk to the harbor notice board"><strong>Notice board</strong><span>Player dungeons & shops</span></button>}
    {district!=='center'&&<button className="place-sign notice-board-sign district-post-sign" disabled={disabled} style={{left:`${(districtPost.x+.5)/townSize.width*100}%`,top:`${(districtPost.y-.55)/townSize.height*100}%`}} onClick={()=>{if(atDistrictPost(district,position))setPostOpen(true);else setRoute(districtPath(district,position,districtPost,shops));field.current?.focus({preventScroll:true});}} aria-label={`Walk to the ${districtInfo.name} notice post`}><strong>Notice post</strong><span>{digest.buildings.length?`${digest.buildings.length} built here`:'Nothing built yet'}</span></button>}
    <div className="district-compass" aria-label="Neighboring districts">{[{dx:0,dy:-1,label:'↑',point:{x:12,y:0}},{dx:1,dy:0,label:'→',point:{x:23,y:8}},{dx:0,dy:1,label:'↓',point:{x:12,y:15}},{dx:-1,dy:0,label:'←',point:{x:0,y:8}}].map(({dx,dy,label,point})=>{const n=neighbor(district,dx,dy);return n&&<button key={label} className={`edge-${dy<0?'n':dy>0?'s':dx<0?'w':'e'}`} disabled={disabled} onClick={()=>towardEdge(point,dx,dy)}>{label} {n.name}</button>;})}</div>
-   <TownChat presence={presence} districtName={districtInfo.name} field={field} disabled={disabled} onPlayer={trade?setTradeWith:undefined}/>
+   <TownChat presence={presence} district={district} districtName={districtInfo.name} field={field} disabled={disabled} onPlayer={trade?setTradeWith:undefined}/>
    {trade&&tradeWith&&!disabled&&<PlayerTrade partner={tradeWith} distance={partner?Math.abs(partner.x-position.x)+Math.abs(partner.y-position.y):null} trade={trade} announce={presence.say} onApproach={()=>{if(partner)setRoute(districtPath(district,position,{x:partner.x,y:partner.y},shops));field.current?.focus({preventScroll:true});}} onClose={()=>{setTradeWith(undefined);field.current?.focus({preventScroll:true});}}/>}
    {plotTour&&!disabled&&!boardOpen&&<div className="plot-tour-hint" role="note"><b>Claim a plot.</b> Land in Saltwake is built by players. The dashed patch is free: press <b>Build here</b> above the map to put a shop or the entrance to your own dungeon there. You can hold {landRules.maxPlotsPerOwner} plots. <button onClick={()=>{if(me)markDone(me,'plot-tour');setTourSeen(true);field.current?.focus({preventScroll:true});}}>Got it</button></div>}
    {postOpen&&!disabled&&<DistrictPost digest={digest} district={district} directions={e=>directionsTo(district,e)} marked={waypoint?.shopId} onMark={setWaypoint} onClose={()=>{setPostOpen(false);field.current?.focus({preventScroll:true});}}/>}

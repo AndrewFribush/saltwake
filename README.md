@@ -1,6 +1,24 @@
-# Dungeon economy — local prototype
+# Saltwake — a player-built dungeon economy on NEAR
 
-A walkable town, seeded paid dungeons and a custodial shop/crafting economy on an isolated local NEAR sandbox. No public deployment or real-money game is configured.
+Built at NEAR HACKATHON (2026-11-01 to 2026-11-14). A walkable harbour town where players build the dungeons other players pay to enter. Makers draw the floors, fund the treasure from goods they own and keep the entry fees. Adventurers pay the fee, go down, and either extract with loot or die and lose their gear to the bank. Artisans craft the tonics everyone needs. Every coin, item, building and run settlement lives in one Rust contract on NEAR; the server only relays moves and signs settlements under a bounded, approved transaction budget.
+
+**Problem.** Game economies are usually inflationary and opaque: the operator mints rewards and nobody can audit where value goes. Saltwake mints nothing after setup. Coins only move between players, the bank and escrow, and every rule that moves them (fees, death, crafting, commissions, land, closing an edition) is enforced by the contract, so the economy can be checked by anyone with an RPC.
+
+**How NEAR fits.** One contract, `contracts/economy/src/lib.rs` (near-sdk 5.29), holds the whole economy: purses, finite goods, dungeon editions with funded reward pools, run settlement, shops, crafting, commissions (escrow), player buildings (land rules) and capacity limits. Testnet players sign in with a NEAR wallet (NEP-413) and sign their own economic actions; the operator key only settles runs and crafts. Live testnet contract: `saltwake-20261114.testnet` ([explorer](https://testnet.nearblocks.io/address/saltwake-20261114.testnet)).
+
+## Try it in five minutes (judges)
+
+1. **Run the stack.** Follow "Play Saltwake" below (three terminals: sandbox, server, web), then open http://127.0.0.1:18930. See: a harbour town with townsfolk walking and chatting, eight open dungeons on the notice board, ten buildings.
+2. **Pay for a run.** Walk into any dungeon entrance (or the old catacombs), pack gear, pay the fee. See: your purse drops by the fee, the fee shows as reserved, the run starts with fog, enemies and funded loot.
+3. **Extract or die.** Step on loot to take it, reach the stairs and press X to escape. See: the result waits on confirmed settlement, then your finds become spendable and the maker's fee lands in their pending income. Die instead and see your town gear appear in the bank's stock.
+4. **Build a dungeon.** Go to the Delvers' guild, open the builder, draw rooms and side rooms, place encounters, fund rewards from goods you own, publish. See: the placement cost leaves your purse, the edition appears on the notice board, another session can pay to enter it.
+5. **Audit it.** `npm run test:contract` runs the economy against the real WASM, including a stress test that asserts total coins never change. Or query `snapshot` on the testnet contract and add up the purses yourself.
+
+Everything in `dungeon-economy/` was written during the hackathon window (first commit 2026-11-09). Libraries: near-sdk (Rust), near-api-js, near-sandbox, NEAR wallet selector, React, Vite, Node 22 with its built-in SQLite. Code was written with Claude Code (Anthropic) driven by the author; all design decisions, economy rules and acceptance were the author's. No prior product, no other chain.
+
+## Local prototype
+
+A walkable town, seeded paid dungeons and a custodial shop/crafting economy on an isolated local NEAR sandbox. The testnet contract above is public, but no real-money game is configured.
 
 ## Play Saltwake
 
@@ -17,6 +35,12 @@ npm run sandbox
 ```sh
 npm run server
 ```
+
+The local server hosts a small crowd by default: townsfolk with presence ids `npc:<name>` who walk the districts and
+talk in the town chat. They are scenery in presence only (no profile, coins or goods; trading with them is hidden).
+`npm run server -- --crowd 0` turns them off, `--crowd 20` makes a busier square (0 to 40); wallet and testnet servers
+default to none. The demo town also seeds four sample dungeons from two contract-seeded sample makers (`dredger`,
+`salvager`, 140 labelled demonstration coins in `init_demo_extended`) beside the proprietor's showcase.
 
 ```sh
 npm run dev -- --port 18930 --strictPort
