@@ -21,7 +21,7 @@ SALTWAKE_API_PORT=18945 npx vite apps/web --host 127.0.0.1 --port 18944 --strict
 # open http://127.0.0.1:18944 (must be 127.0.0.1, not localhost)
 ```
 
-Approval file: `{approvedBy:"Andrew", accountId, rpcUrl, wasmSha256, maximumTransactions (<=5000), expiresAt (<=2026-11-16T23:59:59Z), approvalId?}`. The server checks the RPC allowlist, the account, the local artifact hash and the deployed code hash before starting. The operator budget counts broadcasts and survives restarts. A new `approvalId` starts a new budget.
+Approval file: `{approvedBy:"Andrew", accountId, rpcUrl, wasmSha256, maximumTransactions (<=5000), expiresAt (<=2026-11-25T23:59:59Z), approvalId?}`. The server checks the RPC allowlist, the account, the local artifact hash and the deployed code hash before starting. The operator budget counts broadcasts and survives restarts. A new `approvalId` starts a new budget.
 
 ## Wallets
 

@@ -4,7 +4,7 @@ Built at NEAR HACKATHON (2026-11-01 to 2026-11-14). A walkable harbour town wher
 
 **Problem.** Game economies are usually inflationary and opaque: the operator mints rewards and nobody can audit where value goes. Saltwake mints nothing after setup. Coins only move between players, the bank and escrow, and every rule that moves them (fees, death, crafting, commissions, land, closing an edition) is enforced by the contract, so the economy can be checked by anyone with an RPC.
 
-**How NEAR fits.** One contract, `contracts/economy/src/lib.rs` (near-sdk 5.29), holds the whole economy: purses, finite goods, dungeon editions with funded reward pools, run settlement, shops, crafting, commissions (escrow), player buildings (land rules) and capacity limits. Testnet players sign in with a NEAR wallet (NEP-413) and sign their own economic actions; the operator key only settles runs and crafts. Live testnet contract: `saltwake-20261114.testnet` ([explorer](https://testnet.nearblocks.io/address/saltwake-20261114.testnet)).
+**How NEAR fits.** One contract, `contracts/economy/src/lib.rs` (near-sdk 5.29), holds the whole economy: purses, finite goods, dungeon editions with funded reward pools, run settlement, shops, crafting, commissions (escrow), player buildings (land rules) and capacity limits. Testnet players sign in with a NEAR wallet (NEP-413) and sign their own economic actions; the operator key only settles runs and crafts. Live testnet contract: `saltwake-20261114.testnet` ([explorer](https://testnet.nearblocks.io/address/saltwake-20261114.testnet)). Hosted demo: https://saltwake.fly.dev (testnet wallet sign-in; up through 2026-11-25).
 
 ## Try it in five minutes (judges)
 
@@ -95,7 +95,7 @@ After rebuilding the contract, stop only the API process (keep the sandbox runni
    npx tsx scripts/testnet-redeploy.ts --account saltwake-YYYYMMDD.testnet --funder saltwake-YYYYMMDD-f1.testnet --funder saltwake-YYYYMMDD-f2.testnet
    ```
 
-2. Approve: copy `approvalTemplate` from that output into `.state/redeploy/<account>/approval.json`, set `expiresAt` (no later than 2026-11-16T23:59:59Z) and keep `approvedBy: "Andrew"`. The approval pins the exact accounts, RPC, WASM hash and send budget (3 faucet requests + 4 transactions for two funders) plus the server's runtime budget.
+2. Approve: copy `approvalTemplate` from that output into `.state/redeploy/<account>/approval.json`, set `expiresAt` (no later than 2026-11-25T23:59:59Z) and keep `approvedBy: "Andrew"`. The approval pins the exact accounts, RPC, WASM hash and send budget (3 faucet requests + 4 transactions for two funders) plus the server's runtime budget.
 
 3. Execute (the one command to approve):
 

@@ -12,7 +12,7 @@ test('testnet approval accepts a multi-day budget and keeps exact destination ch
   ['rpc mismatch',{},{rpcUrl:'https://rpc.testnet.near.org'}],
   ['too many tx',{},{maximumTransactions:TESTNET_MAX_TRANSACTIONS+1}],
   ['expired',{},{expiresAt:'2026-11-10T00:00:00Z'}],
-  ['too late',{},{expiresAt:'2026-11-17T00:00:01Z'}],
+  ['too late',{},{expiresAt:'2026-11-26T00:00:01Z'}],
   ['approver',{},{approvedBy:'someone'}],
   ['hash',{},{wasmSha256:'nope'}],
  ];

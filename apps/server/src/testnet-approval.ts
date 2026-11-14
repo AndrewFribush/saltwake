@@ -3,7 +3,7 @@
  * budget and expiry. Bounds are capped for a multi-day public testnet demo. */
 export const TESTNET_RPCS=['https://test.rpc.fastnear.com','https://rpc.testnet.near.org'] as const;
 export const TESTNET_MAX_TRANSACTIONS=5000;
-export const TESTNET_LATEST_EXPIRY=Date.parse('2026-11-16T23:59:59Z');
+export const TESTNET_LATEST_EXPIRY=Date.parse('2026-11-25T23:59:59Z');
 export type TestnetConfig={rpcUrl:string;accountId:string;epoch:string};
 export type TestnetApproval={approvedBy:string;accountId:string;rpcUrl:string;wasmSha256:string;maximumTransactions:number;expiresAt:string;approvalId?:string};
 export function checkTestnetApproval(config:TestnetConfig,approval:TestnetApproval,now=Date.now()){
@@ -20,7 +20,7 @@ export function checkTestnetApproval(config:TestnetConfig,approval:TestnetApprov
  const expiresAt=Date.parse(approval.expiresAt);
  if(!Number.isFinite(expiresAt))fail('expiresAt');
  if(expiresAt<=now)fail('approval expired');
- if(expiresAt>TESTNET_LATEST_EXPIRY)fail('expiresAt is later than 2026-11-16T23:59:59Z');
+ if(expiresAt>TESTNET_LATEST_EXPIRY)fail('expiresAt is later than 2026-11-25T23:59:59Z');
  if(approval.approvalId!==undefined&&!/^[A-Za-z0-9_-]{1,64}$/.test(approval.approvalId))fail('approvalId');
  return {limit,expiresAt,budgetId:config.accountId+':'+(approval.approvalId??approval.expiresAt)};
 }
