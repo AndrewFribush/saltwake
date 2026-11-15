@@ -94,7 +94,7 @@ export function createWalletGameConnection({config,session,guard,guardedRequest,
  transport:Pick<WalletTransport,'execute'|'beginCraft'>&Partial<Pick<WalletTransport,'buyCoins'>>;sessionControls:React.ReactNode;
 }):WalletDemoConnection{
  return {
-  profile:session.profileId,storageScope:JSON.stringify([config.origin,config.network,config.contractId,session.accountId]),
+  profile:session.profileId,network:config.network,storageScope:JSON.stringify([config.origin,config.network,config.contractId,session.accountId]),
   request:guardedRequest,operationId:id=>walletOperationId(session.accountId,id),
   execute:async(id,action)=>{guard();const result=await transport!.execute(id,action);guard();return result;},
   buyCoins:async(id,coins)=>{guard();if(!transport!.buyCoins)throw Error("Buy-in unavailable");await transport!.buyCoins(id,coins);guard();},

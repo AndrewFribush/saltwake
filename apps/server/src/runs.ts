@@ -10,6 +10,7 @@ import {createRun,type RunState,type RoomLayout} from '../../../packages/game/sr
 import {decodeCustomModule} from '../../../packages/shared/src/custom-layout';
 import {fundedLayout} from '../../../packages/game/src/funded-layout';
 import {explore,visibleTiles} from '../../../packages/game/src/roguelike';
+import {roomMap} from '../../../packages/game/src/room-map';
 import {enterRoom,canExtract,canContinue,hasNextRoom} from '../../../packages/game/src/generation';
 import {addItem} from '../../../packages/game/src/inventory';
 import {act,type Action} from '../../../packages/game/src/actions';
@@ -120,7 +121,7 @@ export class Runs {
   const settled=terminalOp?.status==='Applied'&&(terminalOp.command.action.type==='settle'||terminalOp.command.action.type==='void')?terminalOp.command.action.disposition:null;
   const disclosed=settled?Object.fromEntries(Object.entries(settled).map(([key,ids])=>[key,state.roguelike?ids.filter(itemId=>itemId in state.items):ids])):null;
   const withheldCounts=settled?Object.fromEntries(Object.entries(settled).map(([key,ids])=>[key,ids.length-(disclosed?.[key]?.length??0)])):null;
-  return {id,profile,seq:row.seq,state,edition:row.economic.edition,fee:row.economic.fee,deadline:row.economic.deadline_ms,roomTitle:row.state.layout![state.roomIndex].title,exit:row.state.layout![state.roomIndex].exit,roomCount:row.state.layout!.length,canExtract:!row.terminal&&state.status==='active'&&this.clock()<Number(row.economic.deadline_ms)&&canExtract(row.state),canContinue:!row.terminal&&this.clock()<Number(row.economic.deadline_ms)&&canContinue(row.state),hasNextRoom:hasNextRoom(row.state),terminal:row.terminal??null,settlement:row.externalSettlement?{status:'Applied',source:'chain',receipt:null,disposition:null,withheldCounts:null}:terminalOp?{status:terminalOp.status,reason:terminalOp.reason??null,receipt:terminalOp.receipt?.status==='Applied'||terminalOp.receipt?.status==='Rejected'?{status:terminalOp.receipt.status,result:terminalOp.receipt.result}:null,disposition:disclosed,withheldCounts}:null};
+  return {id,profile,seq:row.seq,state,roomMap:roomMap(row.state),edition:row.economic.edition,fee:row.economic.fee,deadline:row.economic.deadline_ms,roomTitle:row.state.layout![state.roomIndex].title,exit:row.state.layout![state.roomIndex].exit,roomCount:row.state.layout!.length,canExtract:!row.terminal&&state.status==='active'&&this.clock()<Number(row.economic.deadline_ms)&&canExtract(row.state),canContinue:!row.terminal&&this.clock()<Number(row.economic.deadline_ms)&&canContinue(row.state),hasNextRoom:hasNextRoom(row.state),terminal:row.terminal??null,settlement:row.externalSettlement?{status:'Applied',source:'chain',receipt:null,disposition:null,withheldCounts:null}:terminalOp?{status:terminalOp.status,reason:terminalOp.reason??null,receipt:terminalOp.receipt?.status==='Applied'||terminalOp.receipt?.status==='Rejected'?{status:terminalOp.receipt.status,result:terminalOp.receipt.result}:null,txHash:terminalOp.signed?.hash??null,disposition:disclosed,withheldCounts}:null};
  }
  action(id:string,profile:string,actionId:string,expectedSeq:number,action:Action){
   if(!/^[\w-]{1,64}$/.test(actionId)||!Number.isSafeInteger(expectedSeq)||JSON.stringify(action).length>2048)throw Error('Invalid action envelope');

@@ -8,6 +8,7 @@ import './fixed-windows.css';
 import './saltwake-polish.css';
 import './navigation.css';
 import './playtest.css';
+import {videoMode} from './art/video-mode';
 
 type Config={authMode:'demo';label:string}|{authMode:'wallet';origin:string;network:string;contractId:string};
 // localnet: dev-only wallet play against scripts/wallet-sandbox.ts with the dev test signer.
@@ -20,8 +21,8 @@ export function App(){
  const load=()=>{setError('');fetch('/api/config',{credentials:'same-origin'}).then(r=>r.ok?r.json():Promise.reject(Error('HTTP '+r.status))).then(setConfig,(e:Error)=>setError('Cannot reach the Saltwake server ('+e.message+'). Start it, then retry.'));};
  useEffect(load,[]);
  if(!config)return <main className="saltwake"><section className="arrival"><h1>Saltwake awaits</h1><p>{error||'Connecting to the harbor…'}</p>{error&&<button onClick={load}>Retry</button>}</section></main>;
- if(config.authMode==='wallet')return <main className="saltwake"><WalletShell config={config}/><footer>Saltwake · NEAR {config.network} · {config.contractId}. Sign in with your own wallet; game coins are synthetic.</footer></main>;
- return <main className="saltwake"><Demo/><footer>Saltwake · Local playable prototype. Synthetic coins and operator-controlled characters.</footer></main>;
+ if(config.authMode==='wallet')return <main className="saltwake"><WalletShell config={config}/>{!videoMode&&<footer>Saltwake · NEAR {config.network} · {config.contractId}. Sign in with your own wallet; game coins are synthetic.</footer>}</main>;
+ return <main className="saltwake"><Demo/>{!videoMode&&<footer>Saltwake · Local playable prototype. Synthetic coins and operator-controlled characters.</footer>}</main>;
 }
 
 function WalletShell({config}:{config:Extract<Config,{authMode:'wallet'}>}){
