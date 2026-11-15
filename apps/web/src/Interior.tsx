@@ -13,8 +13,8 @@ import './town-spaces.css';
 export function Interior({place,busy,onExit,children,wallet,editable=true,layoutOverride,displayName,onEdit,fixtureContent,purpose,overlay,onPosition,idle,onBuilder,idleHint}:{onBuilder?:()=>void;idleHint?:React.ReactNode;place:PlaceId;busy:boolean;onExit:()=>void;children:React.ReactNode;wallet:React.ReactNode;editable?:boolean;layoutOverride?:InteriorLayout;displayName?:string;onEdit?:()=>void;fixtureContent?:(f:RoomFixture)=>{title:string;body:React.ReactNode}|undefined;purpose?:string;overlay?:(cell:{x:number;y:number})=>React.ReactNode;onPosition?:(p:TownPoint)=>void;idle?:React.ReactNode}){
  const [layout,setLayout]=useState(()=>layoutOverride??readInterior(place));const [editing,setEditing]=useState(false);
  const [position,setPosition]=useState(layout.entry),[route,setRoute]=useState<TownPoint[]>([]),[target,setTarget]=useState<string>(),[interaction,setInteraction]=useState<string>();const field=useRef<HTMLDivElement>(null);const fixtures=withBuilder(place,roomFixtures(place,layout),layout),baseLocation=places.find(p=>p.id===place)!,location=displayName?{...baseLocation,name:displayName,keeper:displayName}:baseLocation;
- const custom=(f:RoomFixture)=>fixtureContent?.(f)??(f.text?{title:f.name,body:<blockquote className="room-notice">{f.text}</blockquote>}:undefined);
- const usable=(f:RoomFixture)=>f.id==='service'||f.id==='wallet'||f.id==='builder'||!!custom(f);
+ const custom=(f:RoomFixture)=>fixtureContent?.(f)??(f.text?{title:f.name,body:<blockquote className="room-notice">{f.text}</blockquote>}:f.id==='service'||f.id==='wallet'||f.id==='builder'?undefined:{title:f.name,body:<><p className="room-flavour">{flavour(f.name)}</p>{children}</>});
+ const usable=(_f:RoomFixture)=>true;
  const facing=useFacing(position,'up');
  const near=fixtures.find(f=>Math.abs(f.x-position.x)+Math.abs(f.y-position.y)===1&&usable(f));
  const active=interaction&&interaction!=='service'&&interaction!=='wallet'?fixtures.find(f=>f.id===interaction):undefined,activeContent=active&&custom(active);
@@ -43,4 +43,19 @@ function withBuilder(place:PlaceId,fixtures:ReturnType<typeof roomFixtures>,layo
  if(place!=='guild'||fixtures.some(f=>f.id==='builder'))return fixtures;
  for(const [x,y] of [[2,2],[2,3],[3,2],[2,4],[3,3],[1,1],[2,1],[3,1],[1,2]]){const p={x,y};if(layout.tiles[y]?.[x]==='.'&&!fixtures.some(f=>f.x===x&&f.y===y)&&!(layout.entry.x===x&&layout.entry.y===y)){const next=[...fixtures.filter(f=>!(f.id==='decor-a'&&f.x===x&&f.y===y)),{id:'builder',name:'Drafting table · build a dungeon',glyph:'✎',x,y}];if(roomPath(place,layout.entry,layout.exit,{...layout,fixtures:next}).length)return next;}}
  return fixtures;
+}
+
+/** One line about a piece of furniture, by what its name says it is. */
+function flavour(name:string):string{
+ const n=name.toLowerCase();
+ if(/bed/.test(n))return 'A made bed with a salt-stiff blanket. Guests who sleep here keep their goods in the house store.';
+ if(/shelf|shelves/.test(n))return 'Stock on the shelves, priced at the counter. Whatever sells here is listed below.';
+ if(/barrel/.test(n))return 'Barrels of ingredients: herbs, brine and glass for the kettle.';
+ if(/chest/.test(n))return 'A supply chest. The house keeps its goods here; the counter sells them.';
+ if(/crate/.test(n))return 'Crates waiting on the next tide. Ask at the counter for what is in them.';
+ if(/hearth|fire|stove|kettle/.test(n))return 'The hearth keeps the house warm and the kettle going.';
+ if(/table|desk/.test(n))return 'Ledgers and maps on the table. The keeper works from here.';
+ if(/board|notice|sign/.test(n))return 'Notices for the house. The keeper posts here.';
+ if(/warden|guard|keeper|steward|merchant/.test(n))return 'Keeps the house. Business is done at the counter.';
+ return `${name}. Part of the house; the keeper will deal with you at the counter.`;
 }

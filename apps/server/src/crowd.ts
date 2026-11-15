@@ -10,7 +10,7 @@ export const NPC_PREFIX='npc:';
 export const isNpc=(id:string)=>id.startsWith(NPC_PREFIX);
 
 type World={shops?:readonly Shopfront[];editions?:readonly {title?:string;fee?:string;closed?:boolean;retired?:boolean}[]};
-type Npc={id:string;name:string;look:number;district:DistrictId;x:number;y:number;facing:Facing;dx:number;dy:number;restUntil:number;moveUntil:number;lastSent:number};
+type Npc={id:string;name:string;look:number;district:DistrictId;x:number;y:number;facing:Facing;dx:number;dy:number;restUntil:number;moveUntil:number;lastSent:number;stepMs:number;nextStep:number};
 type Exchange=[string,string];
 export type CrowdOptions={size?:number;now?:()=>number;random?:()=>number;world?:()=>Promise<World>;tickMs?:number;chatEveryMs?:[number,number]};
 
@@ -55,7 +55,7 @@ export class Crowd{
   for(let i=0;i<this.#o.size;i++){
    const name=names[i%names.length]+(i>=names.length?String(Math.floor(i/names.length)+1):'');
    const district=pick(districts).id;const spot=this.#freeSpot(district)??{x:5,y:8};
-   const npc:Npc={id:NPC_PREFIX+name,name,look:i%16,district,x:spot.x,y:spot.y,facing:'down',dx:0,dy:0,restUntil:now+this.#o.random()*4000,moveUntil:0,lastSent:-Infinity};
+   const npc:Npc={id:NPC_PREFIX+name,name,look:i%16,district,x:spot.x,y:spot.y,facing:'down',dx:0,dy:0,restUntil:now+this.#o.random()*4000,moveUntil:0,lastSent:-Infinity,stepMs:450+this.#o.random()*900,nextStep:0};
    // A silent stream: the crowd never reads events. connect() is what makes an npc visible to real players.
    try{this.#disconnects.push(this.#presence.connect(npc.id,{send:()=>{},end:()=>{}}));}catch{continue;}
    this.#npcs.push(npc);this.#send(npc,now);
@@ -80,8 +80,16 @@ export class Crowd{
   const now=this.#o.now();
   if(now-this.#lastWorld>60_000)await this.refreshWorld();
   for(const npc of this.#npcs){
-   if(now<npc.restUntil){if(now-npc.lastSent>8_000)this.#send(npc,now);continue;}
+   if(now<npc.restUntil){
+    // Standing folk look around now and then, and repeat their position so late joiners see them.
+    if(this.#o.random()<0.06){const faces:Facing[]=['up','down','left','right'];npc.facing=faces[Math.floor(this.#o.random()*4)];this.#send(npc,now);}
+    else if(now-npc.lastSent>8_000)this.#send(npc,now);
+    continue;}
+   // Everyone walks at their own pace, so the crowd never steps in unison.
+   if(now<npc.nextStep)continue;npc.nextStep=now+npc.stepMs;
    if(now>=npc.moveUntil){
+    // A heading ends in a pause more often than not: stop, look somewhere, then pick a new way.
+    if(npc.moveUntil>0&&this.#o.random()<0.6){npc.moveUntil=0;npc.restUntil=now+1200+this.#o.random()*4500;const faces:Facing[]=['up','down','left','right'];npc.facing=faces[Math.floor(this.#o.random()*4)];this.#send(npc,now);continue;}
     // Pick a new heading; occasionally change district (walk off through the gate: arrive at a free spot).
     if(this.#o.random()<0.04){const next=districts[Math.floor(this.#o.random()*districts.length)].id;const spot=this.#freeSpot(next);if(spot){npc.district=next;npc.x=spot.x;npc.y=spot.y;}}
     const dirs:[number,number][]=[[1,0],[-1,0],[0,1],[0,-1]];const [dx,dy]=dirs[Math.floor(this.#o.random()*4)];npc.dx=dx;npc.dy=dy;npc.moveUntil=now+2000+this.#o.random()*5000;

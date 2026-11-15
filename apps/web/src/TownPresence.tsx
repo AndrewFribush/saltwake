@@ -71,9 +71,14 @@ export function useTownPresence(here:Here){
 }
 
 function OtherAvatar({player,cell}:{player:PresencePlayer;cell:number}){
- const prev=useRef(player);const jump=Math.abs(prev.current.x-player.x)+Math.abs(prev.current.y-player.y)>2;useEffect(()=>{prev.current=player;});
+ // Glide to the new tile over the time the walker took to get there (their own pace), so steps read as walking;
+ // a far hop (arriving through a gate) snaps instead.
+ const prev=useRef({x:player.x,y:player.y,at:performance.now(),dur:0});
+ const moved=prev.current.x!==player.x||prev.current.y!==player.y;const jump=moved&&Math.abs(prev.current.x-player.x)+Math.abs(prev.current.y-player.y)>2;
+ if(moved){const now=performance.now();prev.current={x:player.x,y:player.y,at:now,dur:jump?0:Math.min(1300,Math.max(180,now-prev.current.at))};}
+ const dur=prev.current.dur;const walking=moved||performance.now()-prev.current.at<dur;
  const x=player.x*cell+cell/2,y=player.y*cell+cell/2;
- return <g className={`presence-avatar ${jump?'jump':''}`} style={{transform:`translate(${x}px, ${y}px)`}} data-player={player.id}>
+ return <g className={`presence-avatar ${jump?'jump':''} ${walking?'walking':''}`} style={{transform:`translate(${x}px, ${y}px)`,transition:jump?'none':`transform ${dur}ms linear`}} data-player={player.id}>
   <g style={asLook(player.look)===undefined?{filter:`hue-rotate(${hue(player.id)}deg) saturate(1.3)`}:undefined}><CharacterSprite x={-22} y={-25} width={44} height={46} facing={player.facing} at={player} look={asLook(player.look)??0}/></g>
   <text className={`presence-name ${isNpc(player.id)?'npc':''}`} y={-26} textAnchor="middle">{playerLabel(player.id)}</text>
  </g>;

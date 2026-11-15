@@ -1,0 +1,31 @@
+/* Town ground, buildings and ambient life (art/town-ground.tsx, art/town-buildings.tsx). */
+.harbor-map .tw-ground,.harbor-map .tw-props{shape-rendering:auto}
+.harbor-map .tw-kerbs path{fill:none;stroke:#3a352a;stroke-width:12}
+.harbor-map .tw-kerbs-top path{fill:none;stroke:#a89d80;stroke-width:6;stroke-dasharray:9 1.6}
+.harbor-map .tw-glow,.harbor-map .tw-pool{mix-blend-mode:screen;pointer-events:none}
+.harbor-map .tw-door-pool{opacity:.7}
+
+/* Ambient loops: only when motion is welcome. */
+@media (prefers-reduced-motion:no-preference){
+ .harbor-map .tw-smoke circle{transform-box:fill-box;transform-origin:center;opacity:0;animation:tw-smoke 4.4s ease-out infinite}
+ .harbor-map .tw-glow{animation:tw-flicker 3.1s ease-in-out infinite}
+ .harbor-map .tw-pool{animation:tw-pool 3.1s ease-in-out infinite}
+ .harbor-map .tw-flame{transform-box:fill-box;transform-origin:50% 100%;animation:tw-flame .7s steps(2) infinite}
+ .harbor-map .tw-glint{animation:tw-glint 4s ease-in-out infinite;opacity:0}
+ .harbor-map .tw-boat{animation:tw-bob 3.6s ease-in-out infinite}
+ .harbor-map .tw-banner path:nth-of-type(1){transform-box:fill-box;transform-origin:50% 0;animation:tw-sway 5s ease-in-out infinite}
+}
+@keyframes tw-smoke{0%{opacity:0;transform:translate(0,0) scale(.6)}12%{opacity:.75}100%{opacity:0;transform:translate(9px,-46px) scale(2.1)}}
+@keyframes tw-flicker{0%,100%{opacity:.9}18%{opacity:.75}31%{opacity:1}47%{opacity:.82}63%{opacity:.95}79%{opacity:.7}}
+@keyframes tw-pool{0%,100%{opacity:.85}31%{opacity:1}79%{opacity:.7}}
+@keyframes tw-flame{50%{transform:scaleY(.8) scaleX(1.1)}}
+@keyframes tw-glint{0%,100%{opacity:0}45%{opacity:.75}60%{opacity:.2}}
+@keyframes tw-bob{50%{transform:translateY(1.5px)}}
+@keyframes tw-sway{50%{transform:skewX(3deg)}}
+
+/* Warm windows read brighter at dusk and night. */
+html[data-daypart=evening] .harbor-map .tw-window>:first-child,html[data-daypart=night] .harbor-map .tw-window>:first-child{fill:#ffd986;filter:drop-shadow(0 0 5px #ffb84a)}
+html[data-daypart=night] .harbor-map .tw-glow{transform-box:fill-box;transform-origin:center;scale:1.35}
+
+/* Video mode (?video=1): no developer chrome in the footage. */
+html[data-video] .saltwake>footer,html[data-video] .plot-tour-hint{display:none!important}

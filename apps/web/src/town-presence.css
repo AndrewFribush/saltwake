@@ -30,3 +30,5 @@
 .chat-safety{display:flex;gap:8px;align-items:center;font-size:11px;padding:2px 4px}.chat-manage{list-style:none;margin:0;padding:2px 4px;font-size:11px}
 
 .town-chat-log li.npc b{color:#b9b39a;font-weight:500}.town-chat-log .chat-where{font-style:normal;opacity:.6;font-size:10px;margin-right:4px}.town-chat-log .chat-where::after{content:' ›'}.presence-name.npc{opacity:.75}
+.presence-avatar.walking .hero-body{animation:sw-walk .36s steps(2) infinite}
+@keyframes sw-walk{from{transform:translateY(0)}to{transform:translateY(-2px)}}

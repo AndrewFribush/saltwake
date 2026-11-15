@@ -32,3 +32,7 @@
 .clock-sign{margin:0;font-size:.72rem;opacity:.8;font-style:italic}
 .townsfolk-name{font:500 10px/1 system-ui,sans-serif;fill:#cfc6ad;stroke:#10211b;stroke-width:3px;paint-order:stroke;font-style:italic}
 .district-post ul{margin:2px 0 6px;padding-left:16px;font-size:.8rem;display:grid;gap:3px}.district-post h4{margin:6px 0 2px}
+/* Town signs: compact plaques that sit on the roofline instead of floating over it. */
+.saltwake .town-field .place-sign{padding:3px 9px 4px;font-size:clamp(9px,.95vw,13px)!important;line-height:1.15;border-radius:2px}
+.saltwake .town-field .place-sign span{font-size:.72em;margin-top:1px;opacity:.9}
+.saltwake .town-field .place-sign.player-building{padding:2px 7px 3px;font-size:clamp(8px,.85vw,11px)!important}
