@@ -162,7 +162,7 @@ impl Economy {
     // Explicit extended seed issuance: market demo (170 credits, 19 items),
     // plus 6 reserved labor credits and 32 materials (8 herbs + 8 flasks each
     // for maker and bank). Total: 176 credits, 51 items. Two zero-asset workers,
-    // plus 140 coins for two sample makers (dredger, salvager).
+    // plus 190 coins for two sample makers (dredger, salvager).
     // Recipe transforms consume 4 input instances and issue exactly 2 outputs.
     #[init]
     #[private]
@@ -172,9 +172,9 @@ impl Economy {
         s.credits.insert("worker".into(), 0);
         s.credits.insert("worker2".into(), 0);
         // Two sample makers for the local demo town (scripts/demo-town.ts publishes their dungeons).
-        // Labelled demonstration supply: 140 coins, no goods. Not claimable as player profiles.
+        // Labelled demonstration supply: 190 coins, no goods. Not claimable as player profiles.
         s.credits.insert("dredger".into(), 60);
-        s.credits.insert("salvager".into(), 80);
+        s.credits.insert("salvager".into(), 130);
         for owner in ["maker", "bank"] {
             for (ty, prefix) in [(ItemType::Herb, "herb"), (ItemType::Flask, "flask")] {
                 for n in 0..8 {

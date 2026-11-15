@@ -21,7 +21,7 @@ async function scenario(){
   const s=await f.view(),byId=new Map<string,any>(s.items.map((i:any)=>[i.id,i]));
   assert.deepEqual(Object.keys(s.credits).sort(),Object.keys(initial.credits).sort(),'no new profiles');
   assert.equal(coinTotal(s),coinTotal(initial),'coins include both finite subsidy budgets, reserved wages and run escrow');
-  assert.equal(coinTotal(s),316n,'176 seeded + 140 for the two sample makers (dredger, salvager)');
+  assert.equal(coinTotal(s),366n,'176 seeded + 190 for the two sample makers (dredger, salvager)');
   assert.equal(byId.size,s.items.length,'unique goods instances');
   const outputs=s.batches.flatMap((b:any)=>b.output_ids);
   assert.deepEqual([...byId.keys()].sort(),[...initialTypes.keys(),...outputs].sort(),'only recorded recipe outputs may add instances; consumed goods remain recorded');
