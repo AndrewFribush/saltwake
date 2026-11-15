@@ -3,19 +3,20 @@
 import {validateCustomFloor,floorFormat,type CustomFloor} from '../../shared/src/custom-layout';
 import {depthReachable,featureCatalog,featureCost,enemyCost,defaultFeature,type Feature,type EnemyKind,type SupplyKind,type AltarBoon} from '../../shared/src/depth-components';
 import {defaultExitRule} from '../../shared/src/exit-rules';
+import {addSideRoom,connectLinear,type Dir} from './level-map';
 import type {CreatorPlacement} from '../../shared/src/creator-rewards';
 import type {Device} from '../../shared/src/mechanisms';
 type P={x:number;y:number};type Room={x:number;y:number;w:number;h:number};
 function rng(seed:number){let n=(seed>>>0)||1;return()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};}
 export type GeneratedDraft={floors:CustomFloor[];placements:CreatorPlacement[][]};
-export type GeneratorOptions={timed?:boolean;arena?:boolean;vaults?:boolean;floors?:number;width?:number;height?:number;danger?:1|2|3;treasure?:boolean;budget?:FloorBudget};
+export type GeneratorOptions={timed?:boolean;arena?:boolean;vaults?:boolean;rooms?:number;floors?:number;width?:number;height?:number;danger?:1|2|3;treasure?:boolean;budget?:FloorBudget};
 /** Per-floor caps used to keep generated drafts affordable. */
 export type FloorBudget={enemies:number;traps:number;treasure:number;featureCoins:number;tide:boolean};
 export type GeneratorPreset='small'|'medium'|'large';
 export const generatorPresets:Record<GeneratorPreset,{label:string;options:GeneratorOptions}>={
  small:{label:'Small · 1 floor',options:{floors:1,width:15,height:11,danger:1,budget:{enemies:2,traps:0,treasure:1,featureCoins:2,tide:false}}},
- medium:{label:'Medium · 2 floors',options:{arena:true,vaults:true,floors:2,width:19,height:12,danger:2,budget:{enemies:3,traps:1,treasure:1,featureCoins:7,tide:true}}},
- large:{label:'Large · 3 floors',options:{timed:true,arena:true,vaults:true,floors:3,danger:2}},
+ medium:{label:'Medium · 2 floors',options:{arena:true,vaults:true,rooms:1,floors:2,width:19,height:12,danger:2,budget:{enemies:3,traps:1,treasure:1,featureCoins:7,tide:true}}},
+ large:{label:'Large · 3 floors',options:{timed:true,arena:true,vaults:true,rooms:1,floors:3,danger:2}},
 };
 /** Placement coins and owned treasure goods a draft needs before it can open. */
 export function estimateDraft(d:GeneratedDraft):{coins:number;goods:number}{
@@ -203,6 +204,28 @@ export function generateDraft(seed:number,options:GeneratorOptions={}):Generated
    floors.splice(0,floors.length,...linked);placements.push(options.treasure===false?arena.placements.map(p=>({...p,reward:null})):arena.placements);break;
   }
  }
+ // Side rooms, drawn last so the main floors and the arena keep their layouts: every level becomes a small grid of
+ // rooms joined by walk-on passages, with the most choice on the first level. Each side room has its own encounters.
+ const sideRooms=Math.max(0,Math.min(3,options.rooms??0));
+ if(sideRooms){
+  if(floors.some(f=>f.links===undefined))connectLinear(floors);
+  for(let depth=0;depth<count;depth++){
+   const want=depth===0?sideRooms:Math.max(1,sideRooms-1);const sides:Dir[]=['E','W','N','S'].sort(()=>r()-.5) as Dir[];
+   for(let i=0;i<want&&sides.length;i++){
+    const dir=sides.shift()!;let made:ReturnType<typeof generateFloor>=null;
+    for(let attempt=0;attempt<20&&!made;attempt++)made=generateFloor(r,depth,count,15,11,Math.max(1,danger-1),false,false);
+    if(!made)continue;
+    // Side rooms stay cheap: a couple of guards, one prize, a few features, so a connected level costs a maker little more than a plain one.
+    const b=options.budget;trimFloor(made.floor,made.placements,{enemies:b?Math.max(2,b.enemies-1):2,traps:b?.traps??0,treasure:1,featureCoins:Math.min(b?.featureCoins??3,3),tide:false});
+    delete (made.floor as {tide?:unknown}).tide;made.floor.exit_rule={extract:true,require_clear:false};
+    let rewards=0;for(const p of made.placements)if(p.reward!==null&&rewards++>=1)p.reward=null; // one prize per side room
+    const added=addSideRoom(floors,depth,made.floor,dir);if('error' in added)continue;
+    placements.push(options.treasure===false?made.placements.map(p=>({...p,reward:null})):made.placements);
+   }
+  }
+  // Belt and braces: a side room whose generated passage landed badly is dropped rather than published unreachable.
+  for(const f of floors)if(validateCustomFloor(f,floorFormat(f)).length)throw Error('Could not generate connected rooms; try another seed.');
+ }
  return {floors,placements};
 }
 type ArenaFloor={floor:CustomFloor;placements:CreatorPlacement[]};
@@ -257,6 +280,6 @@ import {creatorRehearsal,authoredRehearsal,type RehearsalKit} from './authored-l
 import {solveReach,type SolveResult} from './solver';
 /** Synthetic practice on a generated draft. Nothing is funded and nothing carries home. */
 export function depthPractice(seed:number,kit:RehearsalKit='club'){
- const d=generateDraft(seed);const s=creatorRehearsal(d.floors,d.placements,kit,'tonic');
+ const d=generateDraft(seed,{arena:true,rooms:2});const s=creatorRehearsal(d.floors,d.placements,kit,'tonic');
  s.expeditionSeed=seed>>>0;s.log=['Practice descent on a generated layout. Supplies, springs and altars are part of the floor; nothing carries home.','Every floor allows escape. Deeper floors flood after a while: decide when to leave.'];return s;
 }
