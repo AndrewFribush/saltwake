@@ -173,8 +173,8 @@ test('generator arenas: a one-way drop into a sealed hall whose exit and onward 
  const {validateFloorGraph}=await import('../../shared/src/custom-layout');
  let arenas=0,played=0;
  for(let seed=1;seed<=20;seed++)for(const preset of ['medium','large'] as const){
-  const d=generateDraft(seed,generatorPresets[preset].options);if(!d.floors.some(f=>f.links))continue;arenas++;
-  const a=d.floors.length-1,from=d.floors.findIndex(f=>f.links!.some(l=>l.to===a));
+  const d=generateDraft(seed,generatorPresets[preset].options);const from=d.floors.findIndex(f=>(f.links??[]).some(l=>l.id==='drop'));if(from<0)continue;arenas++;
+  const a=d.floors[from].links!.find(l=>l.id==='drop')!.to;
   assert.deepEqual(validateFloorGraph(d.floors),[]);assert.ok(from>=0&&from<a);
   const drop=d.floors[from].links!.find(l=>l.to===a)!;assert.ok(oneWay(d.floors,from,drop),'no passage back');assert.ok(isSealedArena(d.floors,a));
   assert.ok(arenaSolvable(d.floors,a),`seed ${seed} ${preset}`);
