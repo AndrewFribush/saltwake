@@ -1,7 +1,7 @@
 import {signalValue} from '../../shared/src/mechanisms';
 import {catalog} from '../../shared/src/catalog';
 import {explore} from './roguelike';
-import {atClearedExit,canExtract,canContinue,enterRoom} from './generation';
+import {atClearedExit,canExtract,canContinue,enterRoom,nextRoomIndex} from './generation';
 import {inventoryAction,type InventoryAction} from './inventory';
 import {distance,walkable,attackDamage,type RunState} from './state';
 import {resolveEnemies} from './combat';
@@ -20,7 +20,7 @@ function resolveAction(s:RunState,a:Action):RunState {
   if(a.type==='extract'?!canExtract(s):!canContinue(s))return s;
   const n=structuredClone(s);n.turn++;
   if(n.exitRule!==undefined||a.type==='extract'&&n.rulesVersion===4)resolveEnemies(n,false);
-  if(n.status!=='died'){if(a.type==='extract'){n.status='extracted';n.log.push('Extracted safely.');}else enterRoom(n,n.roomIndex+1);}explore(n);
+  if(n.status!=='died'){if(a.type==='extract'){n.status='extracted';n.log.push('Extracted safely.');}else enterRoom(n,nextRoomIndex(n));}explore(n);
   return n;
  }
  if(s.depth&&(a.type==='interact'||a.type==='supply')){

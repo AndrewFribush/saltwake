@@ -1,3 +1,4 @@
+import {isDescent,linkSide,dirs,opposite} from './level-map';
 import {signalValue} from '../../shared/src/mechanisms';
 import {clockOn} from '../../shared/src/depth-components';
 import rooms from '../../../content/rooms.json';
@@ -10,7 +11,14 @@ export function enterRoom(s:RunState,index:number):boolean{
  const remembered=graph&&s.roomMemory?(index===s.roomIndex?{enemies:s.enemies,traps:s.traps,features:s.features,tiles:s.room,tideTurns:s.tideTurns}:s.roomMemory[index]):undefined;
  const enemies=structuredClone(remembered?.enemies??r.enemies) as Enemy[],traps=structuredClone(remembered?.traps??r.traps);
  const features=r.features!==undefined?structuredClone(remembered?.features??r.features):undefined,tiles=[...(remembered?.tiles??r.tiles)];
- const target={...s,room:tiles,devices:r.devices,features};let arrival={...r.spawn};
+ const target={...s,room:tiles,devices:r.devices,features};
+ // Arrive just inside the passage that leads back where you came from, so neighbouring rooms join up on the map;
+ // stairs and rooms without a way back still start at the arrival marker.
+ const back=graph&&index!==s.roomIndex?r.links!.find(l=>l.to===s.roomIndex&&!isDescent(l.id)):undefined;
+ let arrival={...r.spawn};
+ if(back){const [ix,iy]=dirs[opposite[linkSide(r,back)]];const onLink=(p:{x:number;y:number})=>r.links!.some(l=>l.x===p.x&&l.y===p.y);
+  const inward=[{x:back.x+ix,y:back.y+iy},...Object.values(dirs).map(([dx,dy])=>({x:back.x+dx,y:back.y+dy}))].find(p=>walkable(target,p)&&!onLink(p));
+  arrival=inward??{x:back.x,y:back.y};}
  if(graph&&enemies.some(e=>e.x===arrival.x&&e.y===arrival.y)){
   const queue=[arrival],seen=new Set([`${arrival.x},${arrival.y}`]);let free:typeof arrival|undefined;
   for(const p of queue){if(walkable(target,p)&&!enemies.some(e=>e.x===p.x&&e.y===p.y)){free=p;break;}for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){const x=p.x+dx,y=p.y+dy,key=`${x},${y}`;if(walkable(target,{x,y})&&!seen.has(key)){seen.add(key);queue.push({x,y});}}}
@@ -29,7 +37,11 @@ export function enterRoom(s:RunState,index:number):boolean{
 export function atClearedExit(s:RunState){const r=(s.layout??rooms)[s.roomIndex];return !!r&&!s.enemies.length&&s.player.x===r.exit.x&&s.player.y===r.exit.y;}
 export const roomTitle=(s:RunState)=>(s.layout??rooms)[s.roomIndex]?.title??'Practice room';
 export const roomExit=(s:RunState)=>(s.layout??rooms)[s.roomIndex]?.exit;
-export const hasNextRoom=(s:RunState)=>s.connections===undefined&&s.roomIndex+1<(s.layout??rooms).length;
+/** The stairs of this room: in a connected layout, the descent passage; in a linear one, the next floor. */
+export const descentLink=(s:RunState)=>s.connections?.find(l=>isDescent(l.id)&&l.to!==s.roomIndex&&(!l.require_clear||!s.enemies.length));
+export const hasNextRoom=(s:RunState)=>s.connections===undefined?s.roomIndex+1<(s.layout??rooms).length:descentLink(s)!==undefined;
+/** Where the stairs lead when the player continues from the exit tile. */
+export const nextRoomIndex=(s:RunState)=>descentLink(s)?.to??s.roomIndex+1;
 export function practiceRun(armored=false){const s=createRun();enterRoom(s,0);
  addItem(s,{id:'town-tonic',type:'tonic',origin:'town',location:{kind:'bag'}});
  if(armored){addItem(s,{id:'town-armor',type:'armor',origin:'town',location:{kind:'armor'}});s.player.armor=true;}
