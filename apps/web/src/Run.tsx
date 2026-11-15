@@ -7,7 +7,8 @@ import {appendPlayEvent,type PlayTrace} from '../../../packages/game/src/play-ev
 import {freshLines} from './run-journal';
 import {lootHere,equipChoice,supplyTarget} from '../../../packages/game/src/controls';
 import {RunMinimap} from './RunMinimap';
-import {Pages,Reading} from './GamePanels';
+import {roomMap,type RoomMapInfo} from '../../../packages/game/src/room-map';
+import {isDescent,linkSide,dirName,type Dir} from '../../../packages/game/src/level-map';
 import {TileArt} from './tileset';
 import {Sprite} from './art/Sprite';
 import {ActorLayer,useRunFx} from './art/RunFx';
@@ -28,9 +29,14 @@ import {supplyTargetError,who} from '../../../packages/game/src/depth';
 import './depth.css';
 import {depthPractice} from '../../../packages/game/src/draft-generator';
 const clockLabel=(f:{channel:string;period:number;on:number;offset:number},turn:number)=>{const on=clockOn(f,turn);let n=1;while(n<f.period&&clockOn(f,turn+n)===on)n++;return `Tide clock · channel ${f.channel} ${on?'on':'off'}, flips in ${n} turn${n>1?'s':''} (${f.on} on / ${f.period-f.on} off)`;};
+const kindNames='powder crab|harbour watch|rat|sentry|brute|nest|charger|pursuer';
+/** Player-facing copy: engine ids ("pursuer #0", "rat #1.2") become "the pursuer"; sentences start with a capital. */
+export const pretty=(line:string)=>{const s=line.replace(new RegExp(`\\b(${kindNames}) (?:#[\\d.]+|\\([\\w-]+\\))`,'g'),'the $1');return s.charAt(0).toUpperCase()+s.slice(1);};
+const plainName=(e:Enemy)=>who(e).replace(/ (?:#[\d.]+|\([\w-]+\))$/,'');
+const featureHint:Record<string,string>={barrel:'bump or blast to light',crack:'bump to break',oil:'burns if lit',pit:'shove enemies in',fountain:'E to drink',altar:'E to bargain',cache:'step on it',key:'step on it',lock:'needs the key',plate:'stand on it',clock:'flips on a timer'};
 const featureLabel=(f:FeatureState,turn=0)=>f.kind==='clock'?clockLabel(f,turn):f.kind==='barrel'?`Powder keg${f.fuse?' · lit, bursts next turn':' · bump to light'}`:f.kind==='crack'?`Cracked wall · ${f.hp} bump${f.hp>1?'s':''} to break`:f.kind==='oil'?(f.burning?`Burning oil · ${f.burning} turns`:'Oil slick · flammable'):f.kind==='pit'?'Chasm · shove enemies in':f.kind==='fountain'?`Salt spring · +${f.heal} health, ${f.charges} left`:f.kind==='altar'?`Blood altar · pay ${f.cost} health: ${altarBoons[f.boon]}`:f.kind==='cache'?`Supply cache · ${f.count} × ${supplyCatalog[f.supply].name}`:f.kind==='key'?`${f.color} key · step on it to pick up`:f.kind==='lock'?`${f.color} locked door · bump with a ${f.color} key`:`Pressure plate · channel ${f.channel} on while occupied`;
 
-export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;terminal:string|null;settlement:any;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean}}) {
+export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:ReturnType<typeof practiceRun>;send:(a:Action)=>void;busy:boolean;title:string;roomCount:number;roomMap?:RoomMapInfo[];terminal:string|null;settlement:any;network?:string;exit?:{x:number;y:number};canExtract?:boolean;canContinue?:boolean;hasNextRoom?:boolean}}) {
  const [local, set] = useState(()=>{const q=Number(new URLSearchParams(location.search).get('seed'));return depthPractice(Number.isSafeInteger(q)&&q>0?q:crypto.getRandomValues(new Uint32Array(1))[0]);});const s=remote?.state??local;
  const board = useRef<HTMLDivElement>(null);
  // Keys go to the board as soon as a run screen appears (including after a reload mid-run).
@@ -66,19 +72,26 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
  const visibleItems=Object.values(s.items).filter(i=>accessible(s,i));
  const ended=s.status!=='active'||!!remote?.terminal;
  const report=ended&&!remote?disposition(s,s.status==='died'?'died':'extracted'):null;
- const nameOf=(e:Enemy)=>who(e);
- const targets=visibleEnemies.map(e=>`${nameOf(e)}: ${enemyTelegraph(s,e)}`).join(' ');
+ const nameOf=(e:Enemy)=>{const n=plainName(e),twins=visibleEnemies.filter(o=>plainName(o)===n);return twins.length>1?`${n} ${twins.indexOf(e)+1}`:n;};
+ // Intent in player terms: no coordinates. "Moving to 9, 8" becomes closing in / backing off / prowling.
+ const intent=(e:Enemy)=>{const t=enemyTelegraph(s,e);if(/^Moving to/.test(t)){const d0=distance(e,s.player),d1=distance(e.intent,s.player);return d1<d0?'Closing in.':d1>d0?'Backing off.':'Prowling.';}return t.replace(/ at \d+, \d+/,' on the marked tile');};
  // Way-out cue: once no threat is in sight, point at the stairs (or say they are still unfound).
  const exitTile=remote?.exit??roomExit(s);const exitSeen=!!exitTile&&(!s.roguelike||!!s.explored?.includes(`${s.roomIndex}:${exitTile.x},${exitTile.y}`));
  const calm=!ended&&visibleEnemies.length===0;
- const wayOut=!calm||!exitTile?'':exitSeen?(s.player.x===exitTile.x&&s.player.y===exitTile.y?(canLeave||canGoDeeper?'You are on the stairs: escape or continue below.':'You are on the stairs, but this exit is not ready yet. Check the exit conditions.'):`The way out: stairs ${Math.abs(exitTile.y-s.player.y)?`${Math.abs(exitTile.y-s.player.y)} ${exitTile.y<s.player.y?'north':'south'}`:''}${Math.abs(exitTile.y-s.player.y)&&Math.abs(exitTile.x-s.player.x)?', ':''}${Math.abs(exitTile.x-s.player.x)?`${Math.abs(exitTile.x-s.player.x)} ${exitTile.x<s.player.x?'west':'east'}`:''} (glowing steps).`):'Stairs not found yet: explore the dark edges of the map.';
- const viewport=floorViewport(s.room[0].length,s.room.length,s.player.x-6,s.player.y-4);
+ // Way-out cue once nothing is in sight. The glowing steps are the way up (escape); the stairs down are a separate hatch beside them in the level's first room.
+ const descentHere=!!s.connections?.some(l=>isDescent(l.id)&&l.to!==s.roomIndex);
+ const dist=(a:{x:number;y:number},b:{x:number;y:number})=>{const dy=Math.abs(a.y-b.y),dx=Math.abs(a.x-b.x);return [dy?`${dy} ${a.y<b.y?'north':'south'}`:'',dx?`${dx} ${a.x<b.x?'west':'east'}`:''].filter(Boolean).join(', ');};
+ const wayOut=!calm||!exitTile?'':exitSeen?(s.player.x===exitTile.x&&s.player.y===exitTile.y?(canLeave&&canGoDeeper?'On the way up. X escapes with your finds; C takes the stairs down.':canLeave?`On the way up. X escapes with your finds.${descentHere?'':' The stairs down are in room A of this level.'}`:canGoDeeper?'On the stairs. C goes deeper.':'The way up is not ready yet.'):`Way up: ${dist(exitTile,s.player)} (glowing steps)${descentHere?', stairs down beside it':''}.`):'Way up not found yet. Explore the dark.';
+ const viewport=useDeadZoneCamera(s);
  const fx=useRunFx(s);
+ // Hit-stop: every actor animation freezes for ~110 ms when something dies, then the shake and puff play.
+ const [killStop,setKillStop]=useState(false);useEffect(()=>{if(!fx.kill)return;setKillStop(true);const t=setTimeout(()=>setKillStop(false),110);return()=>clearTimeout(t);},[fx.kill]);
+ const levelMap:RoomMapInfo[]|undefined=remote?.roomMap??roomMap(s);const levels=levelMap?.length?Math.max(...levelMap.map(m=>m.cell.level))+1:(remote?.roomCount??s.layout?.length??2);
  return <section className={`expedition ${compact?`compact-run run-tab-${compactTab.toLowerCase()}`:''}`}>
  {compact&&<nav className="studio-tabs" aria-label="Rehearsal sections">{(['Map','Bag','Journal'] as const).map(t=><button type="button" key={t} aria-pressed={compactTab===t} onClick={()=>setCompactTab(t)}>{t}</button>)}</nav>}
   <div>
-   <div className="status"><strong>{remote?.title??roomTitle(s)} · {s.roomIndex+1}/{remote?.roomCount??s.layout?.length??2}</strong><span>Health {s.player.hp}/12 · Turn {s.turn}{s.tide?` · ${(s.tideTurns??0)>=s.tide.turns?`Flooding −${s.tide.damage}/turn`:`Tide in ${s.tide.turns-(s.tideTurns??0)}`}`:''}{s.buffs?.might?` · Might +${s.buffs.might}`:''}{s.keys?.length?` · Keys: ${s.keys.join(', ')}`:''}{s.buffs?.ward?` · Ward +${s.buffs.ward}`:''}</span></div>
-   <div className={`board ${fx.shake?(fx.shake%2?'shake-a':'shake-b'):''}`} style={{gridTemplateColumns:`repeat(${viewport.columns},1fr)`,gridTemplateRows:`repeat(${viewport.rows},minmax(0,1fr))`,aspectRatio:`${viewport.columns}/${viewport.rows}`}} ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait. Select Shove mode to push instead of attack." onKeyDown={e=>{
+   <RunHud s={s} floors={levels} title={remote?.title??roomTitle(s)}/>
+   <div className={`board ${fx.shake?(fx.shake%2?'shake-a':'shake-b'):''} ${fx.kill?(fx.kill%2?'kill-a':'kill-b'):''} ${killStop?'kill-stop':''}`} style={{gridTemplateColumns:`repeat(${viewport.columns},1fr)`,gridTemplateRows:`repeat(${viewport.rows},minmax(0,1fr))`,aspectRatio:`${viewport.columns}/${viewport.rows}`}} ref={board} role="application" tabIndex={0} aria-label="Dungeon board. Arrow keys or WASD to move and attack. G guard, space wait. Select Shove mode to push instead of attack." onKeyDown={e=>{
     if(e.key==='Escape'&&aiming){e.preventDefault();setAiming(null);setNotice('');return;}
     const k=e.key.toLowerCase();const plain=!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.repeat;
     if(plain&&k==='v'&&canShove&&!ended){e.preventDefault();setShoving(!shoving);return;}
@@ -101,10 +114,10 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
      const loot=lit&&Object.values(s.items).some(i=>i.location.kind==='floor'&&i.location.room===s.roomIndex&&i.location.x===x&&i.location.y===y);
      const connection=s.connections?.find(l=>l.x===x&&l.y===y);
      const exit=remote?.exit??roomExit(s);const isExit=exit?.x===x&&exit?.y===y;
-     const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered exit':'remembered'):tile==='#'?'wall':player?'you':enemy?nameOf(enemy):trap?'spikes':loot?'loot':connection?`passage to floor ${connection.to+1}${connection.require_clear&&s.enemies.length?' · clear room first':''}${connection.to!==s.roomIndex&&!s.layout?.[connection.to]?.links?.some(l=>l.to===s.roomIndex)?' · one way, no return':''}`:isExit?'exit':'floor'}${feature?` · ${featureLabel(feature,s.floorTurn??0)}`:''}${hatch?' · rat hatching here':''}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
+     const label=`${x},${y} ${!seen?'unexplored':!lit?(isExit?'remembered way up':'remembered'):tile==='#'?'wall':player?'you':enemy?nameOf(enemy):trap?'spikes':loot?'loot':connection?`${isDescent(connection.id)?'stairs down':`doorway ${dirName[linkSide({tiles:s.room},connection)]}`} to ${s.layout?.[connection.to]?.title??`room ${connection.to+1}`}${connection.require_clear&&s.enemies.length?' · clear room first':''}${connection.to!==s.roomIndex&&!s.layout?.[connection.to]?.links?.some(l=>l.to===s.roomIndex)?' · one way, no return':''}`:isExit?'way up: escape here':'floor'}${feature?` · ${featureLabel(feature,s.floorTurn??0)}`:''}${hatch?' · rat hatching here':''}${device?` · ${deviceLabel(device)}`:''}${warning?' danger next turn':''}`;
      return <button key={`${x},${y}`} className={`tile ${(x*7+y*13)%5<2?'alt':''} ${!seen?'unexplored':!lit?'remembered':''} ${tile==='#'?'wall':''} ${player?'player':''} ${enemy?'enemy':''} ${warning?'warning':''} ${blasted?'blasted':''} ${threat} ${calm&&exitSeen&&isExit?'exit-cue':''} ${aiming&&lit?'aimable':''}`} tabIndex={-1} disabled={!seen||tile==='#'&&feature?.kind!=='crack'} aria-label={label} title={label} onClick={()=>click(x,y)}>
       {seen&&<TileArt wall={tile==='#'}/>}
-      {seen&&(lit||isExit||!!connection)&&(connection||isExit?<Sprite name={connection&&connection.to>s.roomIndex?'hatch':'stairs'} className={`tile-thing stairs-art ${connection?(connection.to>s.roomIndex?'passage down':'passage up'):''}`}/>:trap?<Sprite name={trap.armed?'spikesArmed':'spikesSafe'} className={`tile-thing spikes-art ${trap.armed?'armed':''}`}/>:null)}
+      {seen&&(lit||isExit||!!connection)&&(connection&&!isDescent(connection.id)?<Doorway dir={linkSide({tiles:s.room},connection)} open={!connection.require_clear||!s.enemies.length}/>:connection||isExit?<Sprite name={connection?'hatch':'stairs'} className={`tile-thing stairs-art ${connection?'passage down':''}`}/>:trap?<Sprite name={trap.armed?'spikesArmed':'spikesSafe'} className={`tile-thing spikes-art ${trap.armed?'armed':''}`}/>:null)}
       {feature&&<FeatureArt feature={feature} lit={lit} on={(feature.kind==='plate'||feature.kind==='clock')&&signalValue(s.signals,feature.channel)} turn={s.floorTurn??0}/>}
       {seen&&lit&&loot&&<Sprite name="loot" className="tile-thing loot-art"/>}
       {hatch&&<span aria-hidden="true" className="depth-hatch"/>}
@@ -113,21 +126,23 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
      </button>;
     }))}
     <ActorLayer s={s} fx={fx} visible={visible} viewport={viewport} danger={danger.has(`${s.player.x},${s.player.y}`)} ended={ended} dangerSet={danger} canLeave={canLeave}/>
+    {fx.kill>0&&<span key={fx.kill} className="kill-flash" aria-hidden="true"/>}
+    {!ended&&<RunMinimap s={s} map={levelMap} exit={exitTile??undefined}/>}
+    {ended&&<EndOverlay s={s} remote={remote} report={report??(remote&&!remote.terminal?safeDisposition(s):null)}/>}
    </div>
-   <RunMinimap s={s} roomCount={remote?.roomCount??s.layout?.length} exit={exitTile??undefined}/>
    <div className="controls key-prompts" aria-label="Actions available now">
     {!ended&&<>
-    {canShove&&<Key k="V" on={shoving}>Shove mode {shoving?'on':'off'}</Key>}
-    <Key k="G">Guard</Key><Key k="Space">Wait</Key>
-    {s.enemies.some(e=>distance(e,s.player)===1)&&<Key k="↑↓←→">{shoving&&canShove?'Shove':'Attack'} {s.enemies.filter(e=>distance(e,s.player)===1).map(nameOf).join(', ')}</Key>}
-    {s.depth&&(()=>{const f=featureAt(s,s.player);return f?.kind==='fountain'?<Key k="E" on={s.player.hp<12}>Drink spring +{f.heal}</Key>:f?.kind==='altar'?<Key k="E" on={s.player.hp>f.cost}>Blood pact: −{f.cost} health for {f.boon}</Key>:null;})()}
-    {s.depth&&(['bomb','dart','flash'] as SupplyKind[]).filter(k=>(s.supplies?.[k]??0)>0).map(k=><Key key={k} k={k==='bomb'?'B':k==='dart'?'N':'F'} on={k==='flash'||!!supplyTarget(s,k)}>{k==='flash'?'Use':'Throw'} {supplyCatalog[k].name.toLowerCase()} ×{s.supplies![k]}{k!=='flash'&&!supplyTarget(s,k)?' (no target)':''}</Key>)}
-    {canLeave&&<Key k="X">{s.exitRule!==undefined||s.rulesVersion===4?'Escape · enemies act':'Escape'}</Key>}
-    {(remote?(remote.hasNextRoom??false):hasNextRoom(s))&&canGoDeeper&&<Key k="C">Continue deeper</Key>}
-    {lootHere(s).length>0&&<Key k="T">Take {catalog[lootHere(s)[0].type].name.toLowerCase()}{bag.length>=6?' (bag full: drop first)':''}</Key>}
-    {(()=>{const drink=['fineTonic','tonic'].map(t=>bag.find(i=>i.type===t)).find(Boolean);return drink&&s.player.hp<12?<Key k="Q">Drink {catalog[drink.type].name.toLowerCase()}</Key>:null;})()}
+    {s.enemies.some(e=>distance(e,s.player)===1)&&<Key k="↑↓←→" primary>{shoving&&canShove?'Shove':'Attack'} {s.enemies.filter(e=>distance(e,s.player)===1).map(nameOf).join(', ')}</Key>}
+    {lootHere(s).length>0&&<Key k="T" primary>Take {catalog[lootHere(s)[0].type].name.toLowerCase()}{bag.length>=6?' (bag full: drop first)':''}</Key>}
+    {(remote?(remote.hasNextRoom??false):hasNextRoom(s))&&canGoDeeper&&<Key k="C" primary>Continue deeper</Key>}
+    {canLeave&&<Key k="X" primary={calm}>{s.exitRule!==undefined||s.rulesVersion===4?'Escape · enemies act':'Escape'}</Key>}
+    {s.depth&&(()=>{const f=featureAt(s,s.player);return f?.kind==='fountain'?<Key k="E" primary on={s.player.hp<12}>Drink spring +{f.heal}</Key>:f?.kind==='altar'?<Key k="E" primary on={s.player.hp>f.cost}>Blood pact: −{f.cost} health for {f.boon}</Key>:null;})()}
+    {(()=>{const drink=['fineTonic','tonic'].map(t=>bag.find(i=>i.type===t)).find(Boolean);return drink&&s.player.hp<12?<Key k="Q" primary={s.player.hp<=5}>Drink {catalog[drink.type].name.toLowerCase()}</Key>:null;})()}
     {(()=>{const g=equipChoice(s);return g?<Key k="R">Equip {catalog[g.type].name.toLowerCase()}</Key>:null;})()}
+    {s.depth&&(['bomb','dart','flash'] as SupplyKind[]).filter(k=>(s.supplies?.[k]??0)>0).map(k=><Key key={k} k={k==='bomb'?'B':k==='dart'?'N':'F'} on={k==='flash'||!!supplyTarget(s,k)}>{k==='flash'?'Use':'Throw'} {supplyCatalog[k].name.toLowerCase()} ×{s.supplies![k]}{k!=='flash'&&!supplyTarget(s,k)?' (no target)':''}</Key>)}
     {bag.some(i=>i.origin==='dungeon')&&<Key k="⌫">Drop {catalog[[...bag].reverse().find(i=>i.origin==='dungeon')!.type].name.toLowerCase()}</Key>}
+    <Key k="G">Guard</Key><Key k="Space">Wait</Key>
+    {canShove&&<Key k="V" on={shoving}>Shove: {shoving?'on':'off'}</Key>}
     </>}
    </div>
    <p className="legend">{s.roguelike&&<>{remote?'Uncharted descent':s.rulesVersion===4?'Experimental rules rehearsal':`Descent #${s.expeditionSeed}`}  · {s.exitRule===undefined&&<>{s.boon?`Shrine: ${s.boon}`:'No shrine blessing'} · </>}Unexplored ground is hidden.<br/></>}Gold cloak: you · Grey: rat · Tusks: charging boar ·{s.depth&&' Crossbow: sentry · Red shell: powder crab · Hulk: brute · Mound: nest · Keg, oil, chasm, spring, altar, cache are features · Gold edge: bolt line · Red edge: blast · Orange edge: brute smash ·'} Spikes: bright armed, dark safe · ◆ Loot · Steps: exit</p>
@@ -136,7 +151,7 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
    <section className="inventory" aria-label="Run inventory">
     <h2>Equipment & loot</h2><p>Bag {bag.length}/6 · Weapon: {s.player.weapon} · Armor: {s.player.armor?'equipped':'none'}</p>
     {(compact?visibleItems.slice(Math.min(itemPage,Math.max(0,visibleItems.length-1)),Math.min(itemPage,Math.max(0,visibleItems.length-1))+1):visibleItems).map(i=><div className="item" key={i.id} data-item-id={i.id}>
-     <span className="item-description"><ItemIcon type={i.type}/><strong>{catalog[i.type].name}</strong><small>{itemUse[i.type]}</small><small>{i.origin} · {i.location.kind} · {i.id}</small></span>
+     <span className="item-description"><ItemIcon type={i.type}/><strong>{catalog[i.type].name}</strong><small>{itemUse[i.type]}</small><small>{i.origin==='dungeon'?'found below':'from town'}{i.location.kind==='floor'?' · on the floor':''}</small></span>
      <div className="controls">
       <small className="item-keys">{i.location.kind==='floor'?'On the floor here: step on it or press T':isConsumable(i.type)?'Q drinks the best tonic':['club','sword','armor'].includes(i.type)&&!['weapon','armor'].includes(i.location.kind)?'R equips the best gear':i.origin==='dungeon'&&i.location.kind==='bag'?'⌫ drops the last find':''}</small>
      </div>
@@ -145,24 +160,30 @@ export function Run({remote,compact=false}:{compact?:boolean;remote?:{state:Retu
    </section>
   </div>
   <aside>
-   {!ended&&<h2>{remote?'Watch the shadows':s.enemies.length?'Read the threat':'Room cleared.'}</h2>}
-   {!ended&&<p>Moving into an enemy attacks it. Attacks deal {attackDamage(s)} damage ({s.player.weapon}). Each valid action spends a turn, including using or equipping loot.</p>}
-   <div className="turn-feedback" role="status" aria-live="polite">{wayOut&&<p className="way-out">{wayOut}</p>}<Reading text={`Health ${s.player.hp}. Position ${s.player.x}, ${s.player.y}. Turn ${s.turn}. ${s.exitRule!==undefined?exitHint(s)+' ':''}${notice} ${danger.has(`${s.player.x},${s.player.y}`)?'Your tile is marked for danger. Consider moving or guarding. ':''}${s.log.at(-1)??''} ${targets}`}/></div>
-   {!ended&&<Pages items={visibleEnemies} label="Visible enemies" render={e=><p key={e.id}><strong>{s.depth?who(e):`${enemyCatalog[e.kind??'pursuer'].name} ${e.id}`}</strong>: {e.hp} health · {Math.ceil(e.hp/attackDamage(s))} hits with {s.player.weapon}. {enemyTelegraph(s,e)}</p>}/>}
-   {s.depth&&(()=>{const fs=(s.features??[]).filter(f=>!f.spent&&visible.has(`${f.x},${f.y}`));return fs.length?<Pages items={fs} label="Visible features" render={f=><p>{featureLabel(f,s.floorTurn??0)} · {f.x},{f.y}. {featureCatalog[f.kind].summary}</p>}/>:null;})()}
-   {!!visibleDevices.length&&<Pages items={visibleDevices} label="Visible devices" render={d=><p>{deviceLabel(d)} · {d.x},{d.y}{d.kind==='switch'?' · Walk onto it to activate.':''}</p>}/>}
-   <ol className="run-log" ref={journalEl} aria-label="Journal: everything that happened this run, oldest first">{journal.map((e,i)=><li key={i} className={`${i===journal.length-1?'newest':''} ${i>0&&journal[i-1].turn!==e.turn?'turn-break':''}`}><small>T{e.turn}</small>{e.line}</li>)}</ol>
+   {!ended&&<h2>{remote?'Watch the shadows':visibleEnemies.length?'Read the threat':s.enemies.length?'Nothing in sight':'Room cleared'}</h2>}
+   <div className="turn-feedback" role="status" aria-live="polite">{!ended&&danger.has(`${s.player.x},${s.player.y}`)&&<p className="danger-cue">Incoming: this tile gets hit next turn. Move or guard.</p>}{wayOut&&<p className="way-out">{wayOut}</p>}{notice&&<p className="run-notice">{notice}</p>}{!ended&&s.exitRule!==undefined&&!canLeave&&!!exitTile&&s.player.x===exitTile.x&&s.player.y===exitTile.y&&<p className="way-out">{exitHint(s)}</p>}</div>
+   {!ended&&s.turn<4&&<p className="run-tutorial">Move into an enemy to attack it ({attackDamage(s)} damage with the {s.player.weapon}). Every action spends a turn.</p>}
+   {!ended&&visibleEnemies.length>0&&<ul className="threat-list" aria-label="Visible enemies">{visibleEnemies.slice(0,6).map(e=>{const hits=Math.ceil(e.hp/attackDamage(s)),pips=Math.min(12,Math.max(e.hp,e.minion?2:enemyCatalog[e.kind??'pursuer']?.hp??e.hp));return <li key={e.id} className={distance(e,s.player)===1?'hot':''}><strong>{nameOf(e)}</strong><span className="hp-pips" aria-label={`${e.hp} health`}>{Array.from({length:pips},(_,i)=><i key={i} className={i<e.hp?'on':''}/>)}</span><small>{hits} hit{hits>1?'s':''} to kill · {intent(e)}</small></li>;})}</ul>}
+   {!ended&&s.depth&&(()=>{const fs=(s.features??[]).filter(f=>!f.spent&&visible.has(`${f.x},${f.y}`));const grouped=new Map<string,{f:FeatureState;n:number}>();for(const f of fs){const l=featureLabel(f,s.floorTurn??0);const g=grouped.get(l);if(g)g.n++;else grouped.set(l,{f,n:1});}return fs.length?<ul className="threat-list features" aria-label="Visible features">{[...grouped].slice(0,6).map(([l,{f,n}])=>{const [name,...rest]=l.split(' · ');return <li key={l}><strong>{name}{n>1?` ×${n}`:''}</strong><small>{rest.join(' · ')||featureHint[f.kind]||''}</small></li>;})}</ul>:null;})()}
+   {!ended&&!!visibleDevices.length&&<ul className="threat-list features" aria-label="Visible devices">{visibleDevices.slice(0,6).map(d=>{const [name,...rest]=deviceLabel(d).split(': ');return <li key={`${d.x},${d.y}`}><strong>{name}</strong><small>{rest.join(': ')}{d.kind==='switch'?' · walk onto it':''}</small></li>;})}</ul>}
+   <ol className="run-log" ref={journalEl} aria-label="Journal: everything that happened this run, oldest first">{journal.map((e,i)=><li key={i} className={`${i===journal.length-1?'newest':''} ${i>0&&journal[i-1].turn!==e.turn?'turn-break':''} ${e.turn===0?'t0':''}`}><small>T{e.turn}</small>{pretty(e.line)}</li>)}</ol>
    {ended&&<RunSummary s={s} remote={remote} report={report??(remote&&!remote.terminal?safeDisposition(s):null)}/>}
-   {!remote&&<><div className="key-prompts"><Key k="P">New practice · tonic kit</Key><Key k="Shift+P">New practice · armor kit</Key><Key k="Y">Retry this seed</Key><Key k="L">Save practice record</Key><Key k="H">Return to the inn</Key></div>
-   <p className="legend">Practice uses synthetic gear. Create and rehearse your own floors at the guild. No gear carries between attempts. Town gear cannot be dropped. Found gear returns to the dungeon on death; used potions stay spent.</p></>}
-
-
+   {!remote&&<><div className="key-prompts practice-keys"><Key k="P">New run</Key><Key k="Shift+P">Armor kit</Key><Key k="Y">Retry seed</Key><Key k="L">Save trace</Key></div>
+   <p className="legend">Practice only: synthetic gear, nothing carries home.</p></>}
   </aside>
  </section>;
 }
 
+/** The settling transaction: a pill with the hash, linking to the explorer on a public network. Local sandboxes have no explorer. */
+export const explorerTx=(network:string|undefined,hash:string)=>network==='testnet'?`https://testnet.nearblocks.io/txns/${hash}`:network==='mainnet'?`https://nearblocks.io/txns/${hash}`:undefined;
+export function TxPill({hash,network,label='on-chain'}:{hash?:string|null;network?:string;label?:string}){
+ if(!hash)return null;const short=`${hash.slice(0,6)}…${hash.slice(-4)}`,href=explorerTx(network,hash);
+ const body=<><i className="tx-dot"/>{label} · <code>{short}</code>{href&&<span className="tx-arrow">↗</span>}</>;
+ return href?<a className="tx-pill" href={href} target="_blank" rel="noreferrer" title={`NEAR ${network} transaction ${hash}`}>{body}</a>:<span className="tx-pill" title={`Transaction ${hash}`}>{body}</span>;
+}
+
 /** A key prompt: what pressing it does right now. `on` false dims it (shown but not currently useful). */
-function Key({k,on=true,children}:{k:string;on?:boolean;children:React.ReactNode}){return <span className={`key-hint ${on?'':'off'}`}><kbd>{k}</kbd> {children}</span>;}
+function Key({k,on=true,primary=false,children}:{k:string;on?:boolean;primary?:boolean;children:React.ReactNode}){return <span className={`key-hint ${on?'':'off'} ${primary&&on?'primary':''}`}><kbd>{k}</kbd> {children}</span>;}
 
 const outcomeText:Record<string,[string,string]>={
  dungeonExtracted:['Carried out','Dungeon finds you brought home are now yours.'],dungeon_extracted:['Carried out','Dungeon finds you brought home are now yours.'],
@@ -174,17 +195,89 @@ const outcomeText:Record<string,[string,string]>={
 };
 function safeDisposition(s:ReturnType<typeof practiceRun>){try{return disposition(s,s.status==='died'?'died':'extracted');}catch{return null;}}
 /** End-of-run summary: how it ended, what came home, what was lost and why. */
-function RunSummary({s,remote,report}:{s:ReturnType<typeof practiceRun>;remote?:{terminal:string|null;settlement:any};report:Record<string,string[]>|null}){
+function RunSummary({s,remote,report}:{s:ReturnType<typeof practiceRun>;remote?:{terminal:string|null;settlement:any;network?:string};report:Record<string,string[]>|null}){
  const name=(id:string)=>s.items[id]?catalog[s.items[id].type].name:id;
  const real=!!remote?.terminal,disp:Record<string,string[]>|null=real?remote!.settlement?.disposition??null:report;
  const withheld:Record<string,number>=real?remote!.settlement?.withheldCounts??{}:{};
  const died=s.status==='died'||/died|expired|abandon/i.test(remote?.terminal??'');
- const groups=disp?Object.entries(disp).filter(([k,ids])=>ids.length||withheld[k]>0):[];
+ // Practice kits keep spare stock on the floor of rooms never entered; only what was on the delver is worth reporting.
+ const carried=(id:string)=>{const i=s.items[id];return !i||real?true:['bag','weapon','armor'].includes(i.location.kind);};
+ const groups=disp?Object.entries(disp).map(([k,ids])=>[k,ids.filter(carried)] as [string,string[]]).filter(([k,ids])=>ids.length||withheld[k]>0):[];
+ const named=(ids:string[])=>{const c=new Map<string,number>();for(const id of ids)c.set(name(id),(c.get(name(id))??0)+1);return [...c].map(([n,k])=>k>1?`${n} ×${k}`:n).join(', ');};
  return <section className="run-summary" aria-label="Run summary">
   <h2>{died?'You fell.':'You made it out.'}</h2>
-  <p>{died?`${s.killedBy?`Killed by ${s.killedBy}`:'Your run ended'} on floor ${s.roomIndex+1}, turn ${s.turn}.`:`Escaped from floor ${s.roomIndex+1} on turn ${s.turn} with ${s.player.hp} health.`}{s.depth&&s.supplies&&Object.values(s.supplies).some(n=>n)?' Unused supplies stay in the dungeon.':''}</p>
-  {real&&<p>Settlement: {remote!.settlement?.status??'Pending'}.{remote!.settlement?.status!=='Applied'&&' Goods stay locked until the chain confirms.'}</p>}
+  <p>{died?`${s.killedBy?pretty(`killed by ${s.killedBy}`):'Your run ended'} in ${roomTitle(s)}, turn ${s.turn}.`:`Escaped from ${roomTitle(s)} on turn ${s.turn} with ${s.player.hp} health.`}{s.depth&&s.supplies&&Object.values(s.supplies).some(n=>n)?' Unused supplies stay in the dungeon.':''}</p>
+  {real&&<p>Settlement: {remote!.settlement?.status??'Pending'}.{remote!.settlement?.status!=='Applied'&&' Goods stay locked until the chain confirms.'} <TxPill hash={remote!.settlement?.txHash} network={remote!.network}/></p>}
   {!real&&<p><small>{remote?'Rehearsal':'Practice'} only: nothing really moves.</small></p>}
-  {groups.length?<ul>{groups.map(([k,ids])=>{const [title,why]=outcomeText[k]??[k.replaceAll('_',' '),''];return <li key={k}><strong>{title}:</strong> {ids.map(name).join(', ')}{withheld[k]>0?`${ids.length?' + ':''}${withheld[k]} unseen item${withheld[k]>1?'s':''}`:''}. <small>{why}</small></li>;})}</ul>:disp?<p>No goods changed hands.</p>:null}
+  {groups.length?<ul>{groups.map(([k,ids])=>{const [title,why]=outcomeText[k]??[k.replaceAll('_',' '),''];return <li key={k}><strong>{title}:</strong> {named(ids)}{withheld[k]>0?`${ids.length?' + ':''}${withheld[k]} unseen item${withheld[k]>1?'s':''}`:''}. <small>{why}</small></li>;})}</ul>:disp?<p>No goods changed hands.</p>:null}
  </section>;
+}
+
+/** Dead-zone camera: the view only scrolls when the player comes within 2 tiles of an edge, then just enough to keep that margin.
+ * Recenters on a new floor, a new or retried run, or any jump of more than 2 tiles (teleport, passage, restart). */
+function useDeadZoneCamera(s:ReturnType<typeof practiceRun>){
+ const W=s.room[0].length,H=s.room.length,p=s.player;
+ const cam=useRef<{key:string;x:number;y:number;px:number;py:number}|null>(null);
+ const key=`${s.expeditionSeed??''}:${s.roomIndex}:${W}x${H}`;
+ const prev=cam.current;
+ let v=floorViewport(W,H,p.x-Math.floor(Math.min(13,W)/2),p.y-Math.floor(Math.min(9,H)/2));
+ if(prev&&prev.key===key&&Math.abs(prev.px-p.x)<=2&&Math.abs(prev.py-p.y)<=2&&s.turn>0){
+  const m=2;let {x,y}=prev;const cols=v.columns,rows=v.rows;
+  if(p.x<x+m)x=p.x-m;else if(p.x>x+cols-1-m)x=p.x-cols+1+m;
+  if(p.y<y+m)y=p.y-m;else if(p.y>y+rows-1-m)y=p.y-rows+1+m;
+  v=floorViewport(W,H,x,y);
+ }
+ cam.current={key,x:v.x,y:v.y,px:p.x,py:p.y};
+ return v;
+}
+
+/** The HUD strip over the board: floor, twelve heart pips (the ones just lost flash once), turn, tide, buffs and keys. */
+function RunHud({s,floors,title}:{s:ReturnType<typeof practiceRun>;floors:number;title:string}){
+ const hp=Math.max(0,s.player.hp),max=Math.max(12,hp);
+ const last=useRef(hp);const [change,setChange]=useState<{lo:number;hi:number;n:number;kind:'lost'|'gain'}>({lo:0,hi:0,n:0,kind:'lost'});
+ useEffect(()=>{const before=last.current;last.current=hp;if(hp===before)return;setChange(c=>({lo:Math.min(hp,before),hi:Math.max(hp,before),n:c.n+1,kind:hp<before?'lost':'gain'}));},[hp]);
+ const tideLeft=s.tide?s.tide.turns-(s.tideTurns??0):0;const flooding=!!s.tide&&tideLeft<=0;
+ return <div className="status run-hud" aria-label={`${title}, ${floors} ${floors===1?'level':'levels'} in all. Health ${hp} of 12. Turn ${s.turn}.`}>
+  <strong className="hud-floor" title={title}>{title} <small>of {floors} {floors===1?'level':'levels'}</small></strong>
+  <span className={`hud-hearts ${hp<=3?'low':''}`} role="img" aria-label={`Health ${hp} of 12`}>{Array.from({length:max},(_,i)=>{const moved=change.n>0&&i>=change.lo&&i<change.hi;return <i key={moved?`${i}-${change.n}`:i} className={`pip ${i<hp?'full':'empty'} ${moved?`pip-${change.kind}`:''}`}/>;})}<b>{hp}</b></span>
+  <span className="hud-right">
+   <span className="hud-chip">Turn <b>{s.turn}</b></span>
+   {s.tide&&<span className={`hud-chip tide ${flooding||tideLeft<=3?'urgent':''}`}>{flooding?`Flooding −${s.tide.damage}/turn`:`Tide in ${tideLeft}`}</span>}
+   {!!s.buffs?.might&&<span className="hud-chip might">Might +{s.buffs.might}</span>}
+   {!!s.buffs?.ward&&<span className="hud-chip ward">Ward +{s.buffs.ward}</span>}
+   {!!s.keys?.length&&<span className="hud-chip keys" title={`Keys: ${s.keys.join(', ')}`}>{s.keys.map(k=><i key={k} className="hud-key" style={{['--key' as string]:k}}/>)}{s.keys.length} key{s.keys.length>1?'s':''}</span>}
+  </span>
+ </div>;
+}
+
+/** End-of-run overlay over the board: a gold wash rising on escape, a red vignette closing on death, then the finds and the settlement. */
+function EndOverlay({s,remote,report}:{s:ReturnType<typeof practiceRun>;remote?:{terminal:string|null;settlement:any;network?:string};report:Record<string,string[]>|null}){
+ const real=!!remote?.terminal,disp:Record<string,string[]>|null=real?remote!.settlement?.disposition??null:report;
+ const died=s.status==='died'||/died|expired|abandon/i.test(remote?.terminal??'');
+ const pick=(...keys:string[])=>keys.flatMap(k=>disp?.[k]??[]);
+ // Practice kits carry spare stock that was never on the delver; only what was packed or found counts as left behind.
+ const packed=(id:string)=>{const i=s.items[id];return !i||remote?true:['bag','weapon','armor'].includes(i.location.kind);};
+ const ids=died?pick('townForfeited','town_forfeited','dungeonReturned','dungeon_returned').filter(packed):(disp?pick('dungeonExtracted','dungeon_extracted'):Object.values(s.items).filter(i=>i.origin==='dungeon'&&i.location.kind!=='floor').map(i=>i.id));
+ const counts=new Map<string,number>();for(const id of ids){const n=s.items[id]?catalog[s.items[id].type].name:id;counts.set(n,(counts.get(n)??0)+1);}
+ const finds=[...counts];
+ const lines:React.ReactNode[]=[];
+ if(finds.length)lines.push(<li key="finds" className={died?'lost':'gain'}><span className="end-label">{died?'Left behind':'Carried out'}</span>{finds.map(([n,c])=><span key={n} className="end-find">{n}{c>1&&<b> ×{c}</b>}</span>)}</li>);
+ else lines.push(<li key="finds"><span className="end-label">{died?'Nothing lost':'No finds'}</span>{died?'You carried nothing worth taking.':'You escaped empty-handed.'}</li>);
+ const kept=died?[]:pick('townReturned','town_returned');if(kept.length){const m=new Map<string,number>();for(const id of kept){const n=s.items[id]?catalog[s.items[id].type].name:id;m.set(n,(m.get(n)??0)+1);}lines.push(<li key="kept" className="kept"><span className="end-label">Gear kept</span>{[...m].map(([n,c])=><span key={n} className="end-find">{n}{c>1&&<b> ×{c}</b>}</span>)}</li>);}
+ if(real)lines.push(<li key="settle" className="settle"><span className="end-label">Settlement</span>{remote!.settlement?.status??'Pending'} <TxPill hash={remote!.settlement?.txHash} network={remote!.network}/></li>);
+ else lines.push(<li key="practice" className="note">{remote?'Rehearsal':'Practice'} only: nothing really moves.</li>);
+ return <div className={`end-overlay ${died?'died':'escaped'}`}>
+  <span className="end-wash" aria-hidden="true"/>
+  <div className="end-card">
+   <h3>{died?'You fell.':'You made it out.'}</h3>
+   <p className="end-sub">{died?`${s.killedBy?pretty(`killed by ${s.killedBy}`):'Your run ended'} in ${roomTitle(s)}`:`${roomTitle(s)} · turn ${s.turn} · HP ${s.player.hp}`}</p>
+   <ul className="end-lines">{lines}</ul>
+  </div>
+ </div>;
+}
+
+/** A side passage: an arch flush with the wall it leads through, with a chevron pointing the way. */
+function Doorway({dir,open}:{dir:Dir;open:boolean}){
+ const chevron={N:'▲',E:'▶',S:'▼',W:'◀'}[dir];
+ return <span className={`doorway side-${dir.toLowerCase()} ${open?'open':'barred'}`} aria-hidden="true"><span className="door-arch"/><span className="door-chevron">{chevron}</span></span>;
 }
