@@ -792,3 +792,25 @@ main.saltwake>.arrival:first-child>button{min-width:min(240px,100%)}
 .saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(6)::before{background:var(--sp-lockedDoor) center/100% no-repeat,var(--tx-floor-a) center/100% 100%}
 .saltwake [role=group][aria-label="Puzzle piece"] button:nth-child(7)::before{background:var(--sp-hatch) center/90% no-repeat,var(--tx-floor-a) center/100% 100%}
 .saltwake [role=group][aria-label="Puzzle piece"]{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+/* Combat presentation polish: first-sight name tags, slash arc, knockback, KILL word, loot fly (RunFx.tsx). */
+.saltwake .actor-layer .fx-nametag,.actor-layer .fx-nametag{position:absolute;left:50%;bottom:96%;z-index:10;display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 7px 3px;white-space:nowrap;pointer-events:none;background:linear-gradient(#2a1d0ce6,#160f06e6);border:1px solid #c9a95c;border-radius:999px;box-shadow:0 0 0 1px #000a,0 2px 6px #0009;color:#f3e2b0;transform:translateX(-50%);animation:sw-nametag 1.6s ease-out forwards}
+.actor-layer .fx-nametag b{font:800 clamp(9px,1.05vw,12px)/1.05 Georgia,'Iowan Old Style',serif;font-variant:small-caps;text-transform:lowercase;letter-spacing:.08em}
+.actor-layer .fx-nametag small{font:600 clamp(8px,.85vw,10px)/1 ui-monospace,Menlo,monospace;color:#ff9a6a;letter-spacing:.04em}
+.actor-layer .fx-nametag.below{bottom:auto;top:96%;animation-name:sw-nametag-below}
+@keyframes sw-nametag{0%{opacity:0;transform:translate(-50%,6px)}14%{opacity:1;transform:translate(-50%,0)}78%{opacity:1;transform:translate(-50%,-4px)}100%{opacity:0;transform:translate(-50%,-9px)}}
+@keyframes sw-nametag-below{0%{opacity:0;transform:translate(-50%,-6px)}14%{opacity:1;transform:translate(-50%,0)}78%{opacity:1;transform:translate(-50%,3px)}100%{opacity:0;transform:translate(-50%,7px)}}
+.fx-slash{position:absolute;z-index:8;pointer-events:none;transform:rotate(var(--sa,0deg))}
+.fx-slash i{position:absolute;inset:-14%;border-radius:50%;border:clamp(5px,.8vw,9px) solid transparent;border-right-color:#fff3c4;border-top-color:#ffe08a00;box-shadow:inset -3px 0 0 -1px #6b3d0e,4px 0 0 -2px #2a1405;filter:drop-shadow(0 0 4px #ffd75ecc) drop-shadow(1px 1px 0 #1a0d03);transform:rotate(-70deg) scale(.7);opacity:0;animation:sw-slash .22s ease-out forwards}
+@keyframes sw-slash{0%{opacity:0;transform:rotate(-80deg) scale(.6)}25%{opacity:1}70%{opacity:1;transform:rotate(40deg) scale(1.05)}100%{opacity:0;transform:rotate(60deg) scale(1.1)}}
+.actor-body.knock{animation:sw-knock .3s cubic-bezier(.2,.8,.3,1)}
+.actor-body.knock.lunge{animation:sw-knock .3s cubic-bezier(.2,.8,.3,1),sw-lunge .22s ease-out .3s}
+@keyframes sw-knock{0%{transform:none}30%{transform:translate(var(--kx),var(--ky))}100%{transform:none}}
+.fx-float.tone-kill{z-index:10;color:#ff9a4a;font:900 clamp(17px,2.6vw,28px)/1 Georgia,'Iowan Old Style',serif;letter-spacing:.06em;text-shadow:0 0 8px #ff5a1acc,2px 2px 0 #000,-1px -1px 0 #000;animation:sw-killword 1s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes sw-killword{0%{opacity:0;transform:translateY(-20%) scale(1.8)}14%{opacity:1;transform:translateY(-35%) scale(.92)}24%{transform:translateY(-40%) scale(1.06)}70%{opacity:1;transform:translateY(-70%) scale(1)}100%{opacity:0;transform:translateY(-100%) scale(1)}}
+.fx-lootfly{position:absolute;z-index:11;pointer-events:none;display:grid;place-items:center;animation:sw-lootfly .65s cubic-bezier(.55,0,.85,.4) forwards}
+.fx-lootfly>*{width:70%;height:70%;filter:drop-shadow(0 0 6px #ffd75e) drop-shadow(1px 2px 0 #000)}
+.fx-lootfly .actor-sprite{position:relative;inset:auto}
+@keyframes sw-lootfly{0%{transform:translate(0,-10%) scale(1.25);opacity:1}18%{transform:translate(0,-35%) scale(1.3)}100%{transform:translate(var(--fx),var(--fy)) scale(.35);opacity:0}}
+@media(prefers-reduced-motion:reduce){.actor-layer .fx-nametag{animation:sw-fade-tag 1.6s steps(1) forwards}.fx-slash,.fx-lootfly{display:none}.actor-body.knock{animation:none}.fx-float.tone-kill{animation:sw-float .95s ease-out forwards}}
+@keyframes sw-fade-tag{100%{opacity:0}}

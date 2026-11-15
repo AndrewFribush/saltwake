@@ -46,8 +46,9 @@
 .craft-fill{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}
 .craft-have{font-size:12px;color:#d6cba5;margin:2px 0}
 .first-steps p{text-align:left!important;max-width:none!important}
-/* Chat sits in the bottom-left corner so it never covers building signs along the top row. */
-.town-field .town-chat{top:auto;bottom:6px;width:min(320px,34%)}
+/* Chat sits in the bottom-left corner so it never covers building signs along the top row, narrow enough to clear the Copper Kettle. */
+.town-field .town-chat{top:auto;bottom:6px;width:min(270px,27%)}
+.town-field .town-chat .town-chat-log{max-height:96px}
 .craft-sub{font:15px Georgia;color:#e2c783;margin:10px 0 2px}
 .craft-result{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid #9fc27a;border-radius:4px;background:#24402f;margin:6px 0}
 .craft-result .item-icon{width:44px;height:44px;flex:none}
@@ -219,3 +220,19 @@
 .danger-calm{background:#5d8a5a;color:#fff}.danger-light{background:#8aa35a;color:#142522}.danger-dangerous{background:#d0a050;color:#142522}.danger-deadly{background:#c0614f;color:#fff}
 .first-steps .start-here{color:#e2c783}
 .first-steps .later-heading{font:600 11px/1.4 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#9fb0a0;margin-top:6px}
+/* Town chat rests as a two-line strip in the corner (head + newest line) so it never hides a building; hover, focus or typing expands it. */
+.town-field .town-chat{transition:max-height .25s ease,box-shadow .25s ease}
+.town-field .town-chat:not(:hover):not(:focus-within) .town-chat-log{max-height:2.8em;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding-top:0;padding-bottom:3px}
+.town-field .town-chat:not(:hover):not(:focus-within) .town-chat-log li:not(:last-child){display:none}
+.town-field .town-chat:not(:hover):not(:focus-within) .town-chat-send,.town-field .town-chat:not(:hover):not(:focus-within) .chat-safety{display:none}
+.town-field .town-chat:not(:hover):not(:focus-within){opacity:.92}
+.town-field .town-chat:not(:hover):not(:focus-within) .town-chat-log li:last-child{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.town-field .town-chat:not(:hover):not(:focus-within) .town-chat-log{justify-content:flex-start;max-height:3em}
+/* Builder overview: one grid per level, "+" on the free sides of the room being edited. */
+.overview-levels{display:flex;flex-wrap:wrap;gap:14px 22px;margin:6px 0 2px}
+.overview-level h4{margin:0 0 4px;font-size:12px;color:#efe3c2;font-weight:600;letter-spacing:.02em}
+.overview-level .grid-map .overview-map{position:relative;width:100%;height:100%;display:grid;place-items:center;border:1px solid #3d4f45;border-radius:4px}
+.overview-level .grid-map .overview-map.current{border-color:#d0b470;box-shadow:0 0 0 1px #d0b47066}
+.overview-level .grid-map .mini-map{width:100%}
+.gm-add{width:28px;height:28px;border:1px dashed #7d8f86!important;border-radius:4px;background:transparent!important;color:#c9bd9c;font-size:16px;line-height:1;padding:0!important;cursor:pointer}
+.gm-add:hover{border-color:#e2c783!important;color:#e2c783}

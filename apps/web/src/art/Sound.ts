@@ -3,7 +3,7 @@
  * Game code never calls this directly: art components emit `saltwake:sfx` events, and a few HUD/DOM
  * observers cover the rest. Nothing here reads or changes game state. */
 
-export type Sfx='step'|'coin'|'coinIn'|'bubble'|'door'|'hit'|'hurt'|'blast'|'death'|'tide'|'slam'|'pickup'|'open';
+export type Sfx='step'|'coin'|'coinIn'|'bubble'|'door'|'hit'|'hurt'|'blast'|'death'|'tide'|'slam'|'pickup'|'open'|'kill';
 const KEY='saltwake.sound';
 type Settings={on:boolean;vol:number};
 function load():Settings{try{const s=JSON.parse(localStorage.getItem(KEY)??'null');if(s&&typeof s.on==='boolean'&&typeof s.vol==='number')return {on:s.on,vol:Math.min(1,Math.max(0,s.vol))};}catch{}return {on:false,vol:.5};}
@@ -40,6 +40,7 @@ const play:Record<Sfx,()=>void>={
  slam:()=>{tone('sine',90,40,.25,.45);noise(.18,.3,'lowpass',900,120,1);},
  pickup:()=>{tone('square',880,880,.05,.06);tone('square',1320,1320,.08,.06,.05);},
  open:()=>{tone('sine',220,330,.6,.12);tone('sine',330,495,.8,.08,.15);},
+ kill:()=>{noise(.12,.22,'bandpass',2600,500,1.4);tone('square',740,1110,.07,.06,.04);tone('sine',110,38,.22,.4);},
 };
 
 function startAmbient(){
